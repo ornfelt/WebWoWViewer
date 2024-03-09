@@ -322,6 +322,10 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
     $scope.status = {};
     $scope.status.isopen = false;
 
+    // Preselect the first option
+    var firstOption = $scope.selectionOptions.predefined[0];
+    $scope.selectMode(firstOption);
+
     $scope.selectMode = function (value) {
         $scope.selectedValue = value;
         $scope.selectedSource = value.source;
@@ -334,6 +338,7 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
 
 
     $scope.startApplication = function () {
+        console.log("hello");
         configService.setUrlToLoadWoWFile($scope.params.urlForLoading);
         $scope.params.zipUrl = configService.getArchiveUrl();
         $scope.params.downLoadProgress = 0;
@@ -353,6 +358,13 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
             $scope.isReadyForStart = true;
         }
     })
+
+    console.log("hello111");
+    // Automatically call startApplication
+    if ($scope.selectedModeName !== "Please select mode") {
+        $scope.startApplication();
+    }
+
 }]);
 
 main.config(['$provide', '$httpProvider', function ($provide, $httpProvider) {

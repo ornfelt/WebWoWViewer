@@ -1,3 +1,4 @@
 .idea
 deploy_key.enc
 deploy_key
+node_modules/
