@@ -5,6 +5,8 @@ import configService from './services/config.js';
 import './directives/wowJsRenderDirective.js';
 import './directives/fileDownload.js';
 
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 var main = angular.module('main.app',
     [
         'main.directives.wowJsRender',
@@ -14,6 +16,7 @@ var main = angular.module('main.app',
     ]);
 
 main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
+    console.log("Hello world");
     $scope.isReadyForStart = false;
     $scope.isReadyForDownload = false;
 
@@ -48,6 +51,16 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
                 name: 'Raw coordinates',
                 source: 'http',
                 sceneType: 'customMap'
+            },
+            {
+                name: 'Shattrath city (WotLK)',
+                source: 'http',
+                sceneType: 'map',
+                mapId: 530,
+                mapName: 'Expansion01',
+                x: -1663,
+                y: 5098,
+                z: 27
             },
             {
                 name: 'Azeroth adt 31-31',
@@ -322,10 +335,6 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
     $scope.status = {};
     $scope.status.isopen = false;
 
-    // Preselect the first option
-    var firstOption = $scope.selectionOptions.predefined[0];
-    $scope.selectMode(firstOption);
-
     $scope.selectMode = function (value) {
         $scope.selectedValue = value;
         $scope.selectedSource = value.source;
@@ -335,15 +344,19 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
         configService.setFileReadMethod(value.source);
     };
 
-
+    // Preselect some option
+    var firstOption = $scope.selectionOptions.custom[1];
+    $scope.selectMode(firstOption);
 
     $scope.startApplication = function () {
-        console.log("hello");
+        console.log("startApplication called");
         configService.setUrlToLoadWoWFile($scope.params.urlForLoading);
+        console.log("url set: " + $scope.params.urlForLoading);
         $scope.params.zipUrl = configService.getArchiveUrl();
         $scope.params.downLoadProgress = 0;
 
         configService.setSceneParams($scope.selectedValue);
+        console.log("selected value: " + $scope.selectedValue.name + ", source: " + $scope.selectedValue.source);
 
         $scope.isReadyForDownload = configService.getFileReadMethod() == "zip" ;
         $scope.isReadyForStart = configService.getFileReadMethod() == "http" ;
@@ -359,11 +372,10 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
         }
     })
 
-    console.log("hello111");
     // Automatically call startApplication
-    if ($scope.selectedModeName !== "Please select mode") {
-        $scope.startApplication();
-    }
+    //if ($scope.selectedModeName !== "Please select mode") {
+    //    $scope.startApplication();
+    //}
 
 }]);
 

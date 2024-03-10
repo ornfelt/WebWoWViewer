@@ -6,7 +6,7 @@ Q.setScheduler(function(fn) {
 });
 
 self.addEventListener('message', function(e) {
-    //console.log("Worker got message = "+e);
+    console.log("Worker got message = "+e);
     var opcode = e.data.opcode;
     var message = e.data.message;
     var messageId = e.data.messageId;

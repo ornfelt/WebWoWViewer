@@ -1,5 +1,6 @@
-var urlToLoadWoWFile = '/get/';
-var readFileMethod = 'zip';
+//var urlToLoadWoWFile = '/get/';
+var urlToLoadWoWFile = 'http://127.0.0.1:3002/files/';
+var readFileMethod = 'http';
 var archiveUrl = 'http://deamon87.github.io/WoWFiles/shattrath.zip';
 
 var archiveFile = null;

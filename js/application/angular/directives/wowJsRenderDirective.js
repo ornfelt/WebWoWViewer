@@ -2,8 +2,9 @@ import angular from 'angular';
 import Scene from './../wowRenderJs/scene.js';
 import config from './../services/config.js';
 
-import 'hammerjs';
-import 'imports?window=>global!hammerjs';
+//import 'hammerjs';
+import 'imports-loader?window=>global!hammerjs';
+//import 'imports?window=>global!hammerjs';
 import 'hammer-timejs';
 
 var events = function (element, camera) {

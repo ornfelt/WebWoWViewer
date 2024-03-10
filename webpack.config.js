@@ -1,72 +1,85 @@
-var BowerWebpackPlugin = require("bower-webpack-plugin");
-var webpack = require("webpack");
-var path = require('path');
-
+const path = require('path');
+const webpack = require("webpack");
 
 module.exports = {
-    debug: true,
-    devtool: 'sourcemap',
-
+    stats: {
+        children: true,
+    },
+    mode: 'development',
+    devtool: 'source-map',
     context: __dirname,
-
-    entry: ['bootstrap-loader', "./js/application/angular/app_wowjs.js"],
-
+    entry: "./js/application/angular/app_wowjs.js", // Simplified entry point
 
     output: {
-        path: 'build',
+        path: path.resolve(__dirname, 'build'),
         filename: "[name].js",
-        library: "[name]"
+        publicPath: '/build/',
     },
+
     resolve: {
-        extensions: ['', '.js', '.jsx','.glsl'],
-        root: [
+        extensions: ['.js', '.jsx', '.glsl'],
+        modules: [
             path.resolve('./js/application/angular'),
             path.resolve('./glsl/'),
-            path.resolve('./js/lib/bower')
-        ]
-
+            'node_modules' // Ensure 'node_modules' is correctly listed for package resolution
+        ],
     },
 
     module: {
-        loaders: [
+        rules: [
             {
                 test: /\.js?$/,
-                loader: 'babel',
-                exclude: [/node_modules/, /zip.js/, /text-encoding/ ],
-                query: {
-                    presets: ['es2015']
-                }
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env']
+                    }
+                },
+                exclude: [/node_modules/]
             },
-            {
-                test: /\.glsl?$/,
-                loader: 'raw'
-            },
-            {
-                test: /\.glsl?$/,
-                loader: 'glslify'
-            },
-            { test: /\.css$/, loader: "style-loader!css-loader" },
             {
                 test: /\.scss$/,
-                loaders: ["style", "css", "sass"]
+                use: [
+                    "style-loader", // Injects CSS into the DOM
+                    "css-loader", // Translates CSS into CommonJS
+                    "resolve-url-loader", // Resolves relative paths in url() statements
+                    {
+                        loader: "sass-loader", // Compiles Sass to CSS
+                        options: {
+                            sourceMap: true, // Required for resolve-url-loader to resolve URLs
+                        },
+                    },
+                ],
             },
-            { test: /\.woff$/,   loader: "url-loader?limit=10000&minetype=application/font-woff" },
-            { test: /\.woff2$/,  loader: "url-loader?limit=10000&minetype=application/font-woff" },
-            { test: /\.ttf$/,    loader: "file-loader" },
-            { test: /\.eot$/,    loader: "file-loader" },
-            { test: /\.svg$/,    loader: "file-loader" },
-            { test: /\.json$/,   loader: 'json' }
-        ]
+            {
+                test: /\.(woff|woff2|eot|ttf|svg)$/,
+                use: [
+                    {
+                        loader: 'file-loader',
+                        options: {
+                            name: '[name].[ext]',
+                            outputPath: 'fonts/', // Customize this path based on your build output directory
+                        },
+                    },
+                ],
+            },
+            {
+                test: /\.glsl$/,
+                use: 'raw-loader'
+            },
+            {
+                test: /\.css$/,
+                use: [
+                    'style-loader', // Adds CSS to the DOM by injecting a `<style>` tag
+                    'css-loader' // Interprets `@import` and `url()` like `import/require()` and will resolve them
+                ]
+            }
+        ],
     },
 
-    plugins: [
-        new webpack.ResolverPlugin(
-            new webpack.ResolverPlugin.DirectoryDescriptionFilePlugin(".bower.json", ["main"])
-        )
-    ],
     devServer: {
-        contentBase: '.',
-        stats: 'minimal'
-    }
+        static: '.',
+        compress: true,
+        port: 8888,
+    },
 };
-
