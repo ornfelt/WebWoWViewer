@@ -100,6 +100,18 @@ class MDXObject {
 
     setLoadParams (modelName, skinNum, meshIds, replaceTextures) {
         this.modelName = modelName;
+
+        // HEHE
+        ////this.modelName = "spells\\fireball_missile_low.m2";
+        //this.modelName = "spells\\blizzard_impact_base.m2";
+        //const randomNumber = Math.random();
+
+        //if (randomNumber <= 0.5) {
+        //    //this.modelName = "spells\\blizzard_spawn.m2";
+        //    //this.modelName = "chainlightning_impact_chest.m2";
+        //}
+
+        //console.log("LOADING M2: " + this.modelName);
         this.skinNum = skinNum;
         this.meshIds = meshIds;
         this.replaceTextures = replaceTextures;

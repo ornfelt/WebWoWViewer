@@ -29,7 +29,7 @@
           "speedFlyBack": 4.5,
           "speedTurnRate": 3.1415927410125732,
           "curr_time": 1000,
-          "total_time": 30000,
+          "total_time": 8000,
             "points": [
                 {"x": -1663, "y": 5098, "z": 27},
                 {"x": -1600, "y": 5100, "z": 30},
