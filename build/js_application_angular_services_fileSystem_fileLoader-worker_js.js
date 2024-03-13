@@ -18,7 +18,7 @@ bluebird__WEBPACK_IMPORTED_MODULE_1___default().setScheduler(function (fn) {
   fn();
 });
 self.addEventListener('message', function (e) {
-  console.log("Worker got message = " + e);
+  //console.log("Worker got message = "+e);
   var opcode = e.data.opcode;
   var message = e.data.message;
   var messageId = e.data.messageId;
@@ -78,17 +78,22 @@ __webpack_require__.r(__webpack_exports__);
 
 /* harmony default export */ function __WEBPACK_DEFAULT_EXPORT__(configService) {
   function fileLoader(filePath) {
-    console.log("fileLoaderStub filePath: " + filePath);
-    // Adjust the filePath if it ends with a null character
-    if (filePath[filePath.length - 1] === String.fromCharCode(0)) {
-      filePath = filePath.substring(0, filePath.length - 1);
-    }
-
-    // Ensure the filePath is in lowercase and replace backslashes with forward slashes
-    filePath = filePath.toLowerCase().replace(/\\/g, "/");
+    filePath = "http://127.0.0.1:3002/files/" + filePath.toLowerCase();
+    //console.log("fileLoaderStub filePath: "+filePath);
+    //// Adjust the filePath if it ends with a null character
+    //if (filePath[filePath.length - 1] === String.fromCharCode(0)) {
+    //    filePath = filePath.substring(0, filePath.length - 1);
+    //}
+    //
+    //// Ensure the filePath is in lowercase and replace backslashes with forward slashes
+    //filePath = filePath.toLowerCase().replace(/\\/g, "/");
 
     // Construct the full URL to load the file
-    var fullPath = configService.getUrlToLoadWoWFile() + filePath;
+    //const fullPath = configService.getUrlToLoadWoWFile() + filePath;
+    var fullPath = filePath;
+    if (typeof self !== 'undefined' && !self.window) {
+      self.window = self; // Mock window using self in Web Worker
+    }
 
     // Use axios to fetch the file as an array buffer
     return axios__WEBPACK_IMPORTED_MODULE_0___default().get(fullPath, {

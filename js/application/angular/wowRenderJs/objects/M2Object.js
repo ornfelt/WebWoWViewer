@@ -330,6 +330,8 @@ class MDXObject {
            var self = this;
            var mdxObject = this.m2Geom;
            var skinObject = this.skinGeom;
+           if (!replaceTextures)
+               replaceTextures = new Array();
 
            /* 1. Free previous subMeshArray */
 

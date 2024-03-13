@@ -4,11 +4,13 @@ import WorldGameObject from '../objects/worldObjects/worldGameObject.js'
 //import packetList from '../../../mountedNpc.json'
 //import packetList from '../../../47EC8D2E.json'
 //import packetList from '../../../npc_wood.json'
-//import packetList from '../../../player.json'
+import packetList from '../../../player.json'
 //import packetList from '../../../player2.json'
+//import packetList from '../../../penguin.json'
+//import packetList from '../../../proto.json'
 //import packetList from '../../../packet.json'
 //import packetList from '../../../attacketdMinion1.json'
-let packetList = [];
+//let packetList = [];
 import {vec3} from 'gl-matrix'
 
 
@@ -25,8 +27,10 @@ class WorldObjectManager {
         /* 1. Load the next portion of packets */
         if (this.playPackets) {
             this.serverTime += deltaTime;
-
             this.clientTime += deltaTime;
+
+            //console.log("servertime: " + this.serverTime);
+            //console.log("clientTime: " + this.clientTime);
 
             for (var i = this.lastPacketIndex; i < packetList.length; i++) {
                 if (this.clientTime > packetList[i].tickcount) {
@@ -43,6 +47,22 @@ class WorldObjectManager {
             if (this.objectMap.hasOwnProperty(field)) {
                 this.objectMap[field].update(deltaTime, cameraPos, viewMat);
             }
+        }
+
+        //console.log("Update! cameraPos: " + cameraPos);
+        //console.log("cameraPos: " + cameraPos);
+        //console.log("cameraPos: " + cameraPos[0]);
+        //console.log("type: " + typeof(cameraPos));
+        if (this.objectMap[17786964]) {
+            var vectorArray = new Array();
+            //vectorArray[0] = cameraPos[0]+10;
+            //vectorArray[1] = cameraPos[1]-10;
+
+            vectorArray[0] = cameraPos[0]-15;
+            vectorArray[1] = cameraPos[1]+15;
+            vectorArray[2] = cameraPos[2]-8;
+            //console.log("Update playerpos: " + vectorArray);
+            this.objectMap[17786964].setPosition(vectorArray);
         }
     }
 
@@ -62,7 +82,6 @@ class WorldObjectManager {
                     }*/
 
                     if (this.objectMap[guid]) continue;
-
 
                     if (update.obj_type == 3 || update.obj_type == 4) {
                         //Player + unit;

@@ -266,10 +266,14 @@ wowJsRender.directive('wowJsRender', ['$log', '$timeout', '$interval', '$window'
                     });
 
                 } else if (sceneParams.sceneType == 'm2') {
+                    console.log("m2 scenetype!");
+                    console.log("modelName: " + sceneParams.modelName);
+
                     var m2Object = sceneObj.loadM2File({
                         fileName : sceneParams.modelName,
                         uniqueId : 0,
-                        pos      : {x : 0 + 17066.666666656, y : 0, z : 0 + 17066.666666656},
+                        //pos      : {x : 0 + 17066.666666656, y : 0, z : 0 + 17066.666666656},
+                        pos      : {x : 0 + 0, y : 0, z : 0 },
                         rotation : {x : 0, y : 0, z : 0},
                         scale    : 1024
                     });

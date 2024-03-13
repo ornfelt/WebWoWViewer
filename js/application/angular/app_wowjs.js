@@ -263,7 +263,6 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
                 z: 1474
             },
 
-
             {
                 name: 'Forsaken start',
                 source: 'http',
@@ -326,7 +325,19 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
                 sceneType: 'm2',
                 modelName: 'WORLD\\EXPANSION02\\DOODADS\\CRYSTALSONGFOREST\\BUBBLE\\CAMOUFLAGEBUBBLE_CRYSTALSONG.m2'
             },
-
+            {
+                name: 'Test fireball',
+                source: 'http',
+                sceneType: 'm2',
+                modelName: 'spells\\fireball_missile_low.m2'
+            },
+            {
+                name: 'Penguin',
+                source: 'http',
+                sceneType: 'm2',
+                modelName: 'creature/northrendpenguin/northrendpenguin.m2',
+                cameraIndex: 0
+            },
 
         ]
     };
@@ -346,6 +357,8 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
 
     // Preselect some option
     var firstOption = $scope.selectionOptions.custom[1];
+    //var firstOption = $scope.selectionOptions.custom[32];
+    //var firstOption = $scope.selectionOptions.custom[33]; // Penguin
     $scope.selectMode(firstOption);
 
     $scope.startApplication = function () {

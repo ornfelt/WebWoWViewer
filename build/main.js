@@ -39015,6 +39015,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var wowJsRender = angular__WEBPACK_IMPORTED_MODULE_0___default().module('main.directives.fileDownloader', [(angular_ui_bootstrap_src_progressbar__WEBPACK_IMPORTED_MODULE_1___default()), "uib/template/progressbar/progress.html", "uib/template/progressbar/progressbar.html"]);
 wowJsRender.directive('fileDownloader', [function () {
+  console.log("fileDownloader called!");
   return {
     restrict: 'E',
     scope: {
@@ -39529,8 +39530,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-var urlToLoadWoWFile = '/get/';
-var readFileMethod = 'zip';
+//var urlToLoadWoWFile = '/get/';
+var urlToLoadWoWFile = 'http://127.0.0.1:3002/files/';
+var readFileMethod = 'http';
 var archiveUrl = 'http://deamon87.github.io/WoWFiles/shattrath.zip';
 var archiveFile = null;
 var renderAdt = true;
@@ -40550,23 +40552,21 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* export default binding */ __WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 /* harmony import */ var _config_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./config.js */ "./js/application/angular/services/config.js");
-/* harmony import */ var raw_loader_fileSystem_fileLoader_worker_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! raw-loader!./fileSystem/fileLoader-worker.js */ "./node_modules/raw-loader/dist/cjs.js!./js/application/angular/services/fileSystem/fileLoader-worker.js");
-/* harmony import */ var q__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! q */ "./node_modules/q/q.js");
-/* harmony import */ var q__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(q__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var q__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! q */ "./node_modules/q/q.js");
+/* harmony import */ var q__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(q__WEBPACK_IMPORTED_MODULE_1__);
 
 //import FileWorker from 'worker?inline=true!./fileSystem/fileLoader-worker.js';
 //import FileWorker from './fileSystem/fileLoader-worker.js';
 // Assuming your build setup places the worker script accessible via a direct path.
 //const FileWorker = new Worker(new URL('./fileSystem/fileLoader-worker.js', import.meta.url));
-var FileWorker = new Worker(new URL(/* worker import */ __webpack_require__.p + __webpack_require__.u("js_application_angular_services_fileSystem_fileLoader-worker_js"), __webpack_require__.b), {
+var worker = new Worker(new URL(/* worker import */ __webpack_require__.p + __webpack_require__.u("js_application_angular_services_fileSystem_fileLoader-worker_js"), __webpack_require__.b), {
   type: undefined
 });
 
-var blob = new Blob([raw_loader_fileSystem_fileLoader_worker_js__WEBPACK_IMPORTED_MODULE_1__["default"]], {
-  type: 'application/javascript'
-});
-var workerUrl = URL.createObjectURL(blob);
-var worker = new Worker(workerUrl);
+//import workerScript from 'raw-loader!./fileSystem/fileLoader-worker.js';
+//const blob = new Blob([workerScript], { type: 'application/javascript' });
+//const workerUrl = URL.createObjectURL(blob);
+//const worker = new Worker(workerUrl);
 
 //import $log;
 
@@ -46880,7 +46880,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _objects_worldObjects_worldUnit_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../objects/worldObjects/worldUnit.js */ "./js/application/angular/wowRenderJs/objects/worldObjects/worldUnit.js");
 /* harmony import */ var _objects_worldObjects_worldPlayer_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../objects/worldObjects/worldPlayer.js */ "./js/application/angular/wowRenderJs/objects/worldObjects/worldPlayer.js");
 /* harmony import */ var _objects_worldObjects_worldGameObject_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../objects/worldObjects/worldGameObject.js */ "./js/application/angular/wowRenderJs/objects/worldObjects/worldGameObject.js");
-/* harmony import */ var gl_matrix__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! gl-matrix */ "./node_modules/gl-matrix/lib/gl-matrix/vec3.js");
+/* harmony import */ var _player_json__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../player.json */ "./js/application/player.json");
+/* harmony import */ var gl_matrix__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! gl-matrix */ "./node_modules/gl-matrix/lib/gl-matrix/vec3.js");
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, _toPropertyKey(descriptor.key), descriptor); } }
@@ -46893,11 +46894,12 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
 //import packetList from '../../../mountedNpc.json'
 //import packetList from '../../../47EC8D2E.json'
 //import packetList from '../../../npc_wood.json'
-//import packetList from '../../../player.json'
+
 //import packetList from '../../../player2.json'
+//import packetList from '../../../proto.json'
 //import packetList from '../../../packet.json'
 //import packetList from '../../../attacketdMinion1.json'
-var packetList = [];
+//let packetList = [];
 
 var WorldObjectManager = /*#__PURE__*/function () {
   function WorldObjectManager(sceneApi) {
@@ -46914,9 +46916,13 @@ var WorldObjectManager = /*#__PURE__*/function () {
       if (this.playPackets) {
         this.serverTime += deltaTime;
         this.clientTime += deltaTime;
-        for (var i = this.lastPacketIndex; i < packetList.length; i++) {
-          if (this.clientTime > packetList[i].tickcount) {
-            this.processPacket(packetList[i]);
+
+        //console.log("servertime: " + this.serverTime);
+        //console.log("clientTime: " + this.clientTime);
+
+        for (var i = this.lastPacketIndex; i < _player_json__WEBPACK_IMPORTED_MODULE_3__.length; i++) {
+          if (this.clientTime > _player_json__WEBPACK_IMPORTED_MODULE_3__[i].tickcount) {
+            this.processPacket(_player_json__WEBPACK_IMPORTED_MODULE_3__[i]);
             this.lastPacketIndex = i + 1;
           } else {
             break;
@@ -46929,6 +46935,22 @@ var WorldObjectManager = /*#__PURE__*/function () {
         if (this.objectMap.hasOwnProperty(field)) {
           this.objectMap[field].update(deltaTime, cameraPos, viewMat);
         }
+      }
+
+      //console.log("Update! cameraPos: " + cameraPos);
+      //console.log("cameraPos: " + cameraPos);
+      //console.log("cameraPos: " + cameraPos[0]);
+      //console.log("type: " + typeof(cameraPos));
+      if (this.objectMap[17786964]) {
+        var vectorArray = new Array();
+        //vectorArray[0] = cameraPos[0]+10;
+        //vectorArray[1] = cameraPos[1]-10;
+
+        vectorArray[0] = cameraPos[0] - 15;
+        vectorArray[1] = cameraPos[1] + 15;
+        vectorArray[2] = cameraPos[2] - 8;
+        //console.log("Update playerpos: " + vectorArray);
+        this.objectMap[17786964].setPosition(vectorArray);
       }
     }
   }, {
@@ -46973,7 +46995,7 @@ var WorldObjectManager = /*#__PURE__*/function () {
                 newWorldUnit.setMovingData(update.curr_time, update.total_time, update.movementflag, vectorArray);
               }
               newWorldUnit.setCurrentTime(update.timestamp);
-              newWorldUnit.setPosition(gl_matrix__WEBPACK_IMPORTED_MODULE_3__.fromValues(update.x, update.y, update.z));
+              newWorldUnit.setPosition(gl_matrix__WEBPACK_IMPORTED_MODULE_4__.fromValues(update.x, update.y, update.z));
               newWorldUnit.setRotation(update.f);
               if (updateFields.hasOwnProperty("UNIT_FIELD_DISPLAYID")) {
                 newWorldUnit.setDisplayId(updateFields["UNIT_FIELD_DISPLAYID"]);
@@ -47174,7 +47196,7 @@ var WorldObjectManager = /*#__PURE__*/function () {
             } else if (update.obj_type == 5) {
               var newWorldGameObject = new _objects_worldObjects_worldGameObject_js__WEBPACK_IMPORTED_MODULE_2__["default"](this.sceneApi);
               this.objectMap[guid] = newWorldGameObject;
-              newWorldGameObject.setPosition(gl_matrix__WEBPACK_IMPORTED_MODULE_3__.fromValues(updates[j].static_x, update.static_y, update.static_z));
+              newWorldGameObject.setPosition(gl_matrix__WEBPACK_IMPORTED_MODULE_4__.fromValues(updates[j].static_x, update.static_y, update.static_z));
               newWorldGameObject.setRotation(update.static_f);
               newWorldGameObject.setDisplayId(updateFields["GAMEOBJECT_DISPLAYID"]);
               var rotationQuaternion = [0, 0, 0, 0];
@@ -47228,15 +47250,15 @@ var WorldObjectManager = /*#__PURE__*/function () {
     key: "startPlayingPackets",
     value: function startPlayingPackets() {
       this.serverTime = 0;
-      this.clientTime = packetList[0].tickcount - 500;
+      this.clientTime = _player_json__WEBPACK_IMPORTED_MODULE_3__[0].tickcount - 500;
       this.lastPacketIndex = 0;
       this.playPackets = true;
     }
   }, {
     key: "loadAllPacket",
     value: function loadAllPacket() {
-      for (var i = 0; i < packetList.length; i++) {
-        this.processPacket(packetList[i]);
+      for (var i = 0; i < _player_json__WEBPACK_IMPORTED_MODULE_3__.length; i++) {
+        this.processPacket(_player_json__WEBPACK_IMPORTED_MODULE_3__[i]);
       }
     }
   }]);
@@ -51048,6 +51070,12 @@ var WorldUnit = /*#__PURE__*/function (_WorldObject) {
       } else {
         animationId = 4;
       }
+
+      // 5 is run
+      // 4 is walk
+      // 42 is swim
+      //animationId = 42;
+      animationId = 38;
       return animationId;
     }
   }, {
@@ -51344,6 +51372,9 @@ var WorldUnit = /*#__PURE__*/function (_WorldObject) {
           this.objectModel.setLeftHandClosed(true);
         }
       }
+
+      //this.mountModel.setAnimationId(7); // Cool mount walk
+      //this.mountModel.setAnimationId(5);
 
       /* Update bone matrices */
       this.objectModel.objectUpdate(deltaTime, cameraPos, viewMat);
@@ -52864,7 +52895,11 @@ var Scene = /*#__PURE__*/function () {
 
       // Update objects
       var updateRes = this.graphManager.update(deltaTime);
-      this.worldObjectManager.update(deltaTime, cameraPos, lookAtMat4);
+      try {
+        this.worldObjectManager.update(deltaTime, cameraPos, lookAtMat4);
+      } catch (e) {
+        console.log(e);
+      }
       this.graphManager.checkCulling(perspectiveMatrixForCulling, lookAtMat4);
       this.graphManager.sortGeometry(perspectiveMatrixForCulling, lookAtMat4);
       gl.viewport(0, 0, this.canvas.width, this.canvas.height);
@@ -63853,21 +63888,6 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
-/***/ "./node_modules/raw-loader/dist/cjs.js!./js/application/angular/services/fileSystem/fileLoader-worker.js":
-/*!***************************************************************************************************************!*\
-  !*** ./node_modules/raw-loader/dist/cjs.js!./js/application/angular/services/fileSystem/fileLoader-worker.js ***!
-  \***************************************************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ("import fileLoaderStub from './../fileSystem/fileLoaderStub.js';\nimport Q from 'bluebird';\nQ.setScheduler(function (fn) {\n  fn();\n});\nself.addEventListener('message', function (e) {\n  console.log(\"Worker got message = \" + e);\n  var opcode = e.data.opcode;\n  var message = e.data.message;\n  var messageId = e.data.messageId;\n  if (opcode == 'init') {\n    var configService = {\n      getArchiveFile: function getArchiveFile() {\n        return message.archiveFile;\n      },\n      getFileReadMethod: function getFileReadMethod() {\n        return message.fileReadMethod;\n      },\n      getUrlToLoadWoWFile: function getUrlToLoadWoWFile() {\n        return message.urlToLoadWoWFile;\n      }\n    };\n    self.fileLoader = fileLoaderStub(configService, Q);\n  } else if (opcode == 'loadFile') {\n    var filePath = message;\n    (function (self, messageId) {\n      var promise = self.fileLoader(filePath);\n      promise.then(function success(a) {\n        //console.log(\"Worker sent file = \"+a);\n        //debugger;\n        if (a) {\n          self.postMessage({\n            opcode: 'fileLoaded',\n            messageId: messageId,\n            message: a.buffer\n          }, [a.buffer]);\n        }\n      }, function error() {\n        console.log(\"Unable to load file \\\"\" + filePath + \"\\\"\");\n        self.postMessage({\n          opcode: 'fileLoaded',\n          messageId: messageId,\n          message: null\n        });\n      });\n    })(self, messageId);\n  }\n}, false);");
-
-/***/ }),
-
 /***/ "./node_modules/stats.js/src/Stats.js":
 /*!********************************************!*\
   !*** ./node_modules/stats.js/src/Stats.js ***!
@@ -67796,6 +67816,17 @@ module.exports = {
 // is `undefined`, take a pure object instead
 }(this || {}));
 
+/***/ }),
+
+/***/ "./js/application/player.json":
+/*!************************************!*\
+  !*** ./js/application/player.json ***!
+  \************************************/
+/***/ ((module) => {
+
+"use strict";
+module.exports = /*#__PURE__*/JSON.parse('[{"date":1206685007,"tickcount":396099078,"direction":"ServerToClient","opcode":"SMSG_COMPRESSED_UPDATE_OBJECT","payload":{"unk_int8":0,"updates":[{"updateType":"UPDATE_TYPE_CREATE_SELF","objectGuid":17786964,"obj_type":4,"create_flag0":113,"movementflag":0,"movementflagExt":0,"timestamp":-207965255,"x":-1663,"y":5098,"z":27,"f":0,"unk_long":0,"speedWalk":2.5,"speedRun":7,"speedRunBack":4.5,"speedSwim":4.722222328186035,"speedSwimBack":2.5,"speedFly":7,"speedFlyBack":4.5,"speedTurnRate":3.1415927410125732,"curr_time":1000,"total_time":30000,"points":[{"x":-1663,"y":5098,"z":27},{"x":-1600,"y":5100,"z":30},{"x":-1650,"y":5150,"z":35}],"unk_10_long":22,"updateFields":{"OBJECT_FIELD_GUID":[{"index":0,"value":17786964}],"OBJECT_FIELD_TYPE":25,"OBJECT_FIELD_SCALE_X":1,"UNIT_FIELD_HEALTH":60,"UNIT_FIELD_POWER3":100,"UNIT_FIELD_POWER4":100,"UNIT_FIELD_MAXHEALTH":60,"UNIT_FIELD_MAXPOWER2":1000,"UNIT_FIELD_MAXPOWER3":100,"UNIT_FIELD_MAXPOWER4":100,"UNIT_FIELD_LEVEL":1,"UNIT_FIELD_FACTIONTEMPLATE":1,"UNIT_FIELD_BYTES_0":[1,1,1,1],"UNIT_FIELD_FLAGS":8,"UNIT_FIELD_AURA":[{"index":0,"value":2457}],"UNIT_FIELD_AURAFLAGS":[{"index":0,"value":[25,0,0,0]}],"UNIT_FIELD_AURALEVELS":[{"index":0,"value":[1,0,0,0]}],"UNIT_FIELD_AURAAPPLICATIONS":[{"index":0,"value":[255,0,0,0]}],"UNIT_FIELD_BASEATTACKTIME":[{"index":0,"value":1900},{"index":1,"value":2000}],"UNIT_FIELD_BOUNDINGRADIUS":0.20800000429153442,"UNIT_FIELD_COMBATREACH":1.5,"UNIT_FIELD_DISPLAYID":50,"UNIT_FIELD_NATIVEDISPLAYID":50,"UNIT_FIELD_MOUNTDISPLAYID":24101,"UNIT_FIELD_MINDAMAGE":4.9357147216796875,"UNIT_FIELD_MAXDAMAGE":6.9357147216796875,"UNIT_MOD_CAST_SPEED":1,"UNIT_FIELD_STAT0":23,"UNIT_FIELD_STAT1":20,"UNIT_FIELD_STAT2":22,"UNIT_FIELD_STAT3":20,"UNIT_FIELD_STAT4":22,"UNIT_FIELD_RESISTANCES":[{"index":0,"value":47}],"UNIT_FIELD_BASE_HEALTH":20,"UNIT_FIELD_BYTES_2":[0,40,0,17],"UNIT_FIELD_ATTACK_POWER":29,"UNIT_FIELD_RANGED_ATTACK_POWER":11,"PLAYER_BYTES":[3,13,2,9],"PLAYER_BYTES_2":[5,0,0,2],"PLAYER_BYTES_3":[1,0,0,0],"PLAYER_VISIBLE_ITEM_4_0":[{"index":0,"value":38}],"PLAYER_VISIBLE_ITEM_7_0":[{"index":0,"value":39}],"PLAYER_VISIBLE_ITEM_8_0":[{"index":0,"value":40}],"PLAYER_VISIBLE_ITEM_16_0":[{"index":0,"value":25}],"PLAYER_VISIBLE_ITEM_17_0":[{"index":0,"value":2362}],"PLAYER_FIELD_INV_SLOT_HEAD":[{"index":6,"value":3229740896},{"index":7,"value":1073741824},{"index":12,"value":3229740895},{"index":13,"value":1073741824},{"index":14,"value":3229740894},{"index":15,"value":1073741824},{"index":30,"value":3229740893},{"index":31,"value":1073741824},{"index":32,"value":3229740897},{"index":33,"value":1073741824}],"PLAYER_FIELD_PACK_SLOT_1":[{"index":0,"value":3229740898},{"index":1,"value":1073741824},{"index":2,"value":3229740899},{"index":3,"value":1073741824}],"PLAYER_NEXT_LEVEL_XP":400,"PLAYER_SKILL_INFO_1_1":[{"index":0,"value":[182,0]},{"index":3,"value":[186,0]},{"index":6,"value":[98,0]},{"index":7,"value":[300,300]},{"index":9,"value":[136,0]},{"index":10,"value":[0,5]},{"index":12,"value":[533,0]},{"index":15,"value":[554,0]},{"index":18,"value":[762,0]},{"index":21,"value":[769,0]},{"index":22,"value":[0,5]},{"index":24,"value":[160,0]},{"index":25,"value":[0,5]},{"index":27,"value":[43,0]},{"index":28,"value":[1,5]},{"index":30,"value":[172,0]},{"index":31,"value":[0,5]},{"index":33,"value":[183,0]},{"index":34,"value":[5,5]},{"index":36,"value":[356,0]},{"index":39,"value":[673,0]},{"index":42,"value":[95,0]},{"index":43,"value":[1,5]},{"index":45,"value":[754,0]},{"index":46,"value":[5,5]},{"index":48,"value":[393,0]},{"index":51,"value":[333,0]},{"index":54,"value":[293,0]},{"index":57,"value":[46,0]},{"index":58,"value":[0,5]},{"index":60,"value":[713,0]},{"index":63,"value":[149,0]},{"index":66,"value":[111,0]},{"index":69,"value":[473,0]},{"index":70,"value":[0,1]},{"index":72,"value":[113,0]},{"index":75,"value":[755,0]},{"index":78,"value":[315,0]},{"index":81,"value":[139,0]},{"index":84,"value":[152,0]},{"index":87,"value":[415,0]},{"index":88,"value":[1,1]},{"index":90,"value":[256,0]},{"index":91,"value":[0,5]},{"index":93,"value":[109,0]},{"index":96,"value":[226,0]},{"index":97,"value":[0,5]},{"index":99,"value":[44,0]},{"index":100,"value":[1,5]},{"index":102,"value":[176,0]},{"index":103,"value":[0,5]},{"index":105,"value":[45,0]},{"index":106,"value":[0,5]},{"index":108,"value":[148,0]},{"index":111,"value":[164,0]},{"index":114,"value":[173,0]},{"index":115,"value":[0,5]},{"index":117,"value":[202,0]},{"index":120,"value":[171,0]},{"index":123,"value":[54,0]},{"index":124,"value":[1,5]},{"index":126,"value":[55,0]},{"index":127,"value":[0,5]},{"index":129,"value":[197,0]},{"index":132,"value":[165,0]},{"index":135,"value":[129,0]},{"index":138,"value":[433,0]},{"index":139,"value":[1,1]},{"index":141,"value":[137,0]},{"index":144,"value":[140,0]},{"index":147,"value":[313,0]},{"index":150,"value":[413,0]},{"index":151,"value":[1,1]},{"index":153,"value":[414,0]},{"index":154,"value":[1,1]},{"index":156,"value":[26,0]},{"index":157,"value":[5,5]},{"index":159,"value":[759,0]},{"index":162,"value":[162,0]},{"index":163,"value":[1,5]},{"index":165,"value":[115,0]},{"index":168,"value":[118,0]},{"index":171,"value":[138,0]},{"index":174,"value":[141,0]},{"index":177,"value":[142,0]},{"index":178,"value":[0,1]},{"index":180,"value":[150,0]},{"index":183,"value":[185,0]},{"index":186,"value":[229,0]},{"index":189,"value":[257,0]},{"index":190,"value":[0,5]}],"PLAYER_CHARACTER_POINTS2":2,"PLAYER_BLOCK_PERCENTAGE":4.840000152587891,"PLAYER_DODGE_PERCENTAGE":4.840000152587891,"PLAYER_EXPERTISE":5,"PLAYER_CRIT_PERCENTAGE":5.980000019073486,"PLAYER_RANGED_CRIT_PERCENTAGE":5.980000019073486,"PLAYER_OFFHAND_CRIT_PERCENTAGE":5.980000019073486,"PLAYER_SHIELD_BLOCK":1,"PLAYER_EXPLORED_ZONES_1":[{"index":3,"value":[0,0,0,32]}],"PLAYER_FIELD_MOD_DAMAGE_DONE_PCT":[{"index":0,"value":1065353216},{"index":1,"value":1065353216},{"index":2,"value":1065353216},{"index":3,"value":1065353216},{"index":4,"value":1065353216},{"index":5,"value":1065353216},{"index":6,"value":1065353216}],"PLAYER_FIELD_BYTES":[8,0,0,0],"PLAYER_FIELD_WATCHED_FACTION_INDEX":4294967295,"PLAYER_FIELD_MAX_LEVEL":70}}]}}]');
+
 /***/ })
 
 /******/ 	});
@@ -67980,6 +68011,15 @@ main.controller("UrlChooserCtrl", ['$scope', function ($scope) {
       name: 'Raw coordinates',
       source: 'http',
       sceneType: 'customMap'
+    }, {
+      name: 'Shattrath city (WotLK)',
+      source: 'http',
+      sceneType: 'map',
+      mapId: 530,
+      mapName: 'Expansion01',
+      x: -1663,
+      y: 5098,
+      z: 27
     }, {
       name: 'Azeroth adt 31-31',
       source: 'http',
@@ -68212,6 +68252,11 @@ main.controller("UrlChooserCtrl", ['$scope', function ($scope) {
       source: 'http',
       sceneType: 'm2',
       modelName: 'WORLD\\EXPANSION02\\DOODADS\\CRYSTALSONGFOREST\\BUBBLE\\CAMOUFLAGEBUBBLE_CRYSTALSONG.m2'
+    }, {
+      name: 'Penguin',
+      source: 'http',
+      sceneType: 'm2',
+      modelName: 'creature/northrendpenguin/northrendpenguin.m2'
     }]
   };
   $scope.selectionOptions = parameters;
@@ -68227,13 +68272,16 @@ main.controller("UrlChooserCtrl", ['$scope', function ($scope) {
 
   // Preselect some option
   var firstOption = $scope.selectionOptions.custom[1];
+  //var firstOption = $scope.selectionOptions.custom[32];
   $scope.selectMode(firstOption);
   $scope.startApplication = function () {
     console.log("startApplication called");
     _services_config_js__WEBPACK_IMPORTED_MODULE_2__["default"].setUrlToLoadWoWFile($scope.params.urlForLoading);
+    console.log("url set: " + $scope.params.urlForLoading);
     $scope.params.zipUrl = _services_config_js__WEBPACK_IMPORTED_MODULE_2__["default"].getArchiveUrl();
     $scope.params.downLoadProgress = 0;
     _services_config_js__WEBPACK_IMPORTED_MODULE_2__["default"].setSceneParams($scope.selectedValue);
+    console.log("selected value: " + $scope.selectedValue.name + ", source: " + $scope.selectedValue.source);
     $scope.isReadyForDownload = _services_config_js__WEBPACK_IMPORTED_MODULE_2__["default"].getFileReadMethod() == "zip";
     $scope.isReadyForStart = _services_config_js__WEBPACK_IMPORTED_MODULE_2__["default"].getFileReadMethod() == "http";
   };

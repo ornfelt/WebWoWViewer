@@ -129,6 +129,27 @@ class WorldUnit extends WorldObject {
             animationId = 4;
         }
 
+        // 5 is run
+        // 4 is walk
+        // 42 is swim
+        //animationId = 42;
+        // animationId = 16; mount fighting
+        //animationId = 23; // Fly fight?
+        //animationId = 35;  // FLYING
+        //animationId = 37;  // start flying from ground
+        //animationId = 39; // NPC fly?
+        //animationId = 40; // Strafe fly?
+        //animationId = 46; // MOunt run on ground?
+        //animationId = 49; // NPC fly?
+        //animationId = 50; // fly backwards
+        //animationId = 60; // NPC fly faster?
+        //animationId = 68; // fly backwards2
+        //animationId = 75; // fly jump?
+        animationId = 77; // FLY FAST!!
+        //animationId = 78; // FLY jump?
+        //animationId = 80; // FLY backwards
+        //animationId = 91; // Try next!
+
         return animationId;
     }
 
@@ -486,6 +507,9 @@ class WorldUnit extends WorldObject {
                 this.objectModel.setLeftHandClosed(true)
             }
         }
+
+        //this.mountModel.setAnimationId(7); // Cool mount walk
+        //this.mountModel.setAnimationId(5);
 
         /* Update bone matrices */
         this.objectModel.objectUpdate(deltaTime, cameraPos, viewMat);
