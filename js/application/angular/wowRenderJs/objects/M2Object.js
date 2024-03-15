@@ -107,8 +107,8 @@ class MDXObject {
         //const randomNumber = Math.random();
 
         //if (randomNumber <= 0.5) {
-        //    //this.modelName = "spells\\blizzard_spawn.m2";
-        //    //this.modelName = "chainlightning_impact_chest.m2";
+        //    this.modelName = "spells\\blizzard_spawn.m2";
+        //    this.modelName = "chainlightning_impact_chest.m2";
         //}
 
         //console.log("LOADING M2: " + this.modelName);

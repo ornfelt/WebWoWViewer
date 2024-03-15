@@ -338,6 +338,17 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
                 modelName: 'creature/northrendpenguin/northrendpenguin.m2',
                 cameraIndex: 0
             },
+			
+			{
+                name: 'Nagrand (WotLK)',
+                source: 'http',
+                sceneType: 'map',
+                mapId: 530,
+                mapName: 'Expansion01',
+                x: -743,
+                y: 8385,
+                z: 33
+            },
 
         ]
     };
@@ -356,9 +367,9 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
     };
 
     // Preselect some option
-    var firstOption = $scope.selectionOptions.custom[1];
-    //var firstOption = $scope.selectionOptions.custom[32];
+    var firstOption = $scope.selectionOptions.custom[1]; // Shattrath
     //var firstOption = $scope.selectionOptions.custom[33]; // Penguin
+	//var firstOption = $scope.selectionOptions.custom[34]; // nagrand
     $scope.selectMode(firstOption);
 
     $scope.startApplication = function () {
