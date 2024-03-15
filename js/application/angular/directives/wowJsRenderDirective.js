@@ -356,29 +356,43 @@ wowJsRender.directive('wowJsRender', ['$log', '$timeout', '$interval', '$window'
                 scope.loadAllPackets = function () {
                     sceneObj.loadAllPackets();
                 };
-                var renderfunc = function(){
-                    var currentTimeStamp = new Date().getTime();
-                    var timeDelta = 0;
-                    if (lastTimeStamp !== undefined) {
-                        timeDelta = currentTimeStamp - lastTimeStamp;
+
+                var targetFPS = 60;
+                var targetFrameTime = 1000 / targetFPS; // Time in milliseconds between frames
+                var lastFrameTime = 0; // Time when the last frame was rendered
+
+                var renderfunc = function(currentTime) {
+                    var delta = currentTime - lastFrameTime;
+
+                    if (delta >= targetFrameTime) {
+                        lastFrameTime = currentTime - (delta % targetFrameTime);
+
+                        var currentTimeStamp = new Date().getTime();
+                        var timeDelta = 0;
+                        if (lastTimeStamp !== undefined) {
+                            timeDelta = currentTimeStamp - lastTimeStamp;
+                        }
+                        lastTimeStamp = currentTimeStamp;
+
+                        var result = sceneObj.draw(timeDelta);
+                        var cameraVecs = result.cameraVecs;
+                        var updateResult = result.updateResult;
+                        scope.cameraVecs = cameraVecs;
+                        scope.updateResult = updateResult;
+
+                        //scope.$digest();
                     }
-                    lastTimeStamp = currentTimeStamp;
 
-                    var result = sceneObj.draw(timeDelta);
-                    var cameraVecs = result.cameraVecs;
-                    var updateResult = result.updateResult;
-                    scope.cameraVecs = cameraVecs;
-                    scope.updateResult = updateResult;
-
-                    //scope.$digest();
-
+                    // Request next frame, passing in this function recursively
                     $window.requestAnimationFrame(renderfunc);
                 };
+
+
                 $window.requestAnimationFrame(renderfunc);
 
                 $window.setInterval(function(){
                     scope.$digest();
-                }, 200);
+                }, 250);
             }
         }
     }]);
