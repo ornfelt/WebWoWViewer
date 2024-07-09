@@ -335,8 +335,8 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
                 name: 'Penguin',
                 source: 'http',
                 sceneType: 'm2',
-                modelName: 'creature/northrendpenguin/northrendpenguin.m2',
-                cameraIndex: 0
+                modelName: 'creature/northrendpenguin/northrendpenguin.m2'
+                //cameraIndex: 0
             },
 			
 			{
@@ -367,9 +367,9 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
     };
 
     // Preselect some option
-    var firstOption = $scope.selectionOptions.custom[1]; // Shattrath
+    //var firstOption = $scope.selectionOptions.custom[1]; // Shattrath
     //var firstOption = $scope.selectionOptions.custom[33]; // Penguin
-	//var firstOption = $scope.selectionOptions.custom[34]; // nagrand
+	var firstOption = $scope.selectionOptions.custom[34]; // nagrand
     $scope.selectMode(firstOption);
 
     $scope.startApplication = function () {

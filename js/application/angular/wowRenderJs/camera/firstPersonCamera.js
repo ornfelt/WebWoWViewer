@@ -4,6 +4,8 @@ function  degToRad(degrees) {
     return degrees * ( Math.PI / 180 );
 }
 
+const moveSpeed = 3;
+
 class Camera {
     constructor () {
         this.camera = [0, 0, 0];
@@ -45,13 +47,13 @@ class Camera {
     }
 
     startMovingForward(){
-        this.MDDepthPlus = 1;
+        this.MDDepthPlus = 1*moveSpeed;
     }
     stopMovingForward(){
         this.MDDepthPlus = 0;
     }
     startMovingBackwards(){
-        this.MDDepthMinus = 1;
+        this.MDDepthMinus = 1*moveSpeed;
     }
     stopMovingBackwards(){
         this.MDDepthMinus = 0;
