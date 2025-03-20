@@ -2,3 +2,5 @@
 deploy_key.enc
 deploy_key
 node_modules/
+build/*
+build_old/*
