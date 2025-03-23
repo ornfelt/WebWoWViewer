@@ -3,9 +3,10 @@ import Scene from './../wowRenderJs/scene.js';
 import config from './../services/config.js';
 
 //import 'hammerjs';
-import 'imports-loader?window=>global!hammerjs';
+//import 'imports-loader?window=>global!hammerjs';
 //import 'imports?window=>global!hammerjs';
-import 'hammer-timejs';
+//import 'hammer-timejs';
+import 'hammerjs/hammer.js';
 
 var events = function (element, camera) {
     "use strict";
