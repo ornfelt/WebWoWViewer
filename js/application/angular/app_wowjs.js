@@ -368,6 +368,7 @@ main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
 
     // Preselect some option
     var firstOption = $scope.selectionOptions.custom[1]; // Shattrath
+    //var firstOption = $scope.selectionOptions.custom[7]; // Darkshire
     //var firstOption = $scope.selectionOptions.custom[33]; // Penguin
 	//var firstOption = $scope.selectionOptions.custom[34]; // nagrand
     $scope.selectMode(firstOption);
