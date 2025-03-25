@@ -207,16 +207,16 @@ export function initViewer(containerEl) {
   const sceneObj = new Scene(canvas);
 
   // 5) Hard-code params
-  //const mapParams = {
-  //  name: 'Shattrath city (WotLK)',
-  //  source: 'http',
-  //  sceneType: 'map',
-  //  mapId: 530,
-  //  mapName: 'Expansion01',
-  //  x: -1663,
-  //  y: 5098,
-  //  z: 27
-  //};
+    const mapParams = {
+        name: 'Shattrath city (WotLK)',
+        source: 'http',
+        sceneType: 'map',
+        mapId: 530,
+        mapName: 'Expansion01',
+        x: -1663,
+        y: 5098,
+        z: 27
+    };
 
     //const mapParams = {
     //    name: 'Nagrand (WotLK)',
@@ -230,14 +230,14 @@ export function initViewer(containerEl) {
     //};
 
     //const mapParams = {
-    //            name: 'Darkshire',
-    //            source: 'http',
-    //            sceneType: 'map',
-    //            //mapId: 0,
-    //            mapName: 'Azeroth',
-    //            x: -10559.7,
-    //            y: -1189.02,
-    //            z: 29.0698
+    //    name: 'Darkshire',
+    //    source: 'http',
+    //    sceneType: 'map',
+    //    //mapId: 0,
+    //    mapName: 'Azeroth',
+    //    x: -10559.7,
+    //    y: -1189.02,
+    //    z: 29.0698
     //}
 
     //const mapParams = {
@@ -258,42 +258,42 @@ export function initViewer(containerEl) {
     //    modelName: 'world\\azeroth\\elwynn\\passivedoodads\\trees\\elwynntreecanopy03.m2'
     //}
 
-            //const mapParams = {
-            //    name: 'Vanilla Opening screen',
-            //    source: 'http',
-            //    sceneType: 'm2',
-            //    modelName: 'Interface\\GLUES\\MODELS\\UI_MAINMENU\\UI_MainMenu.m2',
-            //    cameraIndex: 0,
-            //    fogStart : 0,
-            //    fogEnd : 1200,
-            //    fogColor : [0.25, 0.06, 0.015]
-            //}
+    //const mapParams = {
+    //    name: 'Vanilla Opening screen',
+    //    source: 'http',
+    //    sceneType: 'm2',
+    //    modelName: 'Interface\\GLUES\\MODELS\\UI_MAINMENU\\UI_MainMenu.m2',
+    //    cameraIndex: 0,
+    //    fogStart : 0,
+    //    fogEnd : 1200,
+    //    fogColor : [0.25, 0.06, 0.015]
+    //}
 
-            //const mapParams = {
-            //    name: 'Caverns of Time',
-            //    source: 'http',
-            //    sceneType: 'map',
-            //    mapId: 0,
-            //    mapName: 'Kalimdor',
-            //    x: -8181.35,
-            //    y: -4596.92,
-            //    z: -125.34
-            //}
+    //const mapParams = {
+    //    name: 'Caverns of Time',
+    //    source: 'http',
+    //    sceneType: 'map',
+    //    mapId: 0,
+    //    mapName: 'Kalimdor',
+    //    x: -8181.35,
+    //    y: -4596.92,
+    //    z: -125.34
+    //}
 
-        //const mapParams = {
-        //    name: 'Darkshire blacksmith',
-        //    source: 'http',
-        //    sceneType: 'wmo',
-        //    fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO'
-        //}
+    //const mapParams = {
+    //    name: 'Darkshire blacksmith',
+    //    source: 'http',
+    //    sceneType: 'wmo',
+    //    fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO'
+    //}
 
-    const mapParams = {
-        name: 'Penguin',
-        source: 'http',
-        sceneType: 'm2',
-        modelName: 'creature/northrendpenguin/northrendpenguin.m2',
-        //cameraIndex: 0
-    }
+    //const mapParams = {
+    //    name: 'Penguin',
+    //    source: 'http',
+    //    sceneType: 'm2',
+    //    modelName: 'creature/northrendpenguin/northrendpenguin.m2',
+    //    //cameraIndex: 0
+    //}
 
     //const mapParams = {
     //    name: 'ragnaros',
