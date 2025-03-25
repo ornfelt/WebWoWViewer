@@ -1,160 +1,136 @@
-import angular from 'angular';
-import angularDropdown from 'angular-ui-bootstrap/src/dropdown';import configService from './services/config.js';
-import './directives/wowJsRenderDirective.js';
-import './directives/fileDownload.js';
-
-import 'bootstrap/dist/css/bootstrap.min.css';
-
-var main = angular.module('main.app',
-    [
-        'main.directives.wowJsRender',
-        'main.directives.fileDownloader',
-
-        angularDropdown
-    ]);
-
-main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
-    console.log("Hello world");
-    $scope.isReadyForStart = false;
-    $scope.isReadyForDownload = false;
-
-    $scope.params = {};
-    $scope.params.urlForLoading = configService.getUrlToLoadWoWFile();
-    $scope.params.zipFile = null;
-
-    $scope.selectedModeName = "Please select mode";
-
-    var parameters = {
-            predefined: [{
-                name: 'Shattrath city (WotLK)',
-                source: 'zip',
-                url: 'http://deamon87.github.io/WoWFiles/shattrath.zip',
-                sceneType: 'map',
-                mapId: 530,
-                mapName: 'Expansion01',
-                x: -1663,
-                y: 5098,
-                z: 27
-            },
-            {
-                name: 'Ironforge (WotLK)',
-                source: 'zip',
-                url: 'http://deamon87.github.io/WoWFiles/ironforge.zip',
-                sceneType: 'wmo',
-                fileName: 'World/wmo/KhazModan/Cities/Ironforge/ironforge.wmo'
-            }
-        ],
-        custom: [
-            {
-                name: 'Raw coordinates',
-                source: 'http',
-                sceneType: 'customMap'
-            },
-            {
-                name: 'Shattrath city (WotLK)',
-                source: 'http',
-                sceneType: 'map',
-                mapId: 530,
-                mapName: 'Expansion01',
-                x: -1663,
-                y: 5098,
-                z: 27
-            },
-			{
-                name: 'Nagrand (WotLK)',
-                source: 'http',
-                sceneType: 'map',
-                mapId: 530,
-                mapName: 'Expansion01',
-                x: -743,
-                y: 8385,
-                z: 33
-            },
-
-        ]
-    };
-
-    $scope.selectionOptions = parameters;
-    $scope.status = {};
-    $scope.status.isopen = false;
-
-    $scope.selectMode = function (value) {
-        $scope.selectedValue = value;
-        $scope.selectedSource = value.source;
-        $scope.selectedModeName = value.name;
-
-        configService.setArchiveUrl(value.url);
-        configService.setFileReadMethod(value.source);
-    };
-
-    // Preselect some option
-    var firstOption = $scope.selectionOptions.custom[1]; // Shattrath
-    $scope.selectMode(firstOption);
-
-    $scope.startApplication = function () {
-        console.log("startApplication called");
-        configService.setUrlToLoadWoWFile($scope.params.urlForLoading);
-        console.log("url set: " + $scope.params.urlForLoading);
-        $scope.params.zipUrl = configService.getArchiveUrl();
-        $scope.params.downLoadProgress = 0;
-
-        configService.setSceneParams($scope.selectedValue);
-        console.log("selected value: " + $scope.selectedValue.name + ", source: " + $scope.selectedValue.source);
-
-        $scope.isReadyForDownload = configService.getFileReadMethod() == "zip" ;
-        $scope.isReadyForStart = configService.getFileReadMethod() == "http" ;
-    };
-
-    $scope.$watch('params.zipFile', function(newValue){
-        if (newValue) {
-
-            configService.setArchiveFile(newValue);
-
-            $scope.isReadyForDownload = false;
-            $scope.isReadyForStart = true;
-        }
-    })
-
-    // Automatically call startApplication
-    //if ($scope.selectedModeName !== "Please select mode") {
-    //    $scope.startApplication();
-    //}
-
-}]);
-
-main.config(['$provide', '$httpProvider', function ($provide, $httpProvider) {
-
-    /* 1. Interception of http ajax requests */
-    $provide.factory('myHttpInterceptor', ['$window', '$q', '$templateCache', function ($window, $q, $templateCache) {
-        return {
-
-            'request': function (config) {
-                if (config.url) {
-                    var index = config.url.indexOf('.glsl'),
-                        isRequestToShader = index > -1;
-
-                    if (!isRequestToShader) {
-                        if (!config.params) {
-                            config.params = {};
-                        }
-                        //config.params.t = new Date().getTime();
-                    } else {
-                        config.cache = $templateCache;
-                    }
-                }
-
-                return config;
-            }
-        };
-    }]);
-
-    $httpProvider.interceptors.push('myHttpInterceptor');
-}]);
-
-
-main.run(['$log', function( $log ) {
-
-}]);
+//import angular from 'angular';
+//import angularDropdown from 'angular-ui-bootstrap/src/dropdown';import configService from './services/config.js';
+//import './directives/wowJsRenderDirective.js';
+//import 'bootstrap/dist/css/bootstrap.min.css';
+//
+//var main = angular.module('main.app',
+//    [
+//        'main.directives.wowJsRender',
+//        angularDropdown
+//    ]);
+//
+//main.controller("UrlChooserCtrl",[ '$scope', function($scope) {
+//    console.log("Hello world");
+//    $scope.isReadyForStart = false;
+//
+//    $scope.params = {};
+//    $scope.params.urlForLoading = configService.getUrlToLoadWoWFile();
+//    $scope.params.zipFile = null;
+//
+//    $scope.selectedModeName = "Please select mode";
+//
+//    var parameters = {
+//            predefined: [{
+//                name: 'Shattrath city (WotLK)',
+//                source: 'zip',
+//                url: 'http://deamon87.github.io/WoWFiles/shattrath.zip',
+//                sceneType: 'map',
+//                mapId: 530,
+//                mapName: 'Expansion01',
+//                x: -1663,
+//                y: 5098,
+//                z: 27
+//            },
+//            {
+//                name: 'Ironforge (WotLK)',
+//                source: 'zip',
+//                url: 'http://deamon87.github.io/WoWFiles/ironforge.zip',
+//                sceneType: 'wmo',
+//                fileName: 'World/wmo/KhazModan/Cities/Ironforge/ironforge.wmo'
+//            }
+//        ],
+//        custom: [
+//            {
+//                name: 'Raw coordinates',
+//                source: 'http',
+//                sceneType: 'customMap'
+//            },
+//            {
+//                name: 'Shattrath city (WotLK)',
+//                source: 'http',
+//                sceneType: 'map',
+//                mapId: 530,
+//                mapName: 'Expansion01',
+//                x: -1663,
+//                y: 5098,
+//                z: 27
+//            },
+//			{
+//                name: 'Nagrand (WotLK)',
+//                source: 'http',
+//                sceneType: 'map',
+//                mapId: 530,
+//                mapName: 'Expansion01',
+//                x: -743,
+//                y: 8385,
+//                z: 33
+//            },
+//
+//        ]
+//    };
+//
+//    $scope.selectionOptions = parameters;
+//    $scope.status = {};
+//    $scope.status.isopen = false;
+//
+//    $scope.selectMode = function (value) {
+//        $scope.selectedValue = value;
+//        $scope.selectedSource = value.source;
+//        $scope.selectedModeName = value.name;
+//
+//        configService.setArchiveUrl(value.url);
+//        configService.setFileReadMethod(value.source);
+//    };
+//
+//    // Preselect some option
+//    var firstOption = $scope.selectionOptions.custom[1]; // Shattrath
+//    $scope.selectMode(firstOption);
+//
+//    $scope.startApplication = function () {
+//        console.log("startApplication called");
+//        configService.setUrlToLoadWoWFile($scope.params.urlForLoading);
+//        console.log("url set: " + $scope.params.urlForLoading);
+//        $scope.params.zipUrl = configService.getArchiveUrl();
+//
+//        configService.setSceneParams($scope.selectedValue);
+//        console.log("selected value: " + $scope.selectedValue.name + ", source: " + $scope.selectedValue.source);
+//
+//        $scope.isReadyForStart = configService.getFileReadMethod() == "http" ;
+//    };
+//
+//}]);
+//
+//main.config(['$provide', '$httpProvider', function ($provide, $httpProvider) {
+//
+//    /* 1. Interception of http ajax requests */
+//    $provide.factory('myHttpInterceptor', ['$window', '$q', '$templateCache', function ($window, $q, $templateCache) {
+//        return {
+//
+//            'request': function (config) {
+//                if (config.url) {
+//                    var index = config.url.indexOf('.glsl'),
+//                        isRequestToShader = index > -1;
+//
+//                    if (!isRequestToShader) {
+//                        if (!config.params) {
+//                            config.params = {};
+//                        }
+//                        //config.params.t = new Date().getTime();
+//                    } else {
+//                        config.cache = $templateCache;
+//                    }
+//                }
+//
+//                return config;
+//            }
+//        };
+//    }]);
+//
+//    $httpProvider.interceptors.push('myHttpInterceptor');
+//}]);
+//
+//main.run(['$log', function( $log ) {
+//}]);
 
 
 //import configService from './services/config.js';
@@ -310,3 +286,13 @@ main.run(['$log', function( $log ) {
 //});
 //
 //
+
+// src/app_wowjs_noangular.js
+
+import { initViewer } from './directives/wowJsRenderDirective_noangular.js';
+
+// On DOMContentLoaded, run our init
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('viewer-container');
+  initViewer(container);
+});

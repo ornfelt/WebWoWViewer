@@ -184,26 +184,6 @@ var events = function (element, camera) {
     element.addEventListener('touchstart', touchStart, false);
     element.addEventListener('touchmove', touchMove, false);
     element.addEventListener('touchend', touchEnd, false);
-
-    //var mc = new Hammer(element);
-    //mc.get('pinch').set({ enable: true });
-    //var pinchScale = 0;
-    //mc.on("pinchstart pinchin pinchout pinchend", function(ev) {
-    //    if (ev.type == 'pinchstart') {
-    //        pinchScale = ev.scale;
-    //        isPitchGoingOn = true;
-    //    } else if (ev.type == 'pinchend') {
-    //        pinchScale = 0;
-    //        isPitchGoingOn = false;
-    //    } else if (ev.type == 'pinchin') {
-    //        camera.addDepthDiff((ev.scale - pinchScale) * 5);
-    //        pinchScale = ev.scale;
-    //    } else if (ev.type == 'pinchout') {
-
-    //        camera.addDepthDiff((ev.scale - pinchScale) * 5);
-    //        pinchScale = ev.scale;
-    //    }
-    //});
 }
 
 
@@ -381,7 +361,6 @@ wowJsRender.directive('wowJsRender', ['$log', '$timeout', '$interval', '$window'
                     // Request next frame, passing in this function recursively
                     $window.requestAnimationFrame(renderfunc);
                 };
-
 
                 $window.requestAnimationFrame(renderfunc);
 

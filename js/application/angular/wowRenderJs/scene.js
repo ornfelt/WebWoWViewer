@@ -1,4 +1,4 @@
-import Stats from 'stats.js';
+//import Stats from 'stats.js';
 
 import drawDepthShader          from 'drawDepthShader.glsl';
 import renderFrameBufferShader  from 'renderFrameBufferShader.glsl';
@@ -53,16 +53,16 @@ glMatrix.setMatrixArrayType(Array);
 
 class Scene {
     constructor(canvas) {
-        var stats = new Stats();
-        stats.setMode(1); // 0: fps, 1: ms, 2: mb
-
-        // align top-left
-        stats.domElement.style.position = 'absolute';
-        stats.domElement.style.left = '0px';
-        stats.domElement.style.top = '0px';
-
-        document.body.appendChild(stats.domElement);
-        this.stats = stats;
+        //var stats = new Stats();
+        //stats.setMode(1); // 0: fps, 1: ms, 2: mb
+        //
+        //// align top-left
+        //stats.domElement.style.position = 'absolute';
+        //stats.domElement.style.left = '0px';
+        //stats.domElement.style.top = '0px';
+        //
+        //document.body.appendChild(stats.domElement);
+        //this.stats = stats;
 
         var self = this;
         self.enableDeferred = false;
@@ -1237,7 +1237,7 @@ class Scene {
             this.depthBuffer = depthBuffer;
         }
 
-        this.stats.begin();
+        //this.stats.begin();
         var cameraVector;
 
         if (config.getUseSecondCamera()) {
@@ -1434,7 +1434,7 @@ class Scene {
 
 
 
-        this.stats.end();
+        //this.stats.end();
         if (this.glext_ft && this.glext_ft.frameTerminator) {
             this.glext_ft.frameTerminator();
         }

@@ -7,9 +7,9 @@ import WorldGameObject from '../objects/worldObjects/worldGameObject.js'
 //import packetList from '../../../player.json'
 //import packetList from '../../../player2.json'
 //import packetList from '../../../player3.json'
-import packetList from '../../../player3_rag.json'
+//import packetList from '../../../player3_rag.json'
 
-//import packetList from '../../../penguin.json'
+import packetList from '../../../penguin.json'
 //import packetList from '../../../proto.json'
 //import packetList from '../../../packet.json'
 //import packetList from '../../../attacketdMinion1.json'
@@ -66,6 +66,18 @@ class WorldObjectManager {
             vectorArray[2] = cameraPos[2]-8;
             //console.log("Update playerpos: " + vectorArray);
             this.objectMap[17786964].setPosition(vectorArray);
+        }
+
+        if (this.objectMap[17786930]) {
+            var vectorArray = new Array();
+            //vectorArray[0] = cameraPos[0]+10;
+            //vectorArray[1] = cameraPos[1]-10;
+
+            vectorArray[0] = cameraPos[0]-15;
+            vectorArray[1] = cameraPos[1]+15;
+            vectorArray[2] = cameraPos[2]-8;
+            //console.log("Update playerpos: " + vectorArray);
+            this.objectMap[17786930].setPosition(vectorArray);
         }
     }
 
