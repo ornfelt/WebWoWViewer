@@ -1,92 +1,80 @@
-import $q from 'q';
 import chunkedLoader from './../chunkedLoader.js';
 import fileReadHelper from './../fileReadHelper.js';
 
 export default function(wdtFilePath) {
-    var deferred = $q.defer();
-
-    var promise = chunkedLoader(wdtFilePath);
-    promise.then(function(chunkedFile){
-
+  return new Promise((resolve, reject) => {
+    chunkedLoader(wdtFilePath)
+      .then(function(chunkedFile) {
         /* First chunk in file has to be MVER */
-        var chunk = chunkedFile.loadChunkAtOffset(0);
+        let chunk = chunkedFile.loadChunkAtOffset(0);
         if (chunk.chunkIdent !== "MVER") {
-            throw "Got bad WDT file " + wdtFilePath;
+          reject("Got bad WDT file " + wdtFilePath);
+          return;
         }
 
         chunk = chunkedFile.loadChunkAtOffset(chunk.nextChunkOffset);
-        var wdtObj = {};
-        while (chunk.chunkIdent != "") {
-            switch (chunk.chunkIdent) {
-                case "MAIN":
-                    var chunkOffs = { offs : 0 };
-                    var tileTable = {};
+        const wdtObj = {};
+        while (chunk.chunkIdent !== "") {
+          switch (chunk.chunkIdent) {
+            case "MAIN": {
+              const chunkOffs = { offs: 0 };
+              const tileTable = {};
 
-                    for (var i =0; i < 64; i++) {
-                        var tile = {};
-
-                        for (var j = 0; j < 64; j++ ) {
-                            tile[j] = chunk.readInt32(chunkOffs);
-                            chunkOffs.offs+=4; // skip next 4 bytes. They are plain zeros
-                        }
-                        tileTable[i] = tile;
-                    }
-
-                    wdtObj.tileTable = tileTable;
-                    break;
-                case "MPHD":
-                    var offset = { offs : 0 };
-                    wdtObj.flags = chunk.readUint8(offset);
-                    wdtObj.isWMOMap = wdtObj.flags & 1 > 0;
-                    break;
-
-                case "MWMO":
-                    var offset = { offs : 0 };
-                    var wmoNames = null;
-
-                    if (chunk.chunkLen > 0) {
-                        wmoNames = chunk.readUint8Array(offset, chunk.chunkLen);
-                    }
-
-                    wdtObj.mwmo = wmoNames;
-                    break;
-
-                case "MODF":
-                    /* Placement information for WMO maps*/
-                    var offset = { offs : 0 };
-                    var modfChunk = {};
-
-                    var mwmoBuff = fileReadHelper(wdtObj.mwmo.buffer);
-
-
-                    modfChunk.nameId = chunk.readInt32(offset);
-                    modfChunk.uniqueId = chunk.readInt32(offset);
-
-                    modfChunk.pos        = chunk.readVector3f(offset);
-                    modfChunk.rotation   = chunk.readVector3f(offset);
-                    modfChunk.unkVector1 = chunk.readVector3f(offset);
-                    modfChunk.unkVector2 = chunk.readVector3f(offset);
-
-                    modfChunk.doodadSet = chunk.readUint16(offset);
-                    modfChunk.nameSet   = chunk.readUint16(offset);
-                    modfChunk.flags     = chunk.readInt32(offset);
-
-                    var nameOffset = modfChunk.nameId;
-                    modfChunk.fileName  = mwmoBuff.readString({offs : nameOffset}, mwmoBuff.getLength() - nameOffset);
-
-                    wdtObj.modfChunk = modfChunk;
-                    break;
-
-                default:
-                    $log.info("Unknown Chunk. Ident = " + chunk.chunkIdent+", file = "+wdtFilePath);
+              for (let i = 0; i < 64; i++) {
+                const tile = {};
+                for (let j = 0; j < 64; j++) {
+                  tile[j] = chunk.readInt32(chunkOffs);
+                  chunkOffs.offs += 4; // skip next 4 bytes. They are plain zeros
+                }
+                tileTable[i] = tile;
+              }
+              wdtObj.tileTable = tileTable;
+              break;
             }
-            chunk = chunkedFile.loadChunkAtOffset(chunk.nextChunkOffset);
+            case "MPHD": {
+              const offset = { offs: 0 };
+              wdtObj.flags = chunk.readUint8(offset);
+              wdtObj.isWMOMap = (wdtObj.flags & 1) > 0;
+              break;
+            }
+            case "MWMO": {
+              const offset = { offs: 0 };
+              let wmoNames = null;
+              if (chunk.chunkLen > 0) {
+                wmoNames = chunk.readUint8Array(offset, chunk.chunkLen);
+              }
+              wdtObj.mwmo = wmoNames;
+              break;
+            }
+            case "MODF": {
+              const offset = { offs: 0 };
+              const modfChunk = {};
+              const mwmoBuff = fileReadHelper(wdtObj.mwmo.buffer);
+
+              modfChunk.nameId = chunk.readInt32(offset);
+              modfChunk.uniqueId = chunk.readInt32(offset);
+              modfChunk.pos = chunk.readVector3f(offset);
+              modfChunk.rotation = chunk.readVector3f(offset);
+              modfChunk.unkVector1 = chunk.readVector3f(offset);
+              modfChunk.unkVector2 = chunk.readVector3f(offset);
+              modfChunk.doodadSet = chunk.readUint16(offset);
+              modfChunk.nameSet = chunk.readUint16(offset);
+              modfChunk.flags = chunk.readInt32(offset);
+
+              const nameOffset = modfChunk.nameId;
+              modfChunk.fileName = mwmoBuff.readString({ offs: nameOffset }, mwmoBuff.getLength() - nameOffset);
+              wdtObj.modfChunk = modfChunk;
+              break;
+            }
+            default:
+              console.info("Unknown Chunk. Ident = " + chunk.chunkIdent + ", file = " + wdtFilePath);
+          }
+          chunk = chunkedFile.loadChunkAtOffset(chunk.nextChunkOffset);
         }
-
-        deferred.resolve(wdtObj);
-    }, function error(){
-        deferred.reject();
-    });
-
-    return deferred.promise;
+        resolve(wdtObj);
+      })
+      .catch(() => {
+        reject();
+      });
+  });
 }

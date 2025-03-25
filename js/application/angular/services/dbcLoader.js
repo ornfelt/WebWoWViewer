@@ -1,72 +1,50 @@
-import $q from 'q';
 import fileLoader from './fileLoader.js';
 import fileReadHelper from './fileReadHelper.js';
 
 export default function (dbcFilePath) {
-    var deferred = $q.defer();
+  const dbcHeaderLen = 20;
 
-    var dbcHeaderLen = 20;
+  return new Promise((resolve, reject) => {
+    fileLoader(dbcFilePath)
+      .then((a) => {
+        const fileReader = fileReadHelper(a);
+        const offset = { offs: 0 };
 
-    fileLoader(dbcFilePath).then(function success(a) {
-        var fileReader = fileReadHelper(a);
-        var offset = {offs : 0};
+        const dbcIdent = fileReader.readString(offset, 4);
 
+        const rowCount = fileReader.readInt32(offset);
+        const colCount = fileReader.readInt32(offset);
+        const rowSize  = fileReader.readInt32(offset);
+        const textSize = fileReader.readInt32(offset);
 
-        var dbcIdent = fileReader.readString(offset, 4);
+        const textSectionStart = dbcHeaderLen + rowCount * (colCount * 4);
 
-        var rowCount = fileReader.readInt32(offset);
-        var colCount = fileReader.readInt32(offset);
-        var rowSize  = fileReader.readInt32(offset);
-        var textSize = fileReader.readInt32(offset);
-
-        var textSectionStart = dbcHeaderLen + rowCount* (colCount*4);
-
-        function calcOffset(row, col){
-            var offs =  dbcHeaderLen + row * (colCount * 4) + col * 4;
-            return {offs : offs};
+        function calcOffset(row, col) {
+          const offs = dbcHeaderLen + row * (colCount * 4) + col * 4;
+          return { offs };
         }
         function getTextOffset(row, col) {
-            var offs = calcOffset(row, col);
-            var textOffs = fileReader.readUint32(offs);
-
-            var result = textSectionStart + textOffs;
-            return {offs : result};
+          const offs = calcOffset(row, col);
+          const textOffs = fileReader.readUint32(offs);
+          const result = textSectionStart + textOffs;
+          return { offs: result };
         }
 
-
-        var dbcObject = {
-            fileSize    : a.byteLength ,
-            getRowCount : function() {
-                return rowCount;
-            },
-            getColCount : function() {
-                return colCount;
-            },
-            getRowSize  : function() {
-                return rowSize;
-            },
-            readInt32 : function (row, col) {
-                var offs = calcOffset(row, col);
-                return fileReader.readInt32(offs);
-            },
-            readFloat32 : function (row, col) {
-                var offs = calcOffset(row, col);
-                return fileReader.readFloat32(offs);
-            },
-            readUInt32 : function (row, col){
-                var offs = calcOffset(row, col);
-                return fileReader.readUint32(offs);
-            },
-            readText : function (row, col) {
-                var textOffs = getTextOffset(row, col);
-                return fileReader.readString(textOffs, textSize);
-            }
+        const dbcObject = {
+          fileSize    : a.byteLength,
+          getRowCount : () => rowCount,
+          getColCount : () => colCount,
+          getRowSize  : () => rowSize,
+          readInt32   : (row, col) => fileReader.readInt32(calcOffset(row, col)),
+          readFloat32 : (row, col) => fileReader.readFloat32(calcOffset(row, col)),
+          readUInt32  : (row, col) => fileReader.readUint32(calcOffset(row, col)),
+          readText    : (row, col) => fileReader.readString(getTextOffset(row, col), textSize)
         };
 
-        deferred.resolve(dbcObject);
-    }, function error(){
-        deferred.reject(null);
-    });
-
-    return deferred.promise;
+        resolve(dbcObject);
+      })
+      .catch(() => {
+        reject(null);
+      });
+  });
 };

@@ -1,6 +1,4 @@
-import $q from 'q';
 import linedFileLoader from './../linedfileLoader.js';
-
 
 const mdx_ver264 = {
     name : "header",
@@ -811,8 +809,6 @@ export default function(filePath) {
             return resultMDXObject;
         } else {
             /* Check the version */
-            var deferred = $q.defer();
-            var promise = deferred.promise;
 
             resultMDXObject = parseOldFile(fileObject);
         }

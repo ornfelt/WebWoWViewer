@@ -1,6 +1,4 @@
-import $q from 'q';
 import linedFileLoader from './../linedfileLoader.js';
-
 
 const skinDefinition = {
     name: "header",
@@ -73,7 +71,6 @@ const skinDefinition = {
     ]
 };
 export default function(filePath) {
-    var deferred = $q.defer();
     var promise = linedFileLoader(filePath);
 
     var newPromise = promise.then(function success(fileObject){

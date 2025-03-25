@@ -1,4 +1,3 @@
-import $q from 'q';
 import config from './../../services/config';
 import AnimationManager from './../manager/animationManager.js'
 import mathHelper from './../math/mathHelper.js';
@@ -137,7 +136,7 @@ class MDXObject {
           var m2Promise = this.sceneApi.resources.loadM2Geom(modelFileName);
           var skinPromise = this.sceneApi.resources.loadSkinGeom(skinFileName);
 
-          return $q.all([m2Promise, skinPromise]).then(function (result) {
+          return Promise.all([m2Promise, skinPromise]).then((result) => {
               try {
                   var m2Geom = result[0];
                   var skinGeom = result[1];

@@ -1,4 +1,3 @@
-import $q from 'q';
 import chunkedLoader from './../chunkedLoader.js';
 import fileReadHelper from './../fileReadHelper.js';
 
@@ -287,39 +286,33 @@ class ADTLoader {
 
 const defaultAdtLoader = new ADTLoader();
 
-export default function(filename){
-    var deferred = $q.defer();
-
-    function addTextureNames(adtObj){
-        //Add texture names
-        for (var i = 0; i < adtObj.mcnkObjs.length; i++) {
-            var mcnkObj = adtObj.mcnkObjs[i];
-            var mtex = adtObj.mtex;
-
-            if (!mcnkObj.textureLayers) continue;
-            for (var j = 0; j < mcnkObj.textureLayers.length; j++) {
-                var textIndex = mcnkObj.textureLayers[j].textureID;
-                var textureName = mtex[textIndex];
-
-                mcnkObj.textureLayers[j].textureName = textureName;
-            }
-        }
+export default function(filename) {
+  function addTextureNames(adtObj) {
+    // Add texture names
+    for (let i = 0; i < adtObj.mcnkObjs.length; i++) {
+      const mcnkObj = adtObj.mcnkObjs[i];
+      const mtex = adtObj.mtex;
+      if (!mcnkObj.textureLayers) continue;
+      for (let j = 0; j < mcnkObj.textureLayers.length; j++) {
+        const textIndex = mcnkObj.textureLayers[j].textureID;
+        const textureName = mtex[textIndex];
+        mcnkObj.textureLayers[j].textureName = textureName;
+      }
     }
+  }
 
-    var promise = chunkedLoader(filename);
-    promise.then(function (chunkedFile) {
+  return new Promise((resolve, reject) => {
+    chunkedLoader(filename)
+      .then((chunkedFile) => {
         /* First chunk in file has to be MVER */
-
-        var adtObj = {};
+        const adtObj = {};
         chunkedFile.setSectionReaders(defaultAdtLoader);
         chunkedFile.processFile(adtObj);
         addTextureNames(adtObj);
-
-        //console.log(adtObj);
-        deferred.resolve(adtObj);
-    }, function error() {
-        deferred.reject();
-    });
-
-    return deferred.promise;
+        resolve(adtObj);
+      })
+      .catch(() => {
+        reject();
+      });
+  });
 }

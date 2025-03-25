@@ -1,4 +1,3 @@
-import $q from 'q';
 import {vec4, mat4, vec3, glMatrix} from 'gl-matrix';
 
 import mathHelper from './../math/mathHelper.js';
@@ -165,7 +164,6 @@ class WmoObject {
         return wmoM2Object;
     }
     setLoadingParam (modf){
-        var deferred = $q.defer();
         var self = this;
 
         var filename = modf.fileName;

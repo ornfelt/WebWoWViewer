@@ -1,5 +1,4 @@
 import Stats from 'stats.js';
-import axios from 'axios';
 
 import drawDepthShader          from 'drawDepthShader.glsl';
 import renderFrameBufferShader  from 'renderFrameBufferShader.glsl';
@@ -30,7 +29,6 @@ import firstPersonCamera from './camera/firstPersonCamera.js'
 import {mat4, vec4, vec3, glMatrix} from 'gl-matrix'
 
 /* DBC stuff */
-import $q from 'q';
 import animationDataDBC             from './../services/dbc/animationDataDBC.js'
 import characterFacialHairStylesDBC from './../services/dbc/characterFacialHairStylesDBC.js'
 import charHairGeosetsDBC           from './../services/dbc/charHairGeosetsDBC.js'

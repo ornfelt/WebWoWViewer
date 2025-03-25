@@ -1,47 +1,32 @@
-import fileLoaderStub from './../fileSystem/fileLoaderStub.js';
-import Q from 'bluebird';
-
-Q.setScheduler(function(fn) {
-    fn();
-});
+import fileLoaderStub from './fileLoaderStub.js';
 
 self.addEventListener('message', function(e) {
-    //console.log("Worker got message = "+e);
-    var opcode = e.data.opcode;
-    var message = e.data.message;
-    var messageId = e.data.messageId;
+  const opcode = e.data.opcode;
+  const message = e.data.message;
+  const messageId = e.data.messageId;
 
-    if (opcode == 'init') {
-
-        var configService = {
-            getArchiveFile : function () {
-                return message.archiveFile
-            },
-            getFileReadMethod : function () {
-                return message.fileReadMethod
-            },
-            getUrlToLoadWoWFile: function () {
-                return message.urlToLoadWoWFile;
-            }
-        };
-        self.fileLoader = fileLoaderStub(configService, Q);
-
-
-    } else if (opcode == 'loadFile') {
-        var filePath = message;
-
-        (function(self, messageId) {
-            var promise = self.fileLoader(filePath);
-            promise.then(function success(a){
-                //console.log("Worker sent file = "+a);
-                //debugger;
-                if (a) {
-                    self.postMessage({opcode: 'fileLoaded', messageId: messageId, message: a.buffer}, [a.buffer]);
-                }
-            }, function error() {
-                console.log("Unable to load file \""+filePath+"\"");
-                self.postMessage({opcode: 'fileLoaded', messageId: messageId, message: null});
-            })
-        })(self, messageId)
-    }
+  if (opcode === 'init') {
+    const configService = {
+      getArchiveFile: () => message.archiveFile,
+      getFileReadMethod: () => message.fileReadMethod,
+      getUrlToLoadWoWFile: () => message.urlToLoadWoWFile,
+    };
+    // Initialize fileLoader without Q
+    self.fileLoader = fileLoaderStub(configService);
+  } else if (opcode === 'loadFile') {
+    const filePath = message;
+    self.fileLoader(filePath)
+      .then((a) => {
+        if (a) {
+          self.postMessage(
+            { opcode: 'fileLoaded', messageId: messageId, message: a.buffer },
+            [a.buffer]
+          );
+        }
+      })
+      .catch(() => {
+        console.log("Unable to load file \"" + filePath + "\"");
+        self.postMessage({ opcode: 'fileLoaded', messageId: messageId, message: null });
+      });
+  }
 }, false);

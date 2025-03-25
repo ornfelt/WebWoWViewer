@@ -1,10 +1,7 @@
 import chunkedLoader from '../chunkedLoader.js';
 import fileReadHelper from './../fileReadHelper.js';
-import $q from 'q';
 
 function wmoGroupLoader(wmoFilePath, loadPlainVertexes) {
-    var deferred = $q.defer();
-
     var wmogroup_ver17 = {
         "MOGP" : {
             "MOGP": function (groupWMOObject, chunk) {

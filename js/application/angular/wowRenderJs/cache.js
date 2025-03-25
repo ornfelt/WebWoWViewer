@@ -1,102 +1,94 @@
-import $q from 'q';
-
 class Cache {
-    constructor(load, process) {
-        this.cache = {};
-        this.queueForLoad = {};
+  constructor(load, process) {
+    this.cache = {};
+    this.queueForLoad = {};
 
-        this.load = load;
-        this.process = process;
+    this.load = load;
+    this.process = process;
+  }
+
+  /*
+   * Queue load functions
+   */
+  get(fileName) {
+    return new Promise((resolve, reject) => {
+      // 1. Return the promise immediately if object is already in cache
+      const obj = this.getCached(fileName);
+      if (obj) {
+        resolve(obj);
+        return;
+      }
+
+      // 2. Otherwise, add this promise’s resolve/reject to the queue
+      let queue = this.queueForLoad[fileName] || [];
+      // If nothing is queued yet for this file, trigger the load process.
+      if (queue.length === 0) {
+        this.load(fileName)
+          .then((loadedObj) => {
+            const finalObject = this.process(loadedObj);
+            this.put(fileName, finalObject);
+            this._resolveQueue(fileName, finalObject);
+          })
+          .catch((error) => {
+            this._rejectQueue(fileName, error);
+          });
+      }
+      queue.push({ resolve, reject });
+      this.queueForLoad[fileName] = queue;
+    });
+  }
+
+  _resolveQueue(fileName, obj) {
+    const queue = this.queueForLoad[fileName] || [];
+    for (let i = 0; i < queue.length; i++) {
+      queue[i].resolve(obj);
     }
-    /*
-     * Queue load functions
-     */
-    get (fileName) {
-        var deferred = $q.defer();
-        var self = this;
+    this.queueForLoad[fileName] = null;
+  }
 
-        /* 1. Return the promise right away, if object is already in cache */
-        var obj = this.getCached(fileName);
-        if (obj) {
-            deferred.resolve(obj);
-            return deferred.promise;
-        }
+  _rejectQueue(fileName, err) {
+    const queue = this.queueForLoad[fileName] || [];
+    for (let i = 0; i < queue.length; i++) {
+      queue[i].reject(err);
+    }
+    this.queueForLoad[fileName] = null;
+  }
 
-        /* 2. Otherwise put the deferred to queue for resolving later */
-        var queue = this.queueForLoad[fileName];
-        if (!queue) {
-            /* 2.1 If object is not loading yet - launch the loading process */
-            queue = [];
-            this.load(fileName).then(function success(loadedObj) {
-                var finalObject = self.process(loadedObj);
-
-                self.put(fileName, finalObject);
-                self.resolve(fileName);
-            }, function error(object) {
-                self.reject(fileName);
-
-            });
-        }
-        queue.push(deferred);
-        this.queueForLoad[fileName] = queue;
-
-        return deferred.promise;
+  /*
+   * Cache storage functions
+   */
+  put(fileName, obj) {
+    const container = {
+      obj: obj,
+      counter: 1,
     };
+    this.cache[fileName] = container;
+  }
 
-    resolve(fileName) {
-        var queue = this.queueForLoad[fileName];
-        for (var i = 0; i < queue.length; i++) {
-            var obj = this.getCached(fileName);
-            queue[i].resolve(obj)
-        }
-        this.queueForLoad[fileName] = null;
+  getCached(fileName) {
+    const container = this.cache[fileName];
+    if (!container) {
+      return null;
     }
+    container.counter += 1;
+    return container.obj;
+  }
 
-    reject(fileName, obj) {
-        var queue = this.queueForLoad[fileName];
-        for (var i = 0; i < queue.length; i++) {
-            queue[i].reject(obj)
-        }
-        this.queueForLoad[fileName] = null;
+  remove(fileName) {
+    const container = this.cache[fileName];
+    if (!container) {
+      // TODO: Log the message if needed.
+      return;
     }
-
-    /*
-    * Cache storage functions
-    */
-     put (fileName, obj) {
-        var container = {
-            obj: obj,
-            counter: 1
-        };
-
-        this.cache[fileName] = container;
+    // Decrease usage counter
+    container.counter -= 1;
+    if (container.counter <= 0) {
+      this.cache[fileName] = null;
+      container.obj.destroy();
     }
-    getCached(fileName) {
-        var container = this.cache[fileName];
-        if (!container){
-            return null;
-        }
-        container.counter += 1;
-
-        return container.obj;
-    }
-
-    remove (fileName) {
-        var container = this.cache[fileName];
-        if (!container) {
-            /* TODO: Log the message? */
-            return;
-        }
-
-        /* Destroy container if usage counter is 0 or less */
-        container.counter -= 1;
-        if (container.counter <= 0) {
-            cache[fileName] = null;
-            container.obj.destroy();
-        }
-    }
+  }
 }
 
-export default function(load, process){
-    return new Cache(load, process);
+export default function(load, process) {
+  return new Cache(load, process);
 }

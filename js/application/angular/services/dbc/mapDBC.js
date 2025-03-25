@@ -1,33 +1,27 @@
-import $q from 'q';
 import loadDBC from './../dbcLoader.js';
 
-var mapDBCFile = null;
+let mapDBCFile = null;
 
-export default function mapDBC(){
-    var deferred = $q.defer();
-
+export default function mapDBC() {
+  return new Promise((resolve, reject) => {
     if (mapDBCFile === null) {
-        mapDBCFile = {};
-        var promise = loadDBC("DBFilesClient/Map.dbc");
-
-        promise.then(function(dbcObject){
-            for (var i = 0; i < dbcObject.getRowCount(); i++ ) {
-                var mapDBCRecord = {};
-
-                mapDBCRecord.id      = dbcObject.readInt32(i, 0);
-                mapDBCRecord.wdtName = dbcObject.readText(i, 1);
-                mapDBCRecord.mapName = dbcObject.readText(i, 5);
-
-                mapDBCFile[mapDBCRecord.id] = mapDBCRecord;
-            }
-
-            deferred.resolve(mapDBCFile);
-        }, function (error) {
-            deferred.reject();
+      mapDBCFile = {};
+      loadDBC("DBFilesClient/Map.dbc")
+        .then((dbcObject) => {
+          for (let i = 0; i < dbcObject.getRowCount(); i++) {
+            const mapDBCRecord = {};
+            mapDBCRecord.id = dbcObject.readInt32(i, 0);
+            mapDBCRecord.wdtName = dbcObject.readText(i, 1);
+            mapDBCRecord.mapName = dbcObject.readText(i, 5);
+            mapDBCFile[mapDBCRecord.id] = mapDBCRecord;
+          }
+          resolve(mapDBCFile);
+        })
+        .catch((error) => {
+          reject(error);
         });
     } else {
-        deferred.resolve(mapDBCFile);
+      resolve(mapDBCFile);
     }
-
-    return deferred.promise;
+  });
 }

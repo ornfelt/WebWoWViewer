@@ -28,30 +28,6 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.js?$/,
-                use: {
-                    loader: 'babel-loader',
-                    options: {
-                        presets: ['@babel/preset-env']
-                    }
-                },
-                exclude: [/node_modules/]
-            },
-            {
-                test: /\.scss$/,
-                use: [
-                    "style-loader", // Injects CSS into the DOM
-                    "css-loader", // Translates CSS into CommonJS
-                    "resolve-url-loader", // Resolves relative paths in url() statements
-                    {
-                        loader: "sass-loader", // Compiles Sass to CSS
-                        options: {
-                            sourceMap: true, // Required for resolve-url-loader to resolve URLs
-                        },
-                    },
-                ],
-            },
-            {
                 test: /\.(woff|woff2|eot|ttf|svg)$/,
                 use: [
                     {
@@ -69,11 +45,8 @@ module.exports = {
             },
             {
                 test: /\.css$/,
-                use: [
-                    'style-loader', // Adds CSS to the DOM by injecting a `<style>` tag
-                    'css-loader' // Interprets `@import` and `url()` like `import/require()` and will resolve them
-                ]
-            }
+                use: [ 'style-loader', 'css-loader' ]
+            },
         ],
     },
 

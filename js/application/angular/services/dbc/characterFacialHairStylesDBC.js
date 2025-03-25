@@ -1,36 +1,31 @@
-import $q from 'q';
 import loadDBC from './../dbcLoader.js';
 
-var characterFacialHairStylesDBCFile = null;
+let characterFacialHairStylesDBCFile = null;
 
-export default function characterFacialHairStylesDBC(){
-    var deferred = $q.defer();
-
+export default function characterFacialHairStylesDBC() {
+  return new Promise((resolve, reject) => {
     if (characterFacialHairStylesDBCFile === null) {
-        characterFacialHairStylesDBCFile = [];
-        var promise = loadDBC("DBFilesClient/CharacterFacialHairStyles.dbc");
-
-        promise.then(function(dbcObject){
-            for (var i = 0; i < dbcObject.getRowCount(); i++ ) {
-                var record = {};
-
-                record.race        = dbcObject.readInt32(i, 0);
-                record.gender      = dbcObject.readInt32(i, 1);
-                record.hairStyle   = dbcObject.readInt32(i, 2);
-                record.geoset = [];
-                for( var j = 0; j < 5; j++)
-                    record.geoset[j] = dbcObject.readInt32(i, 3+j);
-
-                characterFacialHairStylesDBCFile[i] = record;
+      characterFacialHairStylesDBCFile = [];
+      loadDBC("DBFilesClient/CharacterFacialHairStyles.dbc")
+        .then((dbcObject) => {
+          for (let i = 0; i < dbcObject.getRowCount(); i++) {
+            const record = {};
+            record.race      = dbcObject.readInt32(i, 0);
+            record.gender    = dbcObject.readInt32(i, 1);
+            record.hairStyle = dbcObject.readInt32(i, 2);
+            record.geoset  = [];
+            for (let j = 0; j < 5; j++) {
+              record.geoset[j] = dbcObject.readInt32(i, 3 + j);
             }
-
-            deferred.resolve(characterFacialHairStylesDBCFile);
-        }, function (error) {
-            deferred.reject();
+            characterFacialHairStylesDBCFile[i] = record;
+          }
+          resolve(characterFacialHairStylesDBCFile);
+        })
+        .catch((error) => {
+          reject(error);
         });
     } else {
-        deferred.resolve(characterFacialHairStylesDBCFile);
+      resolve(characterFacialHairStylesDBCFile);
     }
-
-    return deferred.promise;
+  });
 }
