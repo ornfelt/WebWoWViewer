@@ -1,15 +1,15 @@
 //import Stats from 'stats.js';
 
-import drawDepthShader          from 'drawDepthShader.glsl';
-import renderFrameBufferShader  from 'renderFrameBufferShader.glsl';
-import readDepthBuffer          from 'readDepthBuffer.glsl';
-import wmoShader                from 'WmoShader.glsl';
-import m2Shader                 from 'm2Shader.glsl';
-import drawBBShader             from 'drawBBShader.glsl';
-import adtShader                from 'adtShader.glsl';
-import drawPortalShader         from 'drawPortalShader.glsl';
-import drawFrustumShader        from 'drawFrustum.glsl';
-import textureCompositionShader from 'textureCompositionShader.glsl';
+//import drawDepthShader          from 'drawDepthShader.glsl';
+//import renderFrameBufferShader  from 'renderFrameBufferShader.glsl';
+//import readDepthBuffer          from 'readDepthBuffer.glsl';
+//import wmoShader                from 'WmoShader.glsl';
+//import m2Shader                 from 'm2Shader.glsl';
+//import drawBBShader             from 'drawBBShader.glsl';
+//import adtShader                from 'adtShader.glsl';
+//import drawPortalShader         from 'drawPortalShader.glsl';
+//import drawFrustumShader        from 'drawFrustum.glsl';
+//import textureCompositionShader from 'textureCompositionShader.glsl';
 
 import GraphManager from './manager/sceneGraphManager.js'
 import WorldObjectManager from './manager/worldObjectManager.js'
@@ -45,6 +45,29 @@ import helmetGeosetVisDataDBC       from './../services/dbc/helmetGeosetVisDataD
 import itemDisplayInfoDBC           from './../services/dbc/itemDisplayInfoDBC.js'
 import itemDBC                      from './../services/dbc/itemDBC.js'
 import mapDBC                       from './../services/dbc/mapDBC.js'
+
+function getShaderSourceById(id) {
+  const el = document.getElementById(id);
+  if (!el) {
+    console.error(`Shader script with id="${id}" not found`);
+    return '';
+  }
+  // textContent or innerHTML should contain the shader source
+  return el.textContent;
+}
+
+const drawDepthShader          = getShaderSourceById('drawDepthShader');
+const renderFrameBufferShader  = getShaderSourceById('renderFrameBufferShader');
+const readDepthBuffer          = getShaderSourceById('readDepthBuffer');
+const wmoShader                = getShaderSourceById('WmoShader');
+const m2Shader                 = getShaderSourceById('m2Shader');
+const drawBBShader             = getShaderSourceById('drawBBShader');
+const adtShader                = getShaderSourceById('adtShader');
+const drawPortalShader         = getShaderSourceById('drawPortalShader');
+const drawFrustumShader        = getShaderSourceById('drawFrustum');
+const textureCompositionShader = getShaderSourceById('textureCompositionShader');
+
+// etc.
 
 /*************/
 
