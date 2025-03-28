@@ -207,16 +207,16 @@ export function initViewer(containerEl) {
   const sceneObj = new Scene(canvas);
 
   // 5) Hard-code params
-    const mapParams = {
-        name: 'Shattrath city (WotLK)',
-        source: 'http',
-        sceneType: 'map',
-        mapId: 530,
-        mapName: 'Expansion01',
-        x: -1663,
-        y: 5098,
-        z: 27
-    };
+    //const mapParams = {
+    //    name: 'Shattrath city (WotLK)',
+    //    source: 'http',
+    //    sceneType: 'map',
+    //    mapId: 530,
+    //    mapName: 'Expansion01',
+    //    x: -1663,
+    //    y: 5098,
+    //    z: 27
+    //};
 
     //const mapParams = {
     //    name: 'Nagrand (WotLK)',
@@ -229,16 +229,16 @@ export function initViewer(containerEl) {
     //    z: 33
     //};
 
-    //const mapParams = {
-    //    name: 'Darkshire',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    //mapId: 0,
-    //    mapName: 'Azeroth',
-    //    x: -10559.7,
-    //    y: -1189.02,
-    //    z: 29.0698
-    //}
+    const mapParams = {
+        name: 'Darkshire',
+        source: 'http',
+        sceneType: 'map',
+        //mapId: 0,
+        mapName: 'Azeroth',
+        x: -10559.7,
+        y: -1189.02,
+        z: 29.0698
+    }
 
     //const mapParams = {
     //    name: 'Forsaken start',
@@ -300,7 +300,6 @@ export function initViewer(containerEl) {
     //    source: 'http',
     //    sceneType: 'm2',
     //    modelName: 'creature\\ragnaros\\ragnaros.m2',
-    //    fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO'
     //}
 
     //const mapParams = {
@@ -309,6 +308,8 @@ export function initViewer(containerEl) {
     //    sceneType: 'm2',
     //    modelName: 'spells\\fireball_missile_low.m2'
     //}
+
+    // TODO: test individual adt, more WMOs and models...
 
   // Calculate ADT coords
   const adt_x = Math.floor((32 - (mapParams.y / 533.33333)));

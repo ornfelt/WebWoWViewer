@@ -3,6 +3,7 @@ import AnimationManager from './../manager/animationManager.js'
 import mathHelper from './../math/mathHelper.js';
 import QuickSort from './../math/quickSort';
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
+import Expansion from '../../Expansion.js';
 
 const pixelShaderTable = {
     "Combiners_Opaque" : 0,
@@ -101,7 +102,7 @@ class MDXObject {
         this.modelName = modelName;
 
         // HEHE
-        ////this.modelName = "spells\\fireball_missile_low.m2";
+        //this.modelName = "spells\\fireball_missile_low.m2";
         //this.modelName = "spells\\blizzard_impact_base.m2";
         //const randomNumber = Math.random();
 
@@ -109,6 +110,22 @@ class MDXObject {
         //    this.modelName = "spells\\blizzard_spawn.m2";
         //    this.modelName = "chainlightning_impact_chest.m2";
         //}
+
+        //this.modelName = "spells\\pyroblast_missile.m2";
+        
+        // Test models
+        //this.modelName = "creature\\ragnaros\\ragnaros.m2";
+        //this.modelName = "creature\\druidbear\\druidbear.m2";
+        //this.modelName = "creature\\dragon\\dragononyxia.m2";
+        //this.modelName = "creature\\drake\\drake.mdx";
+        //this.modelName = "creature\\SkeletonNaked\\SkeletonNaked.mdx";
+        //this.modelName = "creature\\Cow\\cow.mdx";
+        //this.modelName = "creature\\panda\\pandacub.mdx";
+        //this.modelName = "creature\\raptor\\raptor.m2";
+
+        // Static
+        //this.modelName = "World\\Dungeon\\Cave\\Passivedoodads\\Icicles\\Caveicicle1.Mdl";
+        //this.modelName = "World\\Khazmodan\\Ironforge\\Passivedoodads\\Trees\\Wintertree02.Mdx";
 
         //console.log("LOADING M2: " + this.modelName);
         this.skinNum = skinNum;
@@ -121,17 +138,23 @@ class MDXObject {
         modelFileName = modelFileName.toLowerCase();
         skinFileName = skinFileName.toLowerCase();
 
-        this.fileIdent = modelFileName + " " +skinFileName;
+        this.fileIdent = modelFileName + " " + skinFileName;
         this.fileIdent = this.fileIdent.replace(/\0/g, '');
     }
 
     load() {
         var self = this;
+        // HEHE: to test without models (for tbc and classic debugging)
+        //return true;
 
       try {
           var nameTemplate = this.modelName.split('.')[0];
           var modelFileName = nameTemplate + '.m2';
-          var skinFileName = nameTemplate + '00.skin';
+
+          var skinFileName = modelFileName;
+          if (window.selectedExpansion === Expansion.WOTLK) {
+              skinFileName = nameTemplate + '00.skin';
+          }
 
           var m2Promise = this.sceneApi.resources.loadM2Geom(modelFileName);
           var skinPromise = this.sceneApi.resources.loadSkinGeom(skinFileName);

@@ -18,8 +18,19 @@ class M2Geom {
     loadTextures() {
         var textureDefinition = this.m2File.textureDefinition;
 
+        // Debug
+        //console.log("Loading textures for m2File:", this.m2File.textureDefinition);
+
         for (var i = 0; i < textureDefinition.length; i++) {
-            this.loadTexture(i, textureDefinition[i].textureName);
+            //this.loadTexture(i, textureDefinition[i].textureName);
+
+            const textureName = textureDefinition[i].textureName.replace(/\u0000/g, '');
+
+            if (textureName !== '') {
+              this.loadTexture(i, textureName);
+            } else {
+                console.log("Skipping empty texture...");
+            }
         }
     }
 

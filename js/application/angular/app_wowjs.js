@@ -290,9 +290,62 @@
 // src/app_wowjs_noangular.js
 
 import { initViewer } from './directives/wowJsRenderDirective_noangular.js';
+import Expansion from './Expansion.js';
 
-// On DOMContentLoaded, run our init
-document.addEventListener('DOMContentLoaded', () => {
+window.selectedExpansion = Expansion.WOTLK; // default
+let expansionLoaded = false;
+
+// Determine expansion first
+(async () => {
+    try {
+        const url = "http://localhost:3002/files/exp.txt";
+        const response = await fetch(url);
+        if (response.ok) {
+            const text = (await response.text()).trim().toLowerCase();
+            if (text === "classic") {
+                window.selectedExpansion = Expansion.CLASSIC;
+            } else if (text === "tbc") {
+                window.selectedExpansion = Expansion.TBC;
+            } else {
+                window.selectedExpansion = Expansion.WOTLK;
+            }
+        } else {
+            console.error("Error fetching exp.txt:", response.statusText);
+        }
+    } catch (error) {
+        console.error("Error during fetch:", error);
+    } finally {
+        console.log("selectedExpansion:", window.selectedExpansion);
+        expansionLoaded = true;
+    }
+})();
+
+function waitForExpansion() {
+    return new Promise(resolve => {
+        const check = () => {
+            if (expansionLoaded) {
+                resolve();
+            } else {
+                setTimeout(check, 50);
+            }
+        };
+        check();
+    });
+}
+
+//document.addEventListener('DOMContentLoaded', () => {
+//  const container = document.getElementById('viewer-container');
+//  initViewer(container);
+//});
+
+//
+// Entry point
+//
+//window.onload = () => {
+window.onload = async () => {
+  await waitForExpansion(); // Wait until the expansion has been set
+
   const container = document.getElementById('viewer-container');
   initViewer(container);
-});
+};
+

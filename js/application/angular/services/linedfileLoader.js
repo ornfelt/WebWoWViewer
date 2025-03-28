@@ -65,6 +65,8 @@ export default function (filePath , arrayBuffer) {
                             result = fileObject.readString(offset, 9999);
                         }
                         break;
+
+                    //case "ablock_tbc" :
                     case "ablock" :
 
                         result = {};
@@ -120,6 +122,57 @@ export default function (filePath , arrayBuffer) {
                         }
 
                         break;
+
+                    case "ablock_tbc":
+                        result = {};
+                        result.interpolation_type      = fileObject.readUint16(offset);
+                        result.global_sequence         = fileObject.readInt16(offset);
+                        result.interpolation_ranges_nb = fileObject.readUint32(offset);
+                        result.ofsRanges               = fileObject.readUint32(offset);
+                        result.timestamps_nb           = fileObject.readUint32(offset);
+                        result.ofsTimes                = fileObject.readUint32(offset);
+                        result.values_nb               = fileObject.readUint32(offset);
+                        result.ofsValues               = fileObject.readUint32(offset);
+
+                        // TODO: fix
+
+                        // Load interpolation ranges (if any)
+                        if (result.interpolation_ranges_nb > 0) {
+                            result.ranges = [];
+                            var offRanges = { offs: result.ofsRanges };
+                            for (var i = 0; i < result.interpolation_ranges_nb; i++) {
+                                // Assuming each range consists of two int32 values: minimum and maximum
+                                var minimum = fileObject.readInt32(offRanges);
+                                var maximum = fileObject.readInt32(offRanges);
+                                result.ranges.push({ first: minimum, second: maximum });
+                            }
+                        }
+
+                        // Load timestamps
+                        result.timestampsPerAnimation = new Array(timeStampAnimationsCnt);
+                        if (result.timestamps_nb > 0) {
+                            var offTimes = { offs: result.ofsTimes };
+                            for (var i = 0; i < result.timestamps_nb; i++) {
+                                result.timestampsPerAnimation.push(fileObject.readInt32(offTimes));
+                            }
+                        }
+
+                        // Load keyframes (values)
+                        result.valuesPerAnimation = new Array(valuesAnimationsCnt);
+                        if (result.values_nb > 0) {
+                            var offValues = { offs: result.ofsValues };
+                            // Assuming linear interpolation (or None) for this example
+                            for (var i = 0; i < result.values_nb; i++) {
+                                result.valuesPerAnimation.push(self.readType(
+                                    fileObject,
+                                    { type: sectionDef.valType, len: sectionDef.len },
+                                    offValues,
+                                    sectionDef.len
+                                ));
+                            }
+                        }
+                        break;
+
                     case "layout" :
                         /*
                          * Parse layout
@@ -133,7 +186,7 @@ export default function (filePath , arrayBuffer) {
 
                         for (var i = 0; i < layout.length; i++) {
                             var paramName = layout[i].name;
-                            resultObj[paramName] = this.parseSectionDefinition(resultObj, layout[i], fileObject, offset);
+                            resultObj[paramName] = this.parseSectionDefinition(resultObj, layout[i], fileObject, offset, true);
                         }
 
                         return resultObj;
@@ -146,7 +199,7 @@ export default function (filePath , arrayBuffer) {
                 return result;
             };
 
-            this.parseSectionDefinition = function(parentObject, sectionDefinition, fileObject, offset){
+            this.parseSectionDefinition = function(parentObject, sectionDefinition, fileObject, offset, debugPrint=false){
                 var offs;
                 if (typeof sectionDefinition.offset == "string") {
                     offs = parentObject[sectionDefinition.offset];
@@ -184,6 +237,11 @@ export default function (filePath , arrayBuffer) {
 
                 for (var j = 0; j < count; j++) {
                     fieldObject = this.readType(fileObject, sectionDefinition, offset, len);
+
+                    // Debug
+                    //if (debugPrint === true) console.log(`DEBUG: Field "${sectionDefinition.name}" (type: "${sectionDefinition.type}") ->`, fieldObject);
+                    //console.log(`DEBUG: Field "${sectionDefinition.name}" (type: "${sectionDefinition.type}") ->`, fieldObject);
+
                     fieldArray.push(fieldObject);
                 }
                 var resultObj;

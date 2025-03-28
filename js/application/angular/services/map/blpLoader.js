@@ -29,7 +29,8 @@ export default function (filePath) {
             /* Check the ident */
             if (fileIdent != "BLP2") {
                 var errorMessage = "Unknown BLP file ident = " + fileIdent + ", filepath = ", filePath;
-                $log.error(errorMessage);
+                //$log.error(errorMessage);
+                console.error(errorMessage);
                 throw errorMessage;
             }
 
@@ -44,6 +45,9 @@ export default function (filePath) {
             /* Post load for texture data. Can't define them through declarative definition */
             var width = resultBLPObject.width;
             var height = resultBLPObject.height;
+
+            // Debug
+            //console.log("LOADING BLP:", fileObject.filePath);
 
             /* Determine texture format */
             switch (resultBLPObject.preferredFormat) {
@@ -137,6 +141,9 @@ export default function (filePath) {
             }
 
             resultBLPObject.mipmaps = mipmaps;
+
+            // Debug
+            //console.log("resultBLPObject", resultBLPObject);
 
             return resultBLPObject;
         },

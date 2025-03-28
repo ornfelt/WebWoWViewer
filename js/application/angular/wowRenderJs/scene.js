@@ -46,6 +46,8 @@ import itemDisplayInfoDBC           from './../services/dbc/itemDisplayInfoDBC.j
 import itemDBC                      from './../services/dbc/itemDBC.js'
 import mapDBC                       from './../services/dbc/mapDBC.js'
 
+import Expansion from '../Expansion.js';
+
 function getShaderSourceById(id) {
   const el = document.getElementById(id);
   if (!el) {
@@ -152,27 +154,32 @@ class Scene {
         gameObjectDisplayInfoDBC().then(function success(a) {
             self.gameObjectDisplayInfoDBC = a;
         });
-        itemDisplayInfoDBC().then(function success(a) {
-            self.itemDisplayInfoDBC = a;
-        });
-        itemDBC().then(function success(a) {
-            self.itemDBC = a;
-        });
-        helmetGeosetVisDataDBC().then(function success(a) {
-            self.helmetGeosetVisDataDBC = a;
-        });
+
+        // TODO: fix
+        if (window.selectedExpansion === Expansion.WOTLK) {
+          itemDisplayInfoDBC().then(function success(a) {
+              self.itemDisplayInfoDBC = a;
+          });
+          itemDBC().then(function success(a) {
+              self.itemDBC = a;
+          });
+          helmetGeosetVisDataDBC().then(function success(a) {
+              self.helmetGeosetVisDataDBC = a;
+          });
+        }
 
         /* Map and area data */
         mapDBC().then(function success(a) {
             self.mapDBC = a;
         });
 
-
-
         /* Lights information */
-        lightDBC().then(function success(a) {
-            self.lightDBC = a;
-        });
+        // TODO: fix
+        if (window.selectedExpansion === Expansion.WOTLK) {
+          lightDBC().then(function success(a) {
+              self.lightDBC = a;
+          });
+        }
         lightFloatBandDBC().then(function success(a) {
             self.lightFloatBandDBC = a;
         });

@@ -1,5 +1,6 @@
 import cacheTemplate from './../cache.js';
 import skinLoader from './../../services/map/skinLoader.js'
+import Expansion from '../../Expansion.js';
 
 class SkinGeom {
     constructor(sceneApi) {
@@ -23,7 +24,7 @@ class SkinGeom {
             var renderFlag = m2File.renderFlags[skinTextureDefinition.renderFlagIndex];
             var blendingMode = renderFlag.blend;
 
-            if (!hasBlendingOverrides) {
+            if (!hasBlendingOverrides || window.selectedExpansion !== Expansion.WOTLK) {
                 var texUnit = m2File.textUnitLookup[skinTextureDefinition.textureUnitNum];
 
                 var newShaderId = (blendingMode != 0) ? 1 : 0;

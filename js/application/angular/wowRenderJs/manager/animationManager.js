@@ -1,4 +1,5 @@
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
+import Expansion from '../../Expansion.js';
 
 export default class AnimationManager {
 
@@ -178,11 +179,16 @@ export default class AnimationManager {
             var currentSubAnimIndex = this.mainAnimationIndex;
             var subAnimRecord = m2File.animations[currentSubAnimIndex];
             calcProb += subAnimRecord.probability;
-            while ((calcProb < probability) && (subAnimRecord.next_animation > -1)) {
-                currentSubAnimIndex = subAnimRecord.next_animation;
-                subAnimRecord = m2File.animations[currentSubAnimIndex];
 
-                calcProb += subAnimRecord.probability;
+            // TODO: fix
+            if (window.selectedExpansion === Expansion.WOTLK) {
+              while ((calcProb < probability) && (subAnimRecord.next_animation > -1)) {
+                  console.log("probability", probability);
+                  currentSubAnimIndex = subAnimRecord.next_animation;
+                  subAnimRecord = m2File.animations[currentSubAnimIndex];
+              
+                  calcProb += subAnimRecord.probability;
+              }
             }
 
             this.nextSubAnimationIndex = currentSubAnimIndex;
@@ -510,7 +516,6 @@ export default class AnimationManager {
     /* Bone animation functons */
     calcBones (boneMatrices, animation, time, cameraPosInLocal) {
         var m2File = this.m2File;
-
 
         if (this.firstCalc || this.isAnimated) {
             //Animate everything with standard animation
