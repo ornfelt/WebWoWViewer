@@ -1,0 +1,64 @@
+[
+  {
+    "date": 1206685007,
+    "tickcount": 396099078,
+    "direction": "ServerToClient",
+    "opcode": "SMSG_COMPRESSED_UPDATE_OBJECT",
+    "payload": {
+      "unk_int8": 0,
+      "updates": [
+        {
+          "updateType": "UPDATE_TYPE_CREATE_FULL",
+          "objectGuid": "17786964",
+          "obj_type": 3,
+          "create_flag0": 112,
+          "movementflag": 16777216,
+          "movementflagExt": 0,
+          "timestamp": 43199333,
+          "x": -1663,
+          "y": 5098,
+          "z": 27,
+          "f": 0,
+          "unk_long": 0,
+          "speedWalk": 5.6666699647903442,
+          "speedRun": 8.0,
+          "speedRunBack": 4.5,
+          "speedSwim": 4.722222328186035,
+          "speedSwimBack": 2.5,
+          "speedFly": 7.0,
+          "speedFlyBack": 4.5,
+          "speedTurnRate": 3.1415927410125732,
+          "pos_count_flags0": 0,
+          "curr_time": 10860,
+          "total_time": 22704,
+          "unk_10_long": 11,
+          "updateFields": {
+            "OBJECT_FIELD_GUID": [
+              {
+                "index": 0,
+                "value": 4227863763
+              },
+              {
+                "index": 1,
+                "value": 4046454827
+              }
+            ],
+            "OBJECT_FIELD_TYPE": 9,
+            "OBJECT_FIELD_ENTRY": 11260,
+            "OBJECT_FIELD_SCALE_X": 1.0,
+            "UNIT_FIELD_HEALTH": 100,
+            "UNIT_FIELD_POWER3": 100,
+            "UNIT_FIELD_POWER5": 1000000,
+            "UNIT_FIELD_MAXHEALTH": 100,
+            "UNIT_FIELD_MAXPOWER3": 100,
+            "UNIT_FIELD_MAXPOWER5": 1000000,
+            "UNIT_FIELD_LEVEL": 1,
+            "UNIT_FIELD_FACTIONTEMPLATE": 12,
+            "UNIT_FIELD_DISPLAYID": 11121,
+            "UNIT_FIELD_NATIVEDISPLAYID": 11121
+          }
+        }
+      ]
+    }
+  }
+]
