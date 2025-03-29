@@ -1198,7 +1198,7 @@ function parseOldFile(fileObject){
     try {
         resultMDXObject = fileObject.parseSectionDefinition(resultMDXObject, mdxDescription, fileObject, offset);
         // Debug
-        //console.log("resultMDXObject:", resultMDXObject);
+        console.log("resultMDXObject:", resultMDXObject);
     } catch (e) {
         throw e;
     }

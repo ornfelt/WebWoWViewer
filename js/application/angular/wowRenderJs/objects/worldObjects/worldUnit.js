@@ -325,7 +325,6 @@ class WorldUnit extends WorldObject {
         var cdied = this.sceneApi.dbc.getCreatureDisplayInfoExtraDBC();
         var cmdd = this.sceneApi.dbc.getCreatureModelDataDBC();
 
-
         var displayInf = cdid[value];
         var displayIDScale = displayInf.modelScale;
         this.displayIDScale = displayIDScale;
@@ -372,8 +371,19 @@ class WorldUnit extends WorldObject {
             }
         }//DisplayExtra
 
+        // Debug
+        //console.log("Creating model from displayId:", value);
+        //console.log("Model path:", modelFilename);
+        //console.log("Model scale:", modelScale);
+        //console.log("DisplayID scale:", displayIDScale);
+        //console.log("Replace textures:", replaceTextures);
+        //console.log("Use mesh IDs:", useMeshId);
+        //if (useMeshId) {
+        //    console.log("Mesh IDs:", meshIds);
+        //}
 
         var model = this.sceneApi.objects.loadWorldM2Obj(modelFilename,(useMeshId) ? meshIds : null, replaceTextures);
+
         return model;
     }
     createHelmetFromItemDisplayInfo(race, gender, ItemDInfo) {
@@ -411,6 +421,7 @@ class WorldUnit extends WorldObject {
     update (deltaTime, cameraPos, viewMat) {
         var objectModelIsLoaded = this.objectModel && this.objectModel.m2Geom && this.objectModel.m2Geom.m2File;
         var objectModelHasBones = objectModelIsLoaded &&  this.objectModel.bonesMatrices;
+
         /* 1. Calculate current position */
         if (this.isMoving) {
             if ((this.currentMovingTime + deltaTime) >= this.totalMovingTime) {

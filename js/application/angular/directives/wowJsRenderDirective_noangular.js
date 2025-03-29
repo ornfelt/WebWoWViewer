@@ -1,5 +1,8 @@
 import Scene from './../wowRenderJs/scene.js';
 import config from './../services/config.js';
+import WorldUnit from '../wowRenderJs/objects/worldObjects/worldUnit.js';
+import WorldPlayer from '../wowRenderJs/objects/worldObjects/worldPlayer.js';
+import {vec3} from 'gl-matrix'
 
 /**
  * Attach pointer-lock, mouse, keyboard, touch events to the canvas/camera.
@@ -137,11 +140,15 @@ function attachEvents(canvas, camera) {
   canvas.addEventListener('touchend', touchEnd, false);
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /**
  * Creates a canvas + UI in containerEl, loads Shattrath automatically,
  * attaches events, and starts rendering.
  */
-export function initViewer(containerEl) {
+export async function initViewer(containerEl) {
   // 1) Create HTML structure (canvas + simple debug panel)
   containerEl.innerHTML = `
     <div style="width: 100%; height: 100%; position: relative; overflow: hidden;">
@@ -229,16 +236,25 @@ export function initViewer(containerEl) {
     //    z: 33
     //};
 
-    const mapParams = {
-        name: 'Darkshire',
-        source: 'http',
-        sceneType: 'map',
-        //mapId: 0,
-        mapName: 'Azeroth',
-        x: -10559.7,
-        y: -1189.02,
-        z: 29.0698
-    }
+    //const mapParams = {
+    //    name: 'Nagrand arena',
+    //    source: 'http',
+    //    sceneType: 'map',
+    //    mapId: 559,
+    //    mapName: 'PVPZone05',
+    //    x: 4084.11, y:	2869.94, z:	12.1
+    //};
+
+    //const mapParams = {
+    //    name: 'Darkshire',
+    //    source: 'http',
+    //    sceneType: 'map',
+    //    //mapId: 0,
+    //    mapName: 'Azeroth',
+    //    x: -10559.7,
+    //    y: -1189.02,
+    //    z: 29.0698
+    //}
 
     //const mapParams = {
     //    name: 'Forsaken start',
@@ -251,12 +267,12 @@ export function initViewer(containerEl) {
     //    z: 137
     //}
 
-    //const mapParams = {
-    //    name: 'elwyn forest tree',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'world\\azeroth\\elwynn\\passivedoodads\\trees\\elwynntreecanopy03.m2'
-    //}
+    const mapParams = {
+        name: 'elwyn forest tree',
+        source: 'http',
+        sceneType: 'm2',
+        modelName: 'world\\azeroth\\elwynn\\passivedoodads\\trees\\elwynntreecanopy03.m2'
+    }
 
     //const mapParams = {
     //    name: 'Vanilla Opening screen',
@@ -288,6 +304,20 @@ export function initViewer(containerEl) {
     //}
 
     //const mapParams = {
+    //    name: 'arena wmo',
+    //    source: 'http',
+    //    sceneType: 'wmo',
+    //    fileName: 'world\\wmo\\pvp\\buildings\\lordaeron\\pvp_lordaeron_arena.wmo'
+    //    //fileName: 'world\\wmo\\pvp\\buildings\\dalaran\\dalaran_sewer_arena.wmo'
+    //    //fileName: 'world\\wmo\\pvp\\buildings\\dalaran\\dalaran_sewer_arena.wmo'
+    //    //fileName: 'world\\wmo\\pvp\\buildings\\ancientorcarena\\ancorc_pvpstadium.wmo' // Nagrand arena!
+    //    //fileName: 'world\\wmo\\dungeon\\ol_ogrehuts\\pvp_ogre_arena01.wmo'
+    //    //fileName: 'world\\wmo\\azeroth\\collidable doodads\\stranglethorn\\stranglethornarena\\stranglegladiatorarena.wmo'
+    //    // This one failed
+    //    //fileName: 'world\\wmo\\pvp\\buildings\\orgrimmar\\orgrimmararena.wmo'
+    //}
+
+    //const mapParams = {
     //    name: 'Penguin',
     //    source: 'http',
     //    sceneType: 'm2',
@@ -300,6 +330,13 @@ export function initViewer(containerEl) {
     //    source: 'http',
     //    sceneType: 'm2',
     //    modelName: 'creature\\ragnaros\\ragnaros.m2',
+    //}
+
+    //const mapParams = {
+    //    name: 'wintertree02',
+    //    source: 'http',
+    //    sceneType: 'm2',
+    //    modelName: 'world\\khazmodan\\ironforge\\passivedoodads\\trees\\wintertree02.m2',
     //}
 
     //const mapParams = {
@@ -328,15 +365,90 @@ export function initViewer(containerEl) {
             rotation : {x : 0, y : 0, z : 0},
             doodadSet: 0
         });
+
+        await sleep(3000); // wait for 3 seconds for dbc data to load
+
+        //var newWorldUnit = new WorldUnit(sceneObj.sceneApi);
+
+        var newWorldUnit = new WorldPlayer(sceneObj.sceneApi);
+        sceneObj.worldObjectManager.objectMap[333] = newWorldUnit;
+
+        // Movement speeds
+        //newWorldUnit.setSpeedWalk(2.5);
+        //newWorldUnit.setSpeedRun(7.0);
+        //newWorldUnit.setSpeedRunBack(4.5);
+        //newWorldUnit.setSpeedSwim(4.722222328186035);
+        //newWorldUnit.setSpeedSwimBack(2.5);
+        //newWorldUnit.setSpeedFly(7.0);
+        //newWorldUnit.setSpeedFlyBack(4.5);
+        //newWorldUnit.setSpeedTurnRate(3.1415927410125732);
+
+        // Movement path (points)
+        const vectorArray = [
+          [-1663, 5098, 27],
+          [-1600, 5100, 30],
+          [-1650, 5150, 35]
+        ];
+        newWorldUnit.setMovingData(1000, 8000, 0, vectorArray); // curr_time, total_time, movementflag
+
+        // Position and rotation
+        //newWorldUnit.setCurrentTime(-207965255);
+        //newWorldUnit.setPosition(vec3.fromValues(-1663, 5098, 27));
+        //newWorldUnit.setRotation(0.0);
+
+        newWorldUnit.setDisplayId(11121);
+        newWorldUnit.setNativeDisplayId(11121);
+        newWorldUnit.setScale(1.0);
+
+        newWorldUnit.complete()
+
     } else if (mapParams.sceneType == 'm2') { 
-        var m2Object = sceneObj.loadM2File({
-            fileName : mapParams.modelName,
-            uniqueId : 0,
-            //pos      : {x : 0 + 17066.666666656, y : 0, z : 0 + 17066.666666656},
-            pos      : {x : 0, y : 0, z : 0},
-            rotation : {x : 0, y : 0, z : 0},
-            scale    : 1024
-        });
+        //var m2Object = sceneObj.loadM2File({
+        //    fileName : mapParams.modelName,
+        //    uniqueId : 0,
+        //    //pos      : {x : 0 + 17066.666666656, y : 0, z : 0 + 17066.666666656},
+        //    pos      : {x : 0, y : 0, z : 0},
+        //    rotation : {x : 0, y : 0, z : 0},
+        //    //scale    : 1024
+        //    scale    : 1
+        //});
+        //window.m2Object = m2Object;
+
+        await sleep(3000); // wait for 3 seconds for dbc data to load
+
+        //var newWorldUnit = new WorldUnit(sceneObj.sceneApi);
+
+        var newWorldUnit = new WorldPlayer(sceneObj.sceneApi);
+        sceneObj.worldObjectManager.objectMap[333] = newWorldUnit;
+
+        // Movement speeds
+        //newWorldUnit.setSpeedWalk(2.5);
+        //newWorldUnit.setSpeedRun(7.0);
+        //newWorldUnit.setSpeedRunBack(4.5);
+        //newWorldUnit.setSpeedSwim(4.722222328186035);
+        //newWorldUnit.setSpeedSwimBack(2.5);
+        //newWorldUnit.setSpeedFly(7.0);
+        //newWorldUnit.setSpeedFlyBack(4.5);
+        //newWorldUnit.setSpeedTurnRate(3.1415927410125732);
+
+        // Movement path (points)
+        const vectorArray = [
+          [-1663, 5098, 27],
+          [-1600, 5100, 30],
+          [-1650, 5150, 35]
+        ];
+        newWorldUnit.setMovingData(1000, 8000, 0, vectorArray); // curr_time, total_time, movementflag
+
+        // Position and rotation
+        //newWorldUnit.setCurrentTime(-207965255);
+        //newWorldUnit.setPosition(vec3.fromValues(-1663, 5098, 27));
+        //newWorldUnit.setRotation(0.0);
+
+        newWorldUnit.setDisplayId(11121);
+        newWorldUnit.setNativeDisplayId(11121);
+        newWorldUnit.setScale(1.0);
+
+        newWorldUnit.complete()
 
         if (mapParams.cameraIndex !== undefined) {
             config.setCameraM2(m2Object);

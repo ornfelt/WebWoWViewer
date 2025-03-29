@@ -189,7 +189,6 @@ class GraphManager {
                 var frustumResult = m2Object.checkFrustumCulling(this.position, frustumPlanes, 6);
             }
 
-
             if (frustumResult) {
                 m2Object.setIsRendered(true);
                 m2RenderedThisFrame.add(m2Object);

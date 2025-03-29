@@ -70,15 +70,22 @@ class WorldObjectManager {
 
         if (this.objectMap[17786930]) {
             var vectorArray = new Array();
-            //vectorArray[0] = cameraPos[0]+10;
-            //vectorArray[1] = cameraPos[1]-10;
-
             vectorArray[0] = cameraPos[0]-15;
             vectorArray[1] = cameraPos[1]+15;
             vectorArray[2] = cameraPos[2]-8;
-            //console.log("Update playerpos: " + vectorArray);
             this.objectMap[17786930].setPosition(vectorArray);
         }
+
+        if (this.objectMap[333]) {
+            //var vectorArray = new Array();
+            //vectorArray[0] = cameraPos[0]-15;
+            //vectorArray[1] = cameraPos[1]+15;
+            //vectorArray[2] = cameraPos[2]-8;
+            var vectorArray = [0+30, 0+30, 0];
+            this.objectMap[333].setPosition(vectorArray);
+        }
+        // Debug
+        //console.log("this.objectMap:", this.objectMap);
     }
 
     processPacket(packet) {

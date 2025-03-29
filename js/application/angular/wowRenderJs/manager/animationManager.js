@@ -183,7 +183,6 @@ export default class AnimationManager {
             // TODO: fix
             if (window.selectedExpansion === Expansion.WOTLK) {
               while ((calcProb < probability) && (subAnimRecord.next_animation > -1)) {
-                  console.log("probability", probability);
                   currentSubAnimIndex = subAnimRecord.next_animation;
                   subAnimRecord = m2File.animations[currentSubAnimIndex];
               
