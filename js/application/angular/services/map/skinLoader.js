@@ -72,6 +72,77 @@ const skinDefinition = {
     ]
 };
 
+const skinDefinitionClassic = {
+    name: "header",
+    type: "layout",
+    layout: [
+        {name: "nIndex", type: "int32"},
+        {name: "ofsIndex", type: "int32"},
+        {name: "nTris", type: "int32"},
+        {name: "ofsTris", type: "int32"},
+        {name: "nProps", type: "int32"},
+        {name: "ofsProps", type: "int32"},
+        {name: "nSub", type: "int32"},
+        {name: "ofsSub", type: "int32"},
+        {name: "nTex", type: "int32"},
+        {name: "ofsTex", type: "int32"},
+        {name: "LOD", type: "int32"} ,
+
+        {
+            name: "indexes",
+            offset: "ofsIndex",
+            len : "nIndex",
+            type : "uint16Array"
+        },
+        {
+            name: "triangles",
+            offset: "ofsTris",
+            len : "nTris",
+            type : "uint16Array"
+        },
+        {
+            name: "subMeshes",
+            offset: "ofsSub",
+            count : "nSub",
+            type : "layout",
+            layout : [
+                {name : "meshID",         type: "int32"},
+                {name : "vStart",         type: "uint16"},
+                {name : "vCount",         type: "uint16"},
+                {name : "StartTriangle",  type: "uint16"},
+                {name : "nTriangles",     type: "uint16"},
+                {name : "nBones",         type: "uint16"},
+                {name : "OfsBoneList",    type: "uint16"},
+                {name : "boneInfluences", type: "uint16"},
+                {name : "rootBone",       type: "uint16"},
+                {name : "pos",            type: "vector3f"},
+                //{name : "centerBoundingBox",         type: "vector3f"},
+                //{name : "radius",       type: "float32"},
+            ]
+        },
+        {
+            name: "texs",
+            offset: "ofsTex",
+            count : "nTex",
+            type : "layout",
+            layout : [
+                {name : "flags",               type: "uint16"},
+                {name : "shaderId",            type: "int16"},
+                {name : "submeshIndex",        type: "uint16"},
+                {name : "submesh_index2",      type: "uint16"},
+                {name : "colorIndex",          type: "int16"},
+                {name : "renderFlagIndex",     type: "uint16"},
+                {name : "layer",               type: "uint16"},
+                {name : "op_count",            type: "uint16"},
+                {name : "textureIndex",        type: "uint16"},
+                {name : "textureUnitNum",      type: "uint16"},
+                {name : "transpIndex",         type: "uint16"},
+                {name : "textureAnim",         type: "uint16"}
+            ]
+        }
+    ]
+};
+
 const mdx_ver262 = {
     name : "modelHeader",
     type : "layout",
@@ -190,7 +261,11 @@ export default function(filePath) {
 
             /* Parse the header */
 
-            resultSkinObject.header = fileObject.parseSectionDefinition(resultSkinObject, skinDefinition, fileObject, offset);
+            if (window.selectedExpansion === Expansion.CLASSIC) {
+              resultSkinObject.header = fileObject.parseSectionDefinition(resultSkinObject, skinDefinitionClassic, fileObject, offset);
+            } else {
+              resultSkinObject.header = fileObject.parseSectionDefinition(resultSkinObject, skinDefinition, fileObject, offset);
+            }
 
             // Debug
             console.log("SKIN resultSkinObject:", resultSkinObject);

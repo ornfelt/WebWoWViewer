@@ -267,12 +267,12 @@ export async function initViewer(containerEl) {
     //    z: 137
     //}
 
-    const mapParams = {
-        name: 'elwyn forest tree',
-        source: 'http',
-        sceneType: 'm2',
-        modelName: 'world\\azeroth\\elwynn\\passivedoodads\\trees\\elwynntreecanopy03.m2'
-    }
+    //const mapParams = {
+    //    name: 'elwyn forest tree',
+    //    source: 'http',
+    //    sceneType: 'm2',
+    //    modelName: 'world\\azeroth\\elwynn\\passivedoodads\\trees\\elwynntreecanopy03.m2'
+    //}
 
     //const mapParams = {
     //    name: 'Vanilla Opening screen',
@@ -325,12 +325,12 @@ export async function initViewer(containerEl) {
     //    //cameraIndex: 0
     //}
 
-    //const mapParams = {
-    //    name: 'ragnaros',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'creature\\ragnaros\\ragnaros.m2',
-    //}
+    const mapParams = {
+        name: 'ragnaros',
+        source: 'http',
+        sceneType: 'm2',
+        modelName: 'creature\\ragnaros\\ragnaros.m2',
+    }
 
     //const mapParams = {
     //    name: 'wintertree02',
@@ -396,8 +396,9 @@ export async function initViewer(containerEl) {
         //newWorldUnit.setPosition(vec3.fromValues(-1663, 5098, 27));
         //newWorldUnit.setRotation(0.0);
 
-        newWorldUnit.setDisplayId(11121);
-        newWorldUnit.setNativeDisplayId(11121);
+        //newWorldUnit.setDisplayId(11121);
+        //newWorldUnit.setNativeDisplayId(11121);
+
         newWorldUnit.setScale(1.0);
 
         newWorldUnit.complete()
@@ -444,8 +445,12 @@ export async function initViewer(containerEl) {
         //newWorldUnit.setPosition(vec3.fromValues(-1663, 5098, 27));
         //newWorldUnit.setRotation(0.0);
 
-        newWorldUnit.setDisplayId(11121);
-        newWorldUnit.setNativeDisplayId(11121);
+        //newWorldUnit.setDisplayId(11121);
+        //newWorldUnit.setNativeDisplayId(11121);
+        // Drake
+        newWorldUnit.setDisplayId(5645);
+        newWorldUnit.setNativeDisplayId(5645);
+
         newWorldUnit.setScale(1.0);
 
         newWorldUnit.complete()

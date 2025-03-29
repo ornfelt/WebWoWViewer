@@ -67,6 +67,22 @@ function findFaceHairStyleRec(cfhsd, race, gender, type ) {
 }
 
 
+function saveObjectToFile(obj, filename = 'output.txt') {
+  const jsonStr = JSON.stringify(obj, null, 2); // Pretty-printed JSON
+  const blob = new Blob([jsonStr], { type: 'text/plain' });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+
+  // Cleanup
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 class WorldUnit extends WorldObject {
     constructor(sceneApi){
@@ -320,10 +336,99 @@ class WorldUnit extends WorldObject {
 
         }
     }
+
     createModelFromDisplayId(value) {
+        //const useHardcodedData = false;
+        const useHardcodedData = true;
+
+        if (useHardcodedData) {
+          // Hardcoded data
+          //var modelFilename = "Creature\\Ragnaros\\Ragnaros.mdx";
+          //var modelFilename = "creature\\SkeletonNaked\\SkeletonNaked.mdx";
+
+          //var modelFilename = "World\\Khazmodan\\Ironforge\\Passivedoodads\\Trees\\Wintertree02.Mdx";
+          //var modelFilename = "World\\Dungeon\\Cave\\Passivedoodads\\Icicles\\Caveicicle1.Mdl";
+
+          //var modelFilename = "creature\\druidbear\\druidbear.mdx";
+          //var modelFilename = "creature\\dragon\\dragononyxia.mdx";
+          var modelFilename = "creature\\drake\\drake.mdx";
+
+          //this.model = new Model("creature\\SkeletonNaked\\SkeletonNaked.mdx");
+          //this.model = new Model("creature\\rabbit\\rabbit.mdx");
+          //this.model = new Model("creature\\Cow\\cow.mdx");
+          //this.model = new Model("creature\\diablo\\DiabloFunSized.mdx");
+          //this.model = new Model("creature\\panda\\pandacub.mdx");
+          //this.model = new Model("character\\scourge\\male\\scourgemale.mdx");
+          //this.model = new Model("creature\\raptor\\raptor.mdx");
+
+          //this.model = new Model("spells\\PyroBlast_Missile.mdx");
+          //this.model = new Model("spells\\frostbolt.mdx");
+          //this.model = new Model("spells\\Onyxia_Impact_Base.mdx");
+          //this.model = new Model("spells\\Fireball_Missile_High.mdx");
+          //this.model = new Model("spells\\Blizzard_Impact_Base.mdx");
+
+          //this.model = new Model("creature\\voidwalker\\voidwalker.mdx");
+          //this.model = new Model("creature\\ogre\\ogre.mdx");
+          //this.model = new Model("creature\\wolf\\wolf.mdx");
+
+          //this.model = new Model("creature\\ogre\\ogremage.mdx");
+          //this.model = new Model("creature\\ogre\\ogrewarlord.mdx");
+          //this.model = new Model("creature\\netherdrake\\netherdrake.mdx");
+          //this.model = new Model("creature\\netherray\\netherray.mdx");
+
+          var modelScale = 1;
+          var displayIDScale = 1;
+
+          this.modelScale = modelScale;
+          this.displayIDScale = displayIDScale;
+
+          var replaceTextures = [];
+
+          //replaceTextures[11] = "Creature\\Ragnaros\\RagnarosSkin.blp";
+          //replaceTextures[11] = "creature\\SkeletonNaked\\SkeletonNakedSkin_White.blp";
+          //replaceTextures[11] = "creature\\druidbear\\druidbearskin.blp";
+
+          // TODO: needs more (compare with WOTLK)
+          //replaceTextures[11] = "creature\\dragon\\dragononyxia3.blp";
+
+          replaceTextures[11] = "Creature\\Drake\\DrakeSkin1.blp";
+          replaceTextures[12] = "Creature\\Drake\\DrakeSkin2.blp";
+          replaceTextures[13] = "Creature\\Drake\\DrakeSkin3.blp";
+
+          //replaceTextures[11] = "creature\\voidwalker\\voidwalker.blp";
+
+          var meshIds = [];
+          for (var i = 0; i < 19; i++) {
+              meshIds[i] = 1;
+          }
+
+          var useMeshId = true;
+
+          // Debug info
+          console.log("Creating model from displayId:", value);
+          console.log("Model path:", modelFilename);
+          console.log("Model scale:", modelScale);
+          console.log("DisplayID scale:", displayIDScale);
+          console.log("Replace textures:", replaceTextures);
+          console.log("Use mesh IDs:", useMeshId);
+          if (useMeshId) {
+              console.log("Mesh IDs:", meshIds);
+          }
+
+          var model = this.sceneApi.objects.loadWorldM2Obj(modelFilename, useMeshId ? meshIds : null, replaceTextures);
+
+          return model;
+        }
+
         var cdid = this.sceneApi.dbc.getCreatureDisplayInfoDBC();
         var cdied = this.sceneApi.dbc.getCreatureDisplayInfoExtraDBC();
         var cmdd = this.sceneApi.dbc.getCreatureModelDataDBC();
+
+        // Debug (too large to print, print to file instead)
+        //console.log("CreatureDisplayInfoDBC: ", cdid);
+        //saveObjectToFile(cdid, 'CreatureDisplayInfoDBC.txt');
+        //saveObjectToFile(cdied, 'CreatureDisplayInfoExtraDBC.txt');
+        //saveObjectToFile(cmdd, 'CreatureModelDataDBC.txt');
 
         var displayInf = cdid[value];
         var displayIDScale = displayInf.modelScale;
@@ -372,19 +477,20 @@ class WorldUnit extends WorldObject {
         }//DisplayExtra
 
         // Debug
-        //console.log("Creating model from displayId:", value);
-        //console.log("Model path:", modelFilename);
-        //console.log("Model scale:", modelScale);
-        //console.log("DisplayID scale:", displayIDScale);
-        //console.log("Replace textures:", replaceTextures);
-        //console.log("Use mesh IDs:", useMeshId);
-        //if (useMeshId) {
-        //    console.log("Mesh IDs:", meshIds);
-        //}
+        console.log("Creating model from displayId:", value);
+        console.log("Model path:", modelFilename);
+        console.log("Model scale:", modelScale);
+        console.log("DisplayID scale:", displayIDScale);
+        console.log("Replace textures:", replaceTextures);
+        console.log("Use mesh IDs:", useMeshId);
+        if (useMeshId) {
+            console.log("Mesh IDs:", meshIds);
+        }
 
         var model = this.sceneApi.objects.loadWorldM2Obj(modelFilename,(useMeshId) ? meshIds : null, replaceTextures);
 
         return model;
+
     }
     createHelmetFromItemDisplayInfo(race, gender, ItemDInfo) {
         var helmPath = "Item\\ObjectComponents\\head\\";

@@ -239,7 +239,7 @@ export default function (filePath , arrayBuffer) {
                     fieldObject = this.readType(fileObject, sectionDefinition, offset, len);
 
                     // Debug
-                    //if (debugPrint === true) console.log(`DEBUG: Field "${sectionDefinition.name}" (type: "${sectionDefinition.type}") ->`, fieldObject);
+                    //if (debugPrint) console.log(`DEBUG: Field "${sectionDefinition.name}" (type: "${sectionDefinition.type}") ->`, fieldObject);
                     //console.log(`DEBUG: Field "${sectionDefinition.name}" (type: "${sectionDefinition.type}") ->`, fieldObject);
 
                     fieldArray.push(fieldObject);

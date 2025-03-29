@@ -19,7 +19,7 @@ class M2Geom {
         var textureDefinition = this.m2File.textureDefinition;
 
         // Debug
-        console.log("Loading textures for m2File:", this.m2File.textureDefinition);
+        //console.log("Loading textures for m2File:", this.m2File.textureDefinition);
 
         for (var i = 0; i < textureDefinition.length; i++) {
             //this.loadTexture(i, textureDefinition[i].textureName);
