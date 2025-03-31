@@ -454,6 +454,8 @@ export async function initViewer(containerEl) {
         newWorldUnit.setScale(1.0);
 
         newWorldUnit.complete()
+        // TODO
+        //newWorldUnit.objectModel.animationManager.setAnimationId(4, true);
 
         if (mapParams.cameraIndex !== undefined) {
             config.setCameraM2(m2Object);

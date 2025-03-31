@@ -375,11 +375,14 @@ export default class AnimationManager {
         }
 
         if (window.selectedExpansion !== Expansion.WOTLK) {
-          // Test
+          // Test (will show up as non-animated)
           //return undefined;
 
-          //const currentAnimationRecord = this.m2File.animations[this.currentAnimationIndex];
-          const currentAnimationRecord = this.m2File.animations[0];
+          // Test another animation
+          //animation = 4;
+          //this.currentAnimationIndex = 4;
+
+          const currentAnimationRecord = this.m2File.animations[this.currentAnimationIndex];
           //console.log("m2file:", this.m2File);
           const tmax = currentAnimationRecord.timeEnd - currentAnimationRecord.timeStart;
 
@@ -387,9 +390,6 @@ export default class AnimationManager {
           //currTime = parseInt(currTime / 10, 10);
           currTime = currTime % tmax;
           currTime += currentAnimationRecord.timeStart;
-
-          //return animationBlock.animated.getValue(animation, currTime);
-          //return convertValueTypeToVec4(animationBlock.animated.getValue(animation, currTime), value_type);
         }
 
         // Debug
