@@ -126,7 +126,7 @@ export default function (filePath , arrayBuffer) {
 
                         break;
 
-                    case "ablock_tbc":
+                    case "ablock_tbc": {
                         result = {};
 
                         result.interpolation_type      = fileObject.readUint16(offset);
@@ -148,6 +148,8 @@ export default function (filePath , arrayBuffer) {
                                 var maximum = fileObject.readInt32(offRanges);
                                 result.ranges.push({ first: minimum, second: maximum });
                             }
+                        } else if (this.interpolation_type !== 0 && this.global_sequence === -1) {
+                          result.ranges.push({ first: 0, second: result.values_nb - 1 });
                         }
                         
                         // Read timestamps as a single “animation”, so that:
@@ -156,10 +158,13 @@ export default function (filePath , arrayBuffer) {
                         result.timestampsPerAnimation = [];
                         result.timestampsPerAnimation[0] = [];
                         
-                        if (result.timestamps_nb > 0) {
+                        if (result.timestamps_nb > 0 && result.timestamps_nb === result.values_nb) {
                             var offTimes = { offs: result.ofsTimes };
                             for (var i = 0; i < result.timestamps_nb; i++) {
                                 result.timestampsPerAnimation[0].push(fileObject.readInt32(offTimes));
+                                // hmmm...
+                                //var bajs = fileObject.readInt32(offTimes);
+                                //result.timestampsPerAnimation[0].push(30 * i);
                             }
                         }
                         
@@ -181,35 +186,108 @@ export default function (filePath , arrayBuffer) {
                             }
                         }
 
-                        //const arrayBuf = fileObject.getArrayBuffer(); 
-                        //const binaryParser = new BinaryParser(arrayBuf);
+                        const arrayBuf = fileObject.getArrayBuffer(); 
+                        const binaryParser = new BinaryParser(arrayBuf);
 
                         // No-op for testing
-                        ////const animatedObj = new Animated((val) => val);
-                        //
-                        //let converterName = "convertToRaw";
+                        //const animatedObj = new Animated((val) => val);
+                        
+                        let converterName = "convertToRaw";
 
-                        //if (sectionDef.valType === "vector3f")
-                        //  converterName = "convertToVec3D";
-                        //else if (sectionDef.valType === "float32")
-                        //  converterName = "convertToFloat";
-                        //else if (sectionDef.valType === "int16")
-                        //  converterName = "convertShortToFloat";
-                        //else if (sectionDef.valType === "int16Array")
-                        //  converterName = "convertToQuaternion";
+                        if (sectionDef.valType === "vector3f")
+                          converterName = "convertToVec3D";
+                        else if (sectionDef.valType === "float32")
+                          converterName = "convertToFloat";
+                        else if (sectionDef.valType === "int16")
+                          converterName = "convertShortToFloat";
+                        else if (sectionDef.valType === "int16Array")
+                          converterName = "convertToQuaternion";
 
-                        //const animatedObj = new Animated(converterName);
+                        const animatedObj = new Animated(converterName);
 
-                        //animatedObj.init(result, binaryParser, /*TODO: global sequences*/ [], /* isFloat= */ false);
+                        animatedObj.init(result, binaryParser, /*TODO: global sequences*/ [], false);
+                        console.log("New animated created:", animatedObj);
 
-                        ////if (sectionDef.valType === "vector3f")
-                        ////  animatedObj.fix(v => v.fixCoordSystem());
-                        ////else if (sectionDef.valType === "int16Array")
-                        ////  animatedObj.fix(q => Quaternion.fixCoordSystemQuat(q));
+                        if (sectionDef.valType === "vector3f")
+                          animatedObj.fix(v => v.fixCoordSystem());
+                        else if (sectionDef.valType === "int16Array")
+                          animatedObj.fix(q => Quaternion.fixCoordSystemQuat(q));
 
-                        //result.animated = animatedObj;
+                        result.animated = animatedObj;
 
                         break;
+                    }
+
+                    case "ablock_tbc_": {
+                        const ablock = {};
+
+                        ablock.interpolation_type      = fileObject.readUint16(offset);
+                        ablock.global_sequence         = fileObject.readInt16(offset);
+                        ablock.interpolation_ranges_nb = fileObject.readUint32(offset);
+                        ablock.ofsRanges               = fileObject.readUint32(offset);
+                        ablock.timestamps_nb           = fileObject.readUint32(offset);
+                        ablock.ofsTimes                = fileObject.readUint32(offset);
+                        ablock.values_nb               = fileObject.readUint32(offset);
+                        ablock.ofsValues               = fileObject.readUint32(offset);
+
+                        // Read the ranges
+                        ablock.ranges = [];
+                        if (ablock.interpolation_ranges_nb > 0) {
+                            let offRanges = { offs: ablock.ofsRanges };
+                            for (let i = 0; i < ablock.interpolation_ranges_nb; i++) {
+                                let minimum = fileObject.readInt32(offRanges);
+                                let maximum = fileObject.readInt32(offRanges);
+                                ablock.ranges.push({ first: minimum, second: maximum });
+                            }
+                        } else if (ablock.interpolation_type !== 0 && ablock.global_sequence === -1) {
+                          ablock.ranges.push({ first: 0, second: ablock.values_nb - 1 });
+                        }
+
+                        // Read all timestamps into a single array first
+                        let allTimes = [];
+                        if (ablock.timestamps_nb > 0) {
+                            let offTimes = { offs: ablock.ofsTimes };
+                            for (let i = 0; i < ablock.timestamps_nb; i++) {
+                                allTimes.push(fileObject.readInt32(offTimes));
+                            }
+                        }
+
+                        // Read all values into a single array
+                        let allVals = [];
+                        if (ablock.values_nb > 0) {
+                            let offValues = { offs: ablock.ofsValues };
+                            for (let i = 0; i < ablock.values_nb; i++) {
+                                allVals.push(
+                                    self.readType(
+                                        fileObject,
+                                        { type: sectionDef.valType, len: sectionDef.len },
+                                        offValues,
+                                        sectionDef.len
+                                    )
+                                );
+                            }
+                        }
+
+                        // Now produce WotLK-like arrays: timestampsPerAnimation[i] / valuesPerAnimation[i]
+                        ablock.timestampsPerAnimation = [];
+                        ablock.valuesPerAnimation = [];
+
+                        for (let i = 0; i < ablock.interpolation_ranges_nb; i++) {
+                            let range = ablock.ranges[i];
+                            // range.first, range.second are the start/end indices in the big arrays
+                            if (range.first < 0 || range.second < 0 || range.second < range.first) {
+                                // Means no data for this animation, handle as you like
+                                ablock.timestampsPerAnimation[i] = [];
+                                ablock.valuesPerAnimation[i] = [];
+                                continue;
+                            }
+
+                            ablock.timestampsPerAnimation[i] = allTimes.slice(range.first, range.second + 1);
+                            ablock.valuesPerAnimation[i]     = allVals.slice(range.first,  range.second + 1);
+                        }
+
+                        return ablock;
+                    }
 
                     case "layout" :
                         /*

@@ -344,7 +344,7 @@ class WorldUnit extends WorldObject {
 
         if (useHardcodedData) {
           // Hardcoded data
-          //var modelFilename = "Creature\\Ragnaros\\Ragnaros.mdx";
+          var modelFilename = "creature\\ragnaros\\ragnaros.mdx";
           //var modelFilename = "creature\\SkeletonNaked\\SkeletonNaked.mdx";
 
           //var modelFilename = "World\\Khazmodan\\Ironforge\\Passivedoodads\\Trees\\Wintertree02.Mdx";
@@ -352,7 +352,7 @@ class WorldUnit extends WorldObject {
 
           //var modelFilename = "creature\\druidbear\\druidbear.mdx";
           //var modelFilename = "creature\\dragon\\dragononyxia.mdx";
-          var modelFilename = "creature\\drake\\drake.mdx";
+          //var modelFilename = "creature\\drake\\drake.mdx";
 
           //this.model = new Model("creature\\SkeletonNaked\\SkeletonNaked.mdx");
           //this.model = new Model("creature\\rabbit\\rabbit.mdx");
@@ -385,18 +385,22 @@ class WorldUnit extends WorldObject {
 
           var replaceTextures = [];
 
-          //replaceTextures[11] = "Creature\\Ragnaros\\RagnarosSkin.blp";
-          //replaceTextures[11] = "creature\\SkeletonNaked\\SkeletonNakedSkin_White.blp";
-          //replaceTextures[11] = "creature\\druidbear\\druidbearskin.blp";
+          if (modelFilename === "creature\\ragnaros\\ragnaros.mdx")
+            replaceTextures[11] = "Creature\\Ragnaros\\RagnarosSkin.blp";
+          else if (modelFilename === "creature\\SkeletonNaked\\SkeletonNaked.mdx")
+            replaceTextures[11] = "creature\\SkeletonNaked\\SkeletonNakedSkin_White.blp";
+          else if (modelFilename === "creature\\druidbear\\druidbear.mdx")
+            replaceTextures[11] = "creature\\druidbear\\druidbearskin.blp";
+          else if (modelFilename === "creature\\drake\\drake.mdx") {
+            replaceTextures[11] = "Creature\\Drake\\DrakeSkin1.blp";
+            replaceTextures[12] = "Creature\\Drake\\DrakeSkin2.blp";
+            replaceTextures[13] = "Creature\\Drake\\DrakeSkin3.blp";
+          }
 
           // TODO: needs more (compare with WOTLK)
           //replaceTextures[11] = "creature\\dragon\\dragononyxia3.blp";
 
-          replaceTextures[11] = "Creature\\Drake\\DrakeSkin1.blp";
-          replaceTextures[12] = "Creature\\Drake\\DrakeSkin2.blp";
-          replaceTextures[13] = "Creature\\Drake\\DrakeSkin3.blp";
-
-          //replaceTextures[11] = "creature\\voidwalker\\voidwalker.blp";
+          // ...
 
           var meshIds = [];
           for (var i = 0; i < 19; i++) {

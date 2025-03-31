@@ -170,28 +170,32 @@ export default class AnimationManager {
         }
 
         /* Pick next animation if there is one and no next animation was picked before */
-        if (this.nextSubAnimationIndex < 0 && mainAnimationRecord.next_animation > -1) {
-            //if (currentAnimationPlayedTimes)
-            var probability = Math.floor(Math.random() * (0x7fff + 1));
-            var calcProb = 0;
+        //if (window.selectedExpansion === Expansion.WOTLK) {
+        // TODO: disable for now...
+        if (false) {
+          if (this.nextSubAnimationIndex < 0 && mainAnimationRecord.next_animation > -1) {
+              //if (currentAnimationPlayedTimes)
+              var probability = Math.floor(Math.random() * (0x7fff + 1));
+              var calcProb = 0;
 
-            /* First iteration is out of loop */
-            var currentSubAnimIndex = this.mainAnimationIndex;
-            var subAnimRecord = m2File.animations[currentSubAnimIndex];
-            calcProb += subAnimRecord.probability;
+              /* First iteration is out of loop */
+              var currentSubAnimIndex = this.mainAnimationIndex;
+              var subAnimRecord = m2File.animations[currentSubAnimIndex];
+              calcProb += subAnimRecord.probability;
 
-            // TODO: fix
-            if (window.selectedExpansion === Expansion.WOTLK) {
-              while ((calcProb < probability) && (subAnimRecord.next_animation > -1)) {
-                  currentSubAnimIndex = subAnimRecord.next_animation;
-                  subAnimRecord = m2File.animations[currentSubAnimIndex];
-              
-                  calcProb += subAnimRecord.probability;
+              // TODO: fix
+              if (window.selectedExpansion === Expansion.WOTLK) {
+                while ((calcProb < probability) && (subAnimRecord.next_animation > -1)) {
+                    currentSubAnimIndex = subAnimRecord.next_animation;
+                    subAnimRecord = m2File.animations[currentSubAnimIndex];
+                
+                    calcProb += subAnimRecord.probability;
+                }
               }
-            }
 
-            this.nextSubAnimationIndex = currentSubAnimIndex;
-            this.nextSubAnimationTime = 0;
+              this.nextSubAnimationIndex = currentSubAnimIndex;
+              this.nextSubAnimationTime = 0;
+          }
         }
 
         var currAnimLeft = currentAnimationRecord.length - this.currentAnimationTime;
@@ -317,20 +321,14 @@ export default class AnimationManager {
         }
     }
     getTimedValue(value_type, currTime, maxTime, animation, animationBlock, globalSequenceTimes) {
-        if (window.selectedExpansion === Expansion.TBC) {
-          // Test
-          //return undefined;
-          //return animationBlock.animated.getValue(animation, currTime);
-          // TODO:
-        }
         function convertUint16ToFloat(value){
             return (value * 0.000030518044) - 1.0;
         }
 
         function convertValueTypeToVec4(value, type){
-            console.log("convertValueTypeToVec4 called with values:");
-            console.log("value:", value);
-            console.log("type:", type);
+            //console.log("convertValueTypeToVec4 called with values:");
+            //console.log("value:", value);
+            //console.log("type:", type);
             if (type == 0) {
                 return [value.x, value.y, value.z, 0];
             } else if (type == 1) {
@@ -347,14 +345,32 @@ export default class AnimationManager {
             }
         }
 
+        if (window.selectedExpansion === Expansion.TBC) {
+          // Test
+          //return undefined;
+
+          //const currentAnimationRecord = this.m2File.animations[this.currentAnimationIndex];
+          const currentAnimationRecord = this.m2File.animations[0];
+          //console.log("m2file:", this.m2File);
+          const tmax = currentAnimationRecord.timeEnd - currentAnimationRecord.timeStart;
+
+          // Loop 't' within that range
+          //currTime = parseInt(currTime / 10, 10);
+          currTime = currTime % tmax;
+          currTime += currentAnimationRecord.timeStart;
+
+          //return animationBlock.animated.getValue(animation, currTime);
+          //return convertValueTypeToVec4(animationBlock.animated.getValue(animation, currTime), value_type);
+        }
+
         // Debug
-        console.log("getTimedValue called with:");
-        console.log("value_type:", value_type);
-        console.log("currTime:", currTime);
-        console.log("maxTime:", maxTime);
-        console.log("animation:", animation);
-        console.log("animationBlock:", animationBlock);
-        console.log("globalSequenceTimes:", globalSequenceTimes);
+        //console.log("getTimedValue called with:");
+        //console.log("value_type:", value_type);
+        //console.log("currTime:", currTime);
+        //console.log("maxTime:", maxTime);
+        //console.log("animation:", animation);
+        //console.log("animationBlock:", animationBlock);
+        //console.log("globalSequenceTimes:", globalSequenceTimes);
 
         var globalSequence = animationBlock.global_sequence;
         var interpolType = animationBlock.interpolation_type;
@@ -384,13 +400,20 @@ export default class AnimationManager {
         var times_len = times.length;
         var result;
         if (times_len > 1) {
-            //var maxTime = times[times_len-1];
-            var animTime = currTime % maxTime;
+            var maxTime = times[times_len-1];
+            //var animTime = currTime % maxTime;
+            // TBC
+            var animTime = currTime;
 
             if (animTime > times[times_len-1] && animTime <= maxTime) {
+                //console.log("[Line A] About to call convertValueTypeToVec4 with:", values[0]);
                 result = convertValueTypeToVec4(values[0], value_type);
             } else {
+                // Note: if we really want the “last value,” this should be values[times_len-1].
+                //console.log("[Line B] About to call convertValueTypeToVec4 with:", times[times_len - 1]);
                 result =  convertValueTypeToVec4(times[times_len-1], value_type);
+                //result = convertValueTypeToVec4(values[times_len - 1], value_type);
+
                 for (var i = 0; i < times_len; i++) {
                     if (times[i] > animTime) {
                         var value1 = values[i - 1];
@@ -399,6 +422,8 @@ export default class AnimationManager {
                         var time1 = times[i - 1];
                         var time2 = times[i];
 
+                        //console.log("[Line C] About to call convertValueTypeToVec4(value1):", value1);
+                        //console.log("[Line D] About to call convertValueTypeToVec4(value2):", value2);
                         value1 = convertValueTypeToVec4(value1, value_type);
                         value2 = convertValueTypeToVec4(value2, value_type);
 
@@ -410,6 +435,7 @@ export default class AnimationManager {
                 }
             }
         } else {
+            //console.log("[Line E] About to call convertValueTypeToVec4 with:", values[0]);
             result = convertValueTypeToVec4(values[0], value_type);
         }
 
@@ -451,22 +477,22 @@ export default class AnimationManager {
         if (billboardMatrix != null) {
             mat4.multiply(tranformMat, tranformMat, billboardMatrix);
         } else if (animationData.rotation.valuesPerAnimation.length > 0) {
-            var rotationType = (isBone)? 1: 3;
-
-            var quaternionResult1 = this.getTimedValue(
-                rotationType,
-                time,
-                animationRecord.length,
-                animationIndex,
-                animationData.rotation);
-
-            if (quaternionResult1) {
-                var orientMatrix = mat4.create();
-
-                mat4.fromQuat(orientMatrix, quaternionResult1 );
-                mat4.multiply(tranformMat, tranformMat, orientMatrix);
-            }
-            this.isAnimated = true;
+            //var rotationType = (isBone)? 1: 3;
+            //
+            //var quaternionResult1 = this.getTimedValue(
+            //    rotationType,
+            //    time,
+            //    animationRecord.length,
+            //    animationIndex,
+            //    animationData.rotation);
+            //
+            //if (quaternionResult1) {
+            //    var orientMatrix = mat4.create();
+            //
+            //    mat4.fromQuat(orientMatrix, quaternionResult1 );
+            //    mat4.multiply(tranformMat, tranformMat, orientMatrix);
+            //}
+            //this.isAnimated = true;
         }
 
         if (animationData.scale.valuesPerAnimation.length > 0) {
@@ -660,16 +686,24 @@ export default class AnimationManager {
             this.bonesIsCalculated[boneIndex] = true;
             return
         }
+
+        //return new Vec3D(this.x, this.z, this.y);
         var pivotPoint = vec4.fromValues(
             boneDefinition.pivot.x,
             boneDefinition.pivot.y,
             boneDefinition.pivot.z,
+            //boneDefinition.pivot.x,
+            //boneDefinition.pivot.z,
+            //boneDefinition.pivot.y,
             0
         );
         var negatePivotPoint = vec4.fromValues(
             -boneDefinition.pivot.x,
             -boneDefinition.pivot.y,
             -boneDefinition.pivot.z,
+            //-boneDefinition.pivot.x,
+            //-boneDefinition.pivot.z,
+            //-boneDefinition.pivot.y,
             0
         );
 

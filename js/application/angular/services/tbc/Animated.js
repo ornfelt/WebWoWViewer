@@ -111,7 +111,10 @@ class Animated {
         range = this.ranges[anim];
         time %= this.times[this.times.length - 1];
         //console.log("Using local range. Range:", range, "Time after modulus:", time);
+        //console.log("range: ", this.ranges);
+        //console.log("time: ", this.times);
       }
+
       if (range.first !== range.second) {
         let pos = range.first;
         for (let i = range.first; i < range.second; i++) {
@@ -152,7 +155,9 @@ class Animated {
         return this.data[range.first];
       }
     } else {
-      return this.data[0];
+      //console.log("returning data[0]: ", this.data[0]);
+      //return this.data[0];
+      return 1;
     }
   }
 
@@ -166,7 +171,7 @@ class Animated {
   init(b, parser, globalSequences, isFloat = false) {
     this.globals = globalSequences;
     this.type = b.interpolation_type;
-    this.seq = b.seqglobal_sequence;
+    this.seq = b.global_sequence;
     if (this.seq !== -1 && !globalSequences) {
       throw new Error("Global sequences required");
     }

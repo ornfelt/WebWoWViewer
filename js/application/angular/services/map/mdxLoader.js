@@ -878,8 +878,8 @@ const mdx_ver262 = {
                 // Adapted for tbc
                 {name: "animation_id",          type: "uint16"},  // Animation id in AnimationData.dbc
                 {name: "sub_animation_id",      type: "uint16"},  // Sub-animation id: Which number in a row of animations this one is.
-                {name: "length2",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
-                {name: "length",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
+                {name: "timeStart",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
+                {name: "timeEnd",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
                 {name: "moving_speed",          type: "float32"}, // This is the speed the character moves with in this animation.
                 {name: "loopType",                 type: "uint32"},  // See below.
                 {name: "flags",                 type: "uint32"},  // See below.
@@ -1297,8 +1297,8 @@ const mdx_ver256 = {
                 // Adapted for tbc
                 {name: "animation_id",          type: "uint16"},  // Animation id in AnimationData.dbc
                 {name: "sub_animation_id",      type: "uint16"},  // Sub-animation id: Which number in a row of animations this one is.
-                {name: "length",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
-                {name: "length2",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
+                {name: "timeStart",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
+                {name: "timeEnd",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
                 {name: "moving_speed",          type: "float32"}, // This is the speed the character moves with in this animation.
                 //{name: "loopType",                 type: "uint32"},  // See below.
                 {name: "flags",                 type: "uint32"},  // See below.
@@ -1613,6 +1613,19 @@ function parseOldFile(fileObject){
     var resultMDXObject = {};
     try {
         resultMDXObject = fileObject.parseSectionDefinition(resultMDXObject, mdxDescription, fileObject, offset);
+
+        if (Array.isArray(resultMDXObject.animations)) {
+            resultMDXObject.animations.forEach((anim) => {
+                if (
+                    anim.hasOwnProperty("timeStart") &&
+                    anim.hasOwnProperty("timeEnd")
+                ) {
+                    // Create length property
+                    anim.length = anim.timeEnd - anim.timeStart;
+                }
+            });
+        }
+
         // Debug
         console.log("resultMDXObject:", resultMDXObject);
     } catch (e) {
