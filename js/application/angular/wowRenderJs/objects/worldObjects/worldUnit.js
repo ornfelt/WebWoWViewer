@@ -3,7 +3,7 @@ import TextureCompositionManager from './../../manager/textureCompositionManager
 import WowTextureRegions from './../../math/wowTextureRegions.js';
 import CharacterComponents from '../../algorithms/characterComponents'
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
-
+import Expansion from '../../../Expansion.js';
 
 const fHairGeoset = [1, 3, 2, 16, 17];
 
@@ -339,7 +339,8 @@ class WorldUnit extends WorldObject {
 
     createModelFromDisplayId(value) {
         //const useHardcodedData = false;
-        const useHardcodedData = true;
+        //const useHardcodedData = true;
+        const useHardcodedData = (window.selectedExpansion !== Expansion.WOTLK);
 
         if (useHardcodedData) {
           // Hardcoded data

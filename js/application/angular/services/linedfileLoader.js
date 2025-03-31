@@ -1,5 +1,9 @@
 import fileLoader from './fileLoader.js';
 import fileReadHelper from './fileReadHelper.js';
+import BinaryParser from './tbc/BinaryParser.js';
+import Animated from './tbc/Animated.js';
+import Vec3D from './tbc/vec3d.js';
+import Quaternion from './tbc/quaternion.js';
 
 export default function (filePath , arrayBuffer) {
 
@@ -66,7 +70,6 @@ export default function (filePath , arrayBuffer) {
                         }
                         break;
 
-                    //case "ablock_tbc" :
                     case "ablock" :
 
                         result = {};
@@ -125,6 +128,7 @@ export default function (filePath , arrayBuffer) {
 
                     case "ablock_tbc":
                         result = {};
+
                         result.interpolation_type      = fileObject.readUint16(offset);
                         result.global_sequence         = fileObject.readInt16(offset);
                         result.interpolation_ranges_nb = fileObject.readUint32(offset);
@@ -134,43 +138,77 @@ export default function (filePath , arrayBuffer) {
                         result.values_nb               = fileObject.readUint32(offset);
                         result.ofsValues               = fileObject.readUint32(offset);
 
-                        // TODO: fix
-
-                        // Load interpolation ranges (if any)
+                        // Load interpolation ranges
                         if (result.interpolation_ranges_nb > 0) {
                             result.ranges = [];
                             var offRanges = { offs: result.ofsRanges };
                             for (var i = 0; i < result.interpolation_ranges_nb; i++) {
-                                // Assuming each range consists of two int32 values: minimum and maximum
+                                // Each range is two int32s: min and max
                                 var minimum = fileObject.readInt32(offRanges);
                                 var maximum = fileObject.readInt32(offRanges);
                                 result.ranges.push({ first: minimum, second: maximum });
                             }
                         }
-
-                        // Load timestamps
-                        result.timestampsPerAnimation = new Array(timeStampAnimationsCnt);
+                        
+                        // Read timestamps as a single “animation”, so that:
+                        //    result.timestampsPerAnimation[0][frame]
+                        // matches the WotLK ablock structure.
+                        result.timestampsPerAnimation = [];
+                        result.timestampsPerAnimation[0] = [];
+                        
                         if (result.timestamps_nb > 0) {
                             var offTimes = { offs: result.ofsTimes };
                             for (var i = 0; i < result.timestamps_nb; i++) {
-                                result.timestampsPerAnimation.push(fileObject.readInt32(offTimes));
+                                result.timestampsPerAnimation[0].push(fileObject.readInt32(offTimes));
+                            }
+                        }
+                        
+                        // Read values similarly
+                        result.valuesPerAnimation = [];
+                        result.valuesPerAnimation[0] = [];
+                        
+                        if (result.values_nb > 0) {
+                            var offValues = { offs: result.ofsValues };
+                            for (var i = 0; i < result.values_nb; i++) {
+                                result.valuesPerAnimation[0].push(
+                                    self.readType(
+                                        fileObject,
+                                        { type: sectionDef.valType, len: sectionDef.len },
+                                        offValues,
+                                        sectionDef.len
+                                    )
+                                );
                             }
                         }
 
-                        // Load keyframes (values)
-                        result.valuesPerAnimation = new Array(valuesAnimationsCnt);
-                        if (result.values_nb > 0) {
-                            var offValues = { offs: result.ofsValues };
-                            // Assuming linear interpolation (or None) for this example
-                            for (var i = 0; i < result.values_nb; i++) {
-                                result.valuesPerAnimation.push(self.readType(
-                                    fileObject,
-                                    { type: sectionDef.valType, len: sectionDef.len },
-                                    offValues,
-                                    sectionDef.len
-                                ));
-                            }
-                        }
+                        //const arrayBuf = fileObject.getArrayBuffer(); 
+                        //const binaryParser = new BinaryParser(arrayBuf);
+
+                        // No-op for testing
+                        ////const animatedObj = new Animated((val) => val);
+                        //
+                        //let converterName = "convertToRaw";
+
+                        //if (sectionDef.valType === "vector3f")
+                        //  converterName = "convertToVec3D";
+                        //else if (sectionDef.valType === "float32")
+                        //  converterName = "convertToFloat";
+                        //else if (sectionDef.valType === "int16")
+                        //  converterName = "convertShortToFloat";
+                        //else if (sectionDef.valType === "int16Array")
+                        //  converterName = "convertToQuaternion";
+
+                        //const animatedObj = new Animated(converterName);
+
+                        //animatedObj.init(result, binaryParser, /*TODO: global sequences*/ [], /* isFloat= */ false);
+
+                        ////if (sectionDef.valType === "vector3f")
+                        ////  animatedObj.fix(v => v.fixCoordSystem());
+                        ////else if (sectionDef.valType === "int16Array")
+                        ////  animatedObj.fix(q => Quaternion.fixCoordSystemQuat(q));
+
+                        //result.animated = animatedObj;
+
                         break;
 
                     case "layout" :

@@ -316,12 +316,21 @@ export default class AnimationManager {
             return result;
         }
     }
-    getTimedValue (value_type, currTime, maxTime, animation, animationBlock, globalSequenceTimes) {
+    getTimedValue(value_type, currTime, maxTime, animation, animationBlock, globalSequenceTimes) {
+        if (window.selectedExpansion === Expansion.TBC) {
+          // Test
+          //return undefined;
+          //return animationBlock.animated.getValue(animation, currTime);
+          // TODO:
+        }
         function convertUint16ToFloat(value){
             return (value * 0.000030518044) - 1.0;
         }
 
         function convertValueTypeToVec4(value, type){
+            console.log("convertValueTypeToVec4 called with values:");
+            console.log("value:", value);
+            console.log("type:", type);
             if (type == 0) {
                 return [value.x, value.y, value.z, 0];
             } else if (type == 1) {
@@ -337,6 +346,15 @@ export default class AnimationManager {
                 return [value, 0,0,0];
             }
         }
+
+        // Debug
+        console.log("getTimedValue called with:");
+        console.log("value_type:", value_type);
+        console.log("currTime:", currTime);
+        console.log("maxTime:", maxTime);
+        console.log("animation:", animation);
+        console.log("animationBlock:", animationBlock);
+        console.log("globalSequenceTimes:", globalSequenceTimes);
 
         var globalSequence = animationBlock.global_sequence;
         var interpolType = animationBlock.interpolation_type;

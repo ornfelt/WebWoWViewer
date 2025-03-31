@@ -245,16 +245,16 @@ export async function initViewer(containerEl) {
     //    x: 4084.11, y:	2869.94, z:	12.1
     //};
 
-    const mapParams = {
-        name: 'Darkshire',
-        source: 'http',
-        sceneType: 'map',
-        //mapId: 0,
-        mapName: 'Azeroth',
-        x: -10559.7,
-        y: -1189.02,
-        z: 29.0698
-    }
+    //const mapParams = {
+    //    name: 'Darkshire',
+    //    source: 'http',
+    //    sceneType: 'map',
+    //    //mapId: 0,
+    //    mapName: 'Azeroth',
+    //    x: -10559.7,
+    //    y: -1189.02,
+    //    z: 29.0698
+    //}
 
     //const mapParams = {
     //    name: 'Forsaken start',
@@ -325,12 +325,12 @@ export async function initViewer(containerEl) {
     //    //cameraIndex: 0
     //}
 
-    //const mapParams = {
-    //    name: 'ragnaros',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'creature\\ragnaros\\ragnaros.m2',
-    //}
+    const mapParams = {
+        name: 'ragnaros',
+        source: 'http',
+        sceneType: 'm2',
+        modelName: 'creature\\ragnaros\\ragnaros.m2',
+    }
 
     //const mapParams = {
     //    name: 'wintertree02',
