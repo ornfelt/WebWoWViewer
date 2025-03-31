@@ -344,38 +344,38 @@ class WorldUnit extends WorldObject {
 
         if (useHardcodedData) {
           // Hardcoded data
-          var modelFilename = "creature\\ragnaros\\ragnaros.mdx";
-          //var modelFilename = "creature\\SkeletonNaked\\SkeletonNaked.mdx";
 
+          // Static
           //var modelFilename = "World\\Khazmodan\\Ironforge\\Passivedoodads\\Trees\\Wintertree02.Mdx";
           //var modelFilename = "World\\Dungeon\\Cave\\Passivedoodads\\Icicles\\Caveicicle1.Mdl";
 
+          var modelFilename = "creature\\ragnaros\\ragnaros.mdx";
           //var modelFilename = "creature\\druidbear\\druidbear.mdx";
           //var modelFilename = "creature\\dragon\\dragononyxia.mdx";
           //var modelFilename = "creature\\drake\\drake.mdx";
+          //var modelFilename = "creature\\SkeletonNaked\\SkeletonNaked.mdx";
+          // TODO: need skins
+          //var modelFilename = "creature\\rabbit\\rabbit.mdx";
+          //var modelFilename = "creature\\Cow\\cow.mdx";
+          //var modelFilename = "creature\\diablo\\DiabloFunSized.mdx";
+          //var modelFilename = "creature\\panda\\pandacub.mdx";
+          //var modelFilename = "character\\scourge\\male\\scourgemale.mdx";
+          //var modelFilename = "creature\\raptor\\raptor.mdx";
 
-          //this.model = new Model("creature\\SkeletonNaked\\SkeletonNaked.mdx");
-          //this.model = new Model("creature\\rabbit\\rabbit.mdx");
-          //this.model = new Model("creature\\Cow\\cow.mdx");
-          //this.model = new Model("creature\\diablo\\DiabloFunSized.mdx");
-          //this.model = new Model("creature\\panda\\pandacub.mdx");
-          //this.model = new Model("character\\scourge\\male\\scourgemale.mdx");
-          //this.model = new Model("creature\\raptor\\raptor.mdx");
+          //var modelFilename = "spells\\PyroBlast_Missile.mdx";
+          //var modelFilename = "spells\\frostbolt.mdx";
+          //var modelFilename = "spells\\Onyxia_Impact_Base.mdx";
+          //var modelFilename = "spells\\Fireball_Missile_High.mdx";
+          //var modelFilename = "spells\\Blizzard_Impact_Base.mdx";
 
-          //this.model = new Model("spells\\PyroBlast_Missile.mdx");
-          //this.model = new Model("spells\\frostbolt.mdx");
-          //this.model = new Model("spells\\Onyxia_Impact_Base.mdx");
-          //this.model = new Model("spells\\Fireball_Missile_High.mdx");
-          //this.model = new Model("spells\\Blizzard_Impact_Base.mdx");
+          //var modelFilename = "creature\\voidwalker\\voidwalker.mdx";
+          //var modelFilename = "creature\\ogre\\ogre.mdx";
+          //var modelFilename = "creature\\wolf\\wolf.mdx";
 
-          //this.model = new Model("creature\\voidwalker\\voidwalker.mdx");
-          //this.model = new Model("creature\\ogre\\ogre.mdx");
-          //this.model = new Model("creature\\wolf\\wolf.mdx");
-
-          //this.model = new Model("creature\\ogre\\ogremage.mdx");
-          //this.model = new Model("creature\\ogre\\ogrewarlord.mdx");
-          //this.model = new Model("creature\\netherdrake\\netherdrake.mdx");
-          //this.model = new Model("creature\\netherray\\netherray.mdx");
+          //var modelFilename = "creature\\ogre\\ogremage.mdx";
+          //var modelFilename = "creature\\ogre\\ogrewarlord.mdx";
+          //var modelFilename = "creature\\netherdrake\\netherdrake.mdx";
+          //var modelFilename = "creature\\netherray\\netherray.mdx";
 
           var modelScale = 1;
           var displayIDScale = 1;

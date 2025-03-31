@@ -325,6 +325,30 @@ export default class AnimationManager {
             return (value * 0.000030518044) - 1.0;
         }
 
+        function decodeM2ShortQuat(shortArray /* e.g. [sx, sy, sz, sw] */) {
+            // Each sx,sy,sz,sw is an *signed* 16-bit value in [-32767,+32767]
+            const sx = shortArray[0];
+            const sy = shortArray[1];
+            const sz = shortArray[2];
+            const sw = shortArray[3];
+
+            const x = (sx < 0 ? sx + 32768 : sx - 32767) / 32767;
+            const y = (sy < 0 ? sy + 32768 : sy - 32767) / 32767;
+            const z = (sz < 0 ? sz + 32768 : sz - 32767) / 32767;
+            const w = (sw < 0 ? sw + 32768 : sw - 32767) / 32767;
+
+            return [x, y, z, w];
+        }
+
+        function decodeM2FloatQuat(floatArray) {
+            return [
+                floatArray[0],
+                floatArray[1],
+                floatArray[2],
+                floatArray[3],
+            ];
+        }
+
         function convertValueTypeToVec4(value, type){
             //console.log("convertValueTypeToVec4 called with values:");
             //console.log("value:", value);
@@ -332,6 +356,11 @@ export default class AnimationManager {
             if (type == 0) {
                 return [value.x, value.y, value.z, 0];
             } else if (type == 1) {
+                if (window.selectedExpansion === Expansion.CLASSIC) {
+                  return decodeM2FloatQuat(value);
+                } else if (window.selectedExpansion === Expansion.TBC) {
+                  return decodeM2ShortQuat(value);
+                }
                 return [convertUint16ToFloat(value[0]),
                     convertUint16ToFloat(value[1]),
                     convertUint16ToFloat(value[2]),
@@ -345,7 +374,7 @@ export default class AnimationManager {
             }
         }
 
-        if (window.selectedExpansion === Expansion.TBC) {
+        if (window.selectedExpansion !== Expansion.WOTLK) {
           // Test
           //return undefined;
 
@@ -401,9 +430,11 @@ export default class AnimationManager {
         var result;
         if (times_len > 1) {
             var maxTime = times[times_len-1];
-            //var animTime = currTime % maxTime;
-            // TBC
+
             var animTime = currTime;
+            if (window.selectedExpansion === Expansion.WOTLK) {
+              animTime = currTime % maxTime;
+            }
 
             if (animTime > times[times_len-1] && animTime <= maxTime) {
                 //console.log("[Line A] About to call convertValueTypeToVec4 with:", values[0]);
