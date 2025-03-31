@@ -477,22 +477,22 @@ export default class AnimationManager {
         if (billboardMatrix != null) {
             mat4.multiply(tranformMat, tranformMat, billboardMatrix);
         } else if (animationData.rotation.valuesPerAnimation.length > 0) {
-            //var rotationType = (isBone)? 1: 3;
-            //
-            //var quaternionResult1 = this.getTimedValue(
-            //    rotationType,
-            //    time,
-            //    animationRecord.length,
-            //    animationIndex,
-            //    animationData.rotation);
-            //
-            //if (quaternionResult1) {
-            //    var orientMatrix = mat4.create();
-            //
-            //    mat4.fromQuat(orientMatrix, quaternionResult1 );
-            //    mat4.multiply(tranformMat, tranformMat, orientMatrix);
-            //}
-            //this.isAnimated = true;
+            var rotationType = (isBone)? 1: 3;
+
+            var quaternionResult1 = this.getTimedValue(
+                rotationType,
+                time,
+                animationRecord.length,
+                animationIndex,
+                animationData.rotation);
+
+            if (quaternionResult1) {
+                var orientMatrix = mat4.create();
+
+                mat4.fromQuat(orientMatrix, quaternionResult1 );
+                mat4.multiply(tranformMat, tranformMat, orientMatrix);
+            }
+            this.isAnimated = true;
         }
 
         if (animationData.scale.valuesPerAnimation.length > 0) {
