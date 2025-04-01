@@ -349,10 +349,10 @@ class WorldUnit extends WorldObject {
           //var modelFilename = "World\\Khazmodan\\Ironforge\\Passivedoodads\\Trees\\Wintertree02.Mdx";
           //var modelFilename = "World\\Dungeon\\Cave\\Passivedoodads\\Icicles\\Caveicicle1.Mdl";
 
-          //var modelFilename = "creature\\ragnaros\\ragnaros.mdx";
+          var modelFilename = "creature\\ragnaros\\ragnaros.mdx";
           //var modelFilename = "creature\\druidbear\\druidbear.mdx";
           //var modelFilename = "creature\\dragon\\dragononyxia.mdx";
-          var modelFilename = "creature\\drake\\drake.mdx";
+          //var modelFilename = "creature\\drake\\drake.mdx";
           //var modelFilename = "creature\\SkeletonNaked\\SkeletonNaked.mdx";
           // TODO: need skins
           //var modelFilename = "creature\\rabbit\\rabbit.mdx";

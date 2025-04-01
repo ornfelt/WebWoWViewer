@@ -341,14 +341,24 @@ export default class AnimationManager {
             return [x, y, z, w];
         }
 
-        function decodeM2FloatQuat(floatArray) {
-          //console.log("floatArray: ", floatArray);
-            return [
-                floatArray[0],
-                floatArray[1],
-                floatArray[2],
-                floatArray[3],
-            ];
+        //function decodeM2FloatQuat(floatArray) {
+        //  //console.log("floatArray: ", floatArray);
+        //    return [
+        //        floatArray[0],
+        //        floatArray[1],
+        //        floatArray[2],
+        //        floatArray[3],
+        //    ];
+        //}
+
+        // Ahh right... the vector4f is an object!
+        function decodeM2FloatQuat(quatObj) {
+          return [
+            quatObj.x,
+            quatObj.y,
+            quatObj.z,
+            quatObj.w
+          ];
         }
 
         function convertValueTypeToVec4(value, type){
@@ -512,8 +522,8 @@ export default class AnimationManager {
             mat4.multiply(tranformMat, tranformMat, billboardMatrix);
         } else if (animationData.rotation.valuesPerAnimation.length > 0) {
           // For now since classic model rotation doesn't quite work :(
-          if (window.selectedExpansion !== Expansion.CLASSIC) {
-          //if (true) {
+          //if (window.selectedExpansion !== Expansion.CLASSIC) {
+          if (true) {
             var rotationType = (isBone)? 1: 3;
 
             var quaternionResult1 = this.getTimedValue(
