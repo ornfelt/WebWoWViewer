@@ -1295,6 +1295,7 @@ const mdx_ver256 = {
             type: "layout",
             layout: [
                 // Adapted for tbc
+                //{name: "animation_id",          type: "uint32"},  // Animation id in AnimationData.dbc
                 {name: "animation_id",          type: "uint16"},  // Animation id in AnimationData.dbc
                 {name: "sub_animation_id",      type: "uint16"},  // Sub-animation id: Which number in a row of animations this one is.
                 {name: "timeStart",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
@@ -1400,8 +1401,9 @@ const mdx_ver256 = {
                 {
                     name: "rotation",
                     type: "ablock_tbc",
-                    valType: "int16Array",
-                    len: 4
+                    //valType: "int16Array",
+                    //len: 4
+                    valType: "vector4f"
                 },
                 {
                     name: "scale",
@@ -1432,8 +1434,9 @@ const mdx_ver256 = {
                 {
                     name: "rotation",
                     type: "ablock_tbc",
-                    valType: "int16Array",
-                    len: 4
+                    //valType: "int16Array",
+                    //len: 4
+                    valType: "vector4f"
                 },
                 {
                     name: "scale",

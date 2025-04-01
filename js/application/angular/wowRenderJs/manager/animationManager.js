@@ -326,6 +326,7 @@ export default class AnimationManager {
         }
 
         function decodeM2ShortQuat(shortArray /* e.g. [sx, sy, sz, sw] */) {
+            //console.log("shortArray: ", shortArray);
             // Each sx,sy,sz,sw is an *signed* 16-bit value in [-32767,+32767]
             const sx = shortArray[0];
             const sy = shortArray[1];
@@ -341,6 +342,7 @@ export default class AnimationManager {
         }
 
         function decodeM2FloatQuat(floatArray) {
+          //console.log("floatArray: ", floatArray);
             return [
                 floatArray[0],
                 floatArray[1],
@@ -393,6 +395,7 @@ export default class AnimationManager {
         }
 
         // Debug
+        // if (value_type == 1)
         //console.log("getTimedValue called with:");
         //console.log("value_type:", value_type);
         //console.log("currTime:", currTime);
@@ -442,8 +445,8 @@ export default class AnimationManager {
             } else {
                 // Note: if we really want the “last value,” this should be values[times_len-1].
                 //console.log("[Line B] About to call convertValueTypeToVec4 with:", times[times_len - 1]);
-                result =  convertValueTypeToVec4(times[times_len-1], value_type);
-                //result = convertValueTypeToVec4(values[times_len - 1], value_type);
+                //result =  convertValueTypeToVec4(times[times_len-1], value_type);
+                result = convertValueTypeToVec4(values[times_len - 1], value_type);
 
                 for (var i = 0; i < times_len; i++) {
                     if (times[i] > animTime) {
@@ -508,22 +511,26 @@ export default class AnimationManager {
         if (billboardMatrix != null) {
             mat4.multiply(tranformMat, tranformMat, billboardMatrix);
         } else if (animationData.rotation.valuesPerAnimation.length > 0) {
+          // For now since classic model rotation doesn't quite work :(
+          if (window.selectedExpansion !== Expansion.CLASSIC) {
+          //if (true) {
             var rotationType = (isBone)? 1: 3;
 
             var quaternionResult1 = this.getTimedValue(
-                rotationType,
-                time,
-                animationRecord.length,
-                animationIndex,
-                animationData.rotation);
+              rotationType,
+              time,
+              animationRecord.length,
+              animationIndex,
+              animationData.rotation);
 
             if (quaternionResult1) {
-                var orientMatrix = mat4.create();
+              var orientMatrix = mat4.create();
 
-                mat4.fromQuat(orientMatrix, quaternionResult1 );
-                mat4.multiply(tranformMat, tranformMat, orientMatrix);
+              mat4.fromQuat(orientMatrix, quaternionResult1 );
+              mat4.multiply(tranformMat, tranformMat, orientMatrix);
             }
             this.isAnimated = true;
+          }
         }
 
         if (animationData.scale.valuesPerAnimation.length > 0) {
