@@ -149,7 +149,7 @@ function sleep(ms) {
  * attaches events, and starts rendering.
  */
 export async function initViewer(containerEl) {
-  // 1) Create HTML structure (canvas + simple debug panel)
+  // Create HTML structure (canvas + simple debug panel)
   containerEl.innerHTML = `
     <div style="width: 100%; height: 100%; position: relative; overflow: hidden;">
       <canvas id="wow-canvas" style="float:left; display:block;"></canvas>
@@ -182,7 +182,7 @@ export async function initViewer(containerEl) {
     </div>
   `;
 
-  // 2) Grab references
+  // Grab references
   const canvas = containerEl.querySelector('#wow-canvas');
   const camPosEl = containerEl.querySelector('#cam-pos');
   const camLookEl = containerEl.querySelector('#cam-look');
@@ -204,16 +204,16 @@ export async function initViewer(containerEl) {
   const btnLoadPackets    = containerEl.querySelector('#btnLoadPackets');
   const btnLoadAllPackets = containerEl.querySelector('#btnLoadAllPackets');
 
-  // 3) Size the canvas
+  // Size the canvas
   const containerW = containerEl.clientWidth;
   const containerH = containerEl.clientHeight;
   canvas.width  = Math.floor(containerW * 0.79);
   canvas.height = containerH;
 
-  // 4) Create Scene
+  // Create Scene
   const sceneObj = new Scene(canvas);
 
-  // 5) Hard-code params
+  // Hard-code params
     //const mapParams = {
     //    name: 'Shattrath city (WotLK)',
     //    source: 'http',
@@ -246,6 +246,50 @@ export async function initViewer(containerEl) {
     //};
 
     //const mapParams = {
+    //  name: 'Eye of Storm',
+    //  source: 'http',
+    //  sceneType: 'map',
+    //  //mapId: 566,
+    //  mapName: 'NetherstormBG',
+    //  x: 2110,
+    //  y: 1489,
+    //  z: 1474
+    //}
+
+    //const mapParams = {
+    //  name: 'AV',
+    //  source: 'http',
+    //  sceneType: 'map',
+    //  //mapId: 30,
+    //  mapName: 'PVPZone01',
+    //  x: -531,
+    //  y: 0,
+    //  z: 267
+    //}
+
+    //const mapParams = {
+    //  name: 'WSG',
+    //  source: 'http',
+    //  sceneType: 'map',
+    //  //mapId: 489,
+    //  mapName: 'PVPZone03',
+    //  x: 1101,
+    //  y: 1313,
+    //  z: 568
+    //}
+
+    //const mapParams = {
+    //  name: 'AB',
+    //  source: 'http',
+    //  sceneType: 'map',
+    //  //mapId: 529,
+    //  mapName: 'PVPZone04',
+    //  x: 1177,
+    //  y: 841,
+    //  z: 176
+    //}
+
+    //const mapParams = {
     //    name: 'Darkshire',
     //    source: 'http',
     //    sceneType: 'map',
@@ -254,6 +298,28 @@ export async function initViewer(containerEl) {
     //    x: -10559.7,
     //    y: -1189.02,
     //    z: 29.0698
+    //}
+
+    //const mapParams = {
+    //    name: 'Northrend Dragonblight',
+    //    source: 'http',
+    //    sceneType: 'map',
+    //    //mapId: 571,
+    //    mapName: 'Northrend',
+    //    x: 4134.04,
+    //    y: 1029.00,
+    //    z: 148.33
+    //}
+
+    //const mapParams = {
+    //    name: 'Northrend Sholazar',
+    //    source: 'http',
+    //    sceneType: 'map',
+    //    //mapId: 571,
+    //    mapName: 'Northrend',
+    //    x: 5307.26,
+    //    y: 5606.34,
+    //    z: -77.70
     //}
 
     //const mapParams = {
@@ -342,6 +408,13 @@ export async function initViewer(containerEl) {
         sceneType: 'm2',
         modelName: 'creature\\ragnaros\\ragnaros.m2',
     }
+
+    //const mapParams = {
+    //    name: 'drake',
+    //    source: 'http',
+    //    sceneType: 'm2',
+    //    modelName: 'creature\\drake\\drake.mdx',
+    //}
 
     //const mapParams = {
     //    name: 'wintertree02',
@@ -456,11 +529,21 @@ export async function initViewer(containerEl) {
         //newWorldUnit.setPosition(vec3.fromValues(-1663, 5098, 27));
         //newWorldUnit.setRotation(0.0);
 
-        //newWorldUnit.setDisplayId(11121);
-        //newWorldUnit.setNativeDisplayId(11121);
-        // Drake
-        newWorldUnit.setDisplayId(5645);
-        newWorldUnit.setNativeDisplayId(5645);
+        // TODO: should look up DisplayId via name instead...
+        const normalizedModelName = mapParams.modelName.toLowerCase().replace(/\\/g, '/').replace(/\/{2,}/g, '/').replace(".mdx", ".m2");
+
+        // Penguin
+        if (normalizedModelName === "creature/northrendpenguin/northrendpenguin.m2") {
+          newWorldUnit.setDisplayId(24978);
+          newWorldUnit.setNativeDisplayId(24978);
+        } else if (normalizedModelName === "creature/drake/drake.m2") {
+          newWorldUnit.setDisplayId(5645);
+          newWorldUnit.setNativeDisplayId(5645);
+        } else {
+          // Default to ragnaros
+          newWorldUnit.setDisplayId(11121);
+          newWorldUnit.setNativeDisplayId(11121);
+        }
 
         newWorldUnit.setScale(1.0);
 
@@ -482,7 +565,7 @@ export async function initViewer(containerEl) {
         }
     }
 
-  // 6) Initialize config + checkbox states
+  // Initialize config + checkbox states
   chkDrawAdt.checked          = config.getRenderAdt();
   chkDrawM2.checked           = config.getRenderM2();
   chkDrawPortals.checked      = config.getRenderPortals();
@@ -495,10 +578,10 @@ export async function initViewer(containerEl) {
   chkUseSecondCamera.checked  = config.getUseSecondCamera();
   chkUseSecondCamera.disabled = !chkDoubleCamera.checked;
 
-  // 7) Attach event handlers for camera
+  // Attach event handlers for camera
   attachEvents(canvas, sceneObj.camera);
 
-  // 8) Link checkboxes => config
+  // Link checkboxes => config
   chkDrawAdt.addEventListener('change', () => { config.setRenderAdt(chkDrawAdt.checked); });
   chkDrawM2.addEventListener('change', () => { config.setRenderM2(chkDrawM2.checked); });
   chkDrawPortals.addEventListener('change', () => { config.setRenderPortals(chkDrawPortals.checked); });
@@ -522,7 +605,7 @@ export async function initViewer(containerEl) {
     config.setUseSecondCamera(chkUseSecondCamera.checked);
   });
 
-  // 9) Buttons
+  // Buttons
   btnCopyDebug.addEventListener('click', () => {
     sceneObj.copyFirstCameraToDebugCamera();
   });
@@ -533,7 +616,7 @@ export async function initViewer(containerEl) {
     sceneObj.loadAllPackets();
   });
 
-  // 10) Render loop
+  // Render loop
   let lastFrameTime = 0;
   const targetFPS = 60;
   const targetFrameTime = 1000 / targetFPS;
