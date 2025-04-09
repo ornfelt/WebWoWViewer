@@ -522,6 +522,7 @@ export async function initViewer(containerEl) {
           [-1600, 5100, 30],
           [-1650, 5150, 35]
         ];
+
         newWorldUnit.setMovingData(1000, 8000, 0, vectorArray); // curr_time, total_time, movementflag
 
         // Position and rotation

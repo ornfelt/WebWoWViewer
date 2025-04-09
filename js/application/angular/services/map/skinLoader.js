@@ -1,5 +1,5 @@
 import linedFileLoader from './../linedfileLoader.js';
-import Expansion from '../../Expansion.js';
+import Expansion from '../../Expansion';
 
 const skinDefinition = {
     name: "header",

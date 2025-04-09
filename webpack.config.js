@@ -8,7 +8,8 @@ module.exports = {
     mode: 'development',
     devtool: 'source-map',
     context: __dirname,
-    entry: "./js/application/angular/app_wowjs.js", // Simplified entry point
+    //entry: "./js/application/angular/app_wowjs.js", // Simplified entry point
+    entry: "./js/application/angular/app_wow.ts", // Simplified entry point
 
     output: {
         path: path.resolve(__dirname, 'build'),
@@ -17,7 +18,7 @@ module.exports = {
     },
 
     resolve: {
-        extensions: ['.js', '.jsx', '.glsl'],
+        extensions: ['.js', '.jsx', '.glsl', '.ts', '.tsx'],
         modules: [
             path.resolve('./js/application/angular'),
             path.resolve('./glsl/'),
@@ -47,6 +48,11 @@ module.exports = {
                 test: /\.css$/,
                 use: [ 'style-loader', 'css-loader' ]
             },
+            {
+              test: /\.ts$/,
+              use: 'ts-loader',
+              exclude: /node_modules/
+            }
         ],
     },
 

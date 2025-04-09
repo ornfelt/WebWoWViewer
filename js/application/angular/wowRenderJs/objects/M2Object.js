@@ -3,7 +3,7 @@ import AnimationManager from './../manager/animationManager.js'
 import mathHelper from './../math/mathHelper.js';
 import QuickSort from './../math/quickSort';
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
-import Expansion from '../../Expansion.js';
+import Expansion from '../../Expansion';
 
 const pixelShaderTable = {
     "Combiners_Opaque" : 0,

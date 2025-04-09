@@ -46,7 +46,7 @@ import itemDisplayInfoDBC           from './../services/dbc/itemDisplayInfoDBC.j
 import itemDBC                      from './../services/dbc/itemDBC.js'
 import mapDBC                       from './../services/dbc/mapDBC.js'
 
-import Expansion from '../Expansion.js';
+import Expansion from '../Expansion';
 
 function getShaderSourceById(id) {
   const el = document.getElementById(id);

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es5",                
+    "module": "esnext",             
+    "strict": true,                 
+    "sourceMap": true,              
+    "moduleResolution": "node",     
+    "esModuleInterop": true,        
+    "skipLibCheck": true,
+    "allowJs": true
+  },
+  "include": ["js/**/*"] 
+}

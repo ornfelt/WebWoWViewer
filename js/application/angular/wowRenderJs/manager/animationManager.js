@@ -1,5 +1,5 @@
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
-import Expansion from '../../Expansion.js';
+import Expansion from '../../Expansion';
 
 export default class AnimationManager {
 
@@ -297,9 +297,8 @@ export default class AnimationManager {
         this.blendMatrixArray = blendMatrixArray;
     }
 
-
     /* Interpolate functions */
-    interpolateValues (currentTime, interpolType, time1, time2, value1, value2, valueType){
+    interpolateValues(currentTime, interpolType, time1, time2, value1, value2, valueType){
         //Support and use only linear interpolation for now
         if (interpolType == 0) {
             return value1;
@@ -417,6 +416,13 @@ export default class AnimationManager {
         var globalSequence = animationBlock.global_sequence;
         var interpolType = animationBlock.interpolation_type;
 
+        if (animation < 0
+            || animation >= animationBlock.timestampsPerAnimation.length
+            || animation >= animationBlock.valuesPerAnimation.length)
+        {
+            return null;
+        }
+
         var times = animationBlock.timestampsPerAnimation[animation];
         var values =  animationBlock.valuesPerAnimation[animation];
 
@@ -460,6 +466,12 @@ export default class AnimationManager {
 
                 for (var i = 0; i < times_len; i++) {
                     if (times[i] > animTime) {
+
+                        if (i - 1 < 0)
+                        {
+                            return null;
+                        }
+
                         var value1 = values[i - 1];
                         var value2 = values[i];
 
@@ -536,7 +548,7 @@ export default class AnimationManager {
             if (quaternionResult1) {
               var orientMatrix = mat4.create();
 
-              mat4.fromQuat(orientMatrix, quaternionResult1 );
+              mat4.fromQuat(orientMatrix, quaternionResult1);
               mat4.multiply(tranformMat, tranformMat, orientMatrix);
             }
             this.isAnimated = true;
