@@ -1630,7 +1630,7 @@ function parseOldFile(fileObject){
         }
 
         // Debug
-        console.log("resultMDXObject:", resultMDXObject);
+        //console.log("resultMDXObject:", resultMDXObject);
     } catch (e) {
         throw e;
     }

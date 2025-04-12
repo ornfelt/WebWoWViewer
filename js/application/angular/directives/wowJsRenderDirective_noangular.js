@@ -366,12 +366,23 @@ export async function initViewer(containerEl) {
     //    name: 'Caverns of Time',
     //    source: 'http',
     //    sceneType: 'map',
-    //    mapId: 0,
+    //    mapId: 1,
     //    mapName: 'Kalimdor',
     //    x: -8181.35,
     //    y: -4596.92,
     //    z: -125.34
     //}
+
+    const mapParams = {
+        name: 'Orgrimmar',
+        source: 'http',
+        sceneType: 'map',
+        mapId: 1,
+        mapName: 'Kalimdor',
+        x: 1096.1,
+        y: -4549.0,
+        z: 135.0
+    }
 
     //const mapParams = {
     //    name: 'Darkshire blacksmith',
@@ -402,12 +413,12 @@ export async function initViewer(containerEl) {
     //    //cameraIndex: 0
     //}
 
-    const mapParams = {
-        name: 'ragnaros',
-        source: 'http',
-        sceneType: 'm2',
-        modelName: 'creature\\ragnaros\\ragnaros.m2',
-    }
+    //const mapParams = {
+    //    name: 'ragnaros',
+    //    source: 'http',
+    //    sceneType: 'm2',
+    //    modelName: 'creature\\ragnaros\\ragnaros.m2',
+    //}
 
     //const mapParams = {
     //    name: 'drake',

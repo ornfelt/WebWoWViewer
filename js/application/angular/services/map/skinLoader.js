@@ -268,7 +268,7 @@ export default function(filePath) {
             }
 
             // Debug
-            console.log("SKIN resultSkinObject:", resultSkinObject);
+            //console.log("SKIN resultSkinObject:", resultSkinObject);
 
             resultSkinObject.fileName = filePath;
             return resultSkinObject;

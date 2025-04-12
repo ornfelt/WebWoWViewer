@@ -1327,6 +1327,9 @@ class Scene {
         var adt_x = Math.floor((32 - (this.mainCamera[1] / 533.33333)));
         var adt_y = Math.floor((32 - (this.mainCamera[0] / 533.33333)));
 
+        //console.log("adt_x: ", adt_x);
+        //console.log("adt_y: ", adt_y);
+
         //TODO: HACK!!
         for (var x = adt_x-1; x <= adt_x+1; x++) {
             for (var y = adt_y-1; y <= adt_y+1; y++) {
@@ -1498,6 +1501,20 @@ class Scene {
     addAdtChunkToCurrentMap(x,y) {
         if (!this.currentWdt) return;
         if (this.currentWdt.isWMOMap) return;
+
+        // Debug
+        //for (let testY in this.currentWdt.tileTable) {
+        //    // Check that the row exists and is not null
+        //    let row = this.currentWdt.tileTable[testY];
+        //    if (!row) continue;
+        //
+        //    for (let testX in row) {
+        //        let value = row[x];
+        //        if (value !== 0 && value != null) {
+        //            console.log(`Value at [${testY}][${testX}] = ${value}`);
+        //        }
+        //    }
+        //}
 
         if (this.currentWdt.tileTable[y][x]) {
             var adtFileName = "world/maps/"+this.currentMapName+"/"+this.currentMapName+"_"+x+"_"+y+".adt";
