@@ -215,6 +215,9 @@ void main() {
   */
     finalColor.a = 1.0; //do I really need it now?
 
+    //vec4 tex_new = texture2D(uTexture, vTexCoord);
+    //finalColor = tex_new;
+
 #ifndef drawBuffersIsSupported
     //Forward rendering without lights
     gl_FragColor = finalColor;

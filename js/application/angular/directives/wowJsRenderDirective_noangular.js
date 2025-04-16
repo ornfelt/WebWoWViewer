@@ -373,23 +373,23 @@ export async function initViewer(containerEl) {
     //    z: -125.34
     //}
 
-    const mapParams = {
-        name: 'Orgrimmar',
-        source: 'http',
-        sceneType: 'map',
-        mapId: 1,
-        mapName: 'Kalimdor',
-        x: 1096.1,
-        y: -4549.0,
-        z: 135.0
-    }
-
     //const mapParams = {
-    //    name: 'Darkshire blacksmith',
+    //    name: 'Orgrimmar',
     //    source: 'http',
-    //    sceneType: 'wmo',
-    //    fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO'
+    //    sceneType: 'map',
+    //    mapId: 1,
+    //    mapName: 'Kalimdor',
+    //    x: 1096.1,
+    //    y: -4549.0,
+    //    z: 135.0
     //}
+
+    const mapParams = {
+        name: 'Darkshire blacksmith',
+        source: 'http',
+        sceneType: 'wmo',
+        fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO'
+    }
 
     //const mapParams = {
     //    name: 'arena wmo',
