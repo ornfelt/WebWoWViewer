@@ -122,7 +122,7 @@ export default function (filePath , arrayBuffer) {
 
                         break;
 
-                    case "ablock_tbc": {
+                    case "ablock_tbc2": {
                         result = {};
 
                         result.interpolation_type      = fileObject.readUint16(offset);
@@ -182,6 +182,88 @@ export default function (filePath , arrayBuffer) {
                             }
                         }
 
+                        //console.log("red ablock_tbc: ", result);
+                        break;
+                    }
+
+                    case "ablock_tbc": {
+                        const block = {};
+                        const interpolationType        = block.interpolation_type      = fileObject.readUint16(offset);
+                        const globalSequence           = block.global_sequence         = fileObject.readInt16(offset);
+                        const rangesCnt                = block.interpolation_ranges_nb = fileObject.readUint32(offset);
+                        const rangesOff                = block.ofsRanges               = fileObject.readUint32(offset);
+                        const timeCnt                  = block.timestamps_nb           = fileObject.readUint32(offset);
+                        const timesOff                 = block.ofsTimes                = fileObject.readUint32(offset);
+                        const valueCnt                 = block.values_nb               = fileObject.readUint32(offset);
+                        const valuesOff                = block.ofsValues               = fileObject.readUint32(offset);
+
+                        // Ranges table
+                        const ranges = [];
+                        if (rangesCnt > 0) {
+                            const off = { offs: rangesOff };
+                            for (let i = 0; i < rangesCnt; ++i) {
+                                const first = fileObject.readInt32(off);
+                                const last  = fileObject.readInt32(off);
+                                ranges.push({ first, last });
+                            }
+                        } else if (interpolationType !== 0 && globalSequence === -1) {
+                            // whole‑track range
+                            ranges.push({ first: 0, last: valueCnt - 1 });
+                        }
+                        block.ranges = ranges;
+
+                        // Flat timestamps
+                        const flatTimes = [];
+                        if (timeCnt > 0) {
+                            const off = { offs: timesOff };
+                            for (let i = 0; i < timeCnt; ++i) {
+                                flatTimes.push(fileObject.readUint32(off));
+                            }
+                        }
+
+                        // Flat values
+                        const flatValues = [];
+                        if (valueCnt > 0) {
+                            const off = { offs: valuesOff };
+                            for (let i = 0; i < valueCnt; ++i) {
+                                flatValues.push(
+                                    self.readType(
+                                        fileObject,
+                                        { type: sectionDef.valType, len: sectionDef.len },
+                                        off,
+                                        sectionDef.len
+                                    )
+                                );
+                            }
+                        }
+
+                        // Slice into per‑animation lists
+                        const animCnt = ranges.length;
+                        block.timestampsPerAnimation = new Array(animCnt);
+                        block.valuesPerAnimation     = new Array(animCnt);
+
+                        for (let i = 0; i < animCnt; ++i) {
+                            let { first, last } = ranges[i];
+
+                            // clamp to avoid corrupt files blowing up
+                            first = Math.max(0, Math.min(first, valueCnt - 1));
+                            last  = Math.max(first, Math.min(last, valueCnt - 1));
+
+                            const sliceLen = last - first + 1;
+                            const ts   = new Array(sliceLen);
+                            const vals = new Array(sliceLen);
+
+                            for (let k = 0; k < sliceLen; ++k) {
+                                const idx = first + k;
+                                ts[k]   = flatTimes[idx]  ?? 0;
+                                vals[k] = flatValues[idx] ?? undefined;
+                            }
+
+                            block.timestampsPerAnimation[i] = ts;
+                            block.valuesPerAnimation[i]     = vals;
+                        }
+
+                        result = block; // hand the finished block back to the caller
                         break;
                     }
 

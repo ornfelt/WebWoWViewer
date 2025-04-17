@@ -384,12 +384,12 @@ export async function initViewer(containerEl) {
     //    z: 135.0
     //}
 
-    const mapParams = {
-        name: 'Darkshire blacksmith',
-        source: 'http',
-        sceneType: 'wmo',
-        fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO'
-    }
+    //const mapParams = {
+    //    name: 'Darkshire blacksmith',
+    //    source: 'http',
+    //    sceneType: 'wmo',
+    //    fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO'
+    //}
 
     //const mapParams = {
     //    name: 'arena wmo',
@@ -413,12 +413,12 @@ export async function initViewer(containerEl) {
     //    //cameraIndex: 0
     //}
 
-    //const mapParams = {
-    //    name: 'ragnaros',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'creature\\ragnaros\\ragnaros.m2',
-    //}
+    const mapParams = {
+        name: 'ragnaros',
+        source: 'http',
+        sceneType: 'm2',
+        modelName: 'creature\\ragnaros\\ragnaros.m2',
+    }
 
     //const mapParams = {
     //    name: 'drake',

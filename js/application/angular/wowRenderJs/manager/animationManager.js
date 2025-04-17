@@ -220,8 +220,21 @@ export default class AnimationManager {
             blendAnimationIndex = this.nextSubAnimationIndex
         }
 
+        var cycleAnims = true;
+        //var cycleAnims = false;
+
         if (this.currentAnimationTime >= currentAnimationRecord.length) {
-            if (this.nextSubAnimationIndex > -1) {
+            if (cycleAnims) {
+              // RANDOM
+              //this.currentAnimationIndex = Math.floor(Math.random() * m2File.animations.length);
+              //this.currentAnimationTime = 0;
+              // CYCLE
+              this.currentAnimationIndex = (this.currentAnimationIndex + 1) % m2File.animations.length;
+              this.currentAnimationTime = 0;
+              //console.log("this.currentAnimationTime: ", this.currentAnimationTime);
+              console.log(`New animation ID: ${this.currentAnimationIndex} / ${m2File.animations.length - 1}`);
+            }
+            else if (this.nextSubAnimationIndex > -1) {
                 this.currentAnimationIndex = this.nextSubAnimationIndex;
                 this.currentAnimationTime = this.nextSubAnimationTime;
 
@@ -233,7 +246,6 @@ export default class AnimationManager {
                 this.currentAnimationTime = this.currentAnimationTime % currentAnimationRecord.length;
             }
         }
-
 
         /* Update animated values */
 
@@ -389,9 +401,12 @@ export default class AnimationManager {
           // Test (will show up as non-animated)
           //return undefined;
 
-          // Test another animation
-          //animation = 4;
-          //this.currentAnimationIndex = 4;
+          // TODO: fix
+          // Problem: for example druidbear in tbc starts with animationIndex 2 even if setting 0 via SetAnimationId...
+          // In js i don't need AnimationLookup for non-wotlk so it doesn't affect it... Should try to figure out SetAnimationId...
+          // Only first animation works currently...
+          //animation = 0;
+          //this.currentAnimationIndex = 0;
 
           const currentAnimationRecord = this.m2File.animations[this.currentAnimationIndex];
           //console.log("m2file:", this.m2File);
