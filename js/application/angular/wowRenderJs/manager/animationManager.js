@@ -220,8 +220,8 @@ export default class AnimationManager {
             blendAnimationIndex = this.nextSubAnimationIndex
         }
 
-        var cycleAnims = true;
-        //var cycleAnims = false;
+        //var cycleAnims = true;
+        var cycleAnims = false;
 
         if (this.currentAnimationTime >= currentAnimationRecord.length) {
             if (cycleAnims) {

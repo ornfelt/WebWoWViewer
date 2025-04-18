@@ -981,18 +981,18 @@ const mdx_ver262 = {
                 {name: "unk2", type: "uint16"},
                 {
                     name: "translation",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "vector3f"
                 },
                 {
                     name: "rotation",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "int16Array",
                     len: 4
                 },
                 {
                     name: "scale",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "vector3f"
                 },
                 {name: "pivot", type: "vector3f"}
@@ -1398,19 +1398,19 @@ const mdx_ver256 = {
                 {name: "submesh_id", type: "uint16"},
                 {
                     name: "translation",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "vector3f"
                 },
                 {
                     name: "rotation",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     //valType: "int16Array",
                     //len: 4
                     valType: "vector4f"
                 },
                 {
                     name: "scale",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "vector3f"
                 },
                 {name: "pivot", type: "vector3f"}

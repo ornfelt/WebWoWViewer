@@ -122,7 +122,7 @@ export default function (filePath , arrayBuffer) {
 
                         break;
 
-                    case "ablock_tbc2": {
+                    case "ablock_tbc": {
                         result = {};
 
                         result.interpolation_type      = fileObject.readUint16(offset);
@@ -186,7 +186,7 @@ export default function (filePath , arrayBuffer) {
                         break;
                     }
 
-                    case "ablock_tbc": {
+                    case "ablock_tbc2": {
                         const block = {};
                         const interpolationType        = block.interpolation_type      = fileObject.readUint16(offset);
                         const globalSequence           = block.global_sequence         = fileObject.readInt16(offset);
