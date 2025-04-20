@@ -1,0 +1,916 @@
+﻿diff --git a/index.html b/index.html
+index 887e579..7585278 100644
+--- a/index.html
++++ b/index.html
+@@ -215,6 +215,9 @@ void main() {
+   */
+     finalColor.a = 1.0; //do I really need it now?
+ 
++    //vec4 tex_new = texture2D(uTexture, vTexCoord);
++    //finalColor = tex_new;
++
+ #ifndef drawBuffersIsSupported
+     //Forward rendering without lights
+     gl_FragColor = finalColor;
+diff --git a/js/application/angular/Expansion.js b/js/application/angular/Expansion.js
+deleted file mode 100644
+index d2c3264..0000000
+--- a/js/application/angular/Expansion.js
++++ /dev/null
+@@ -1,7 +0,0 @@
+-const Expansion = {
+-  CLASSIC: "classic",
+-  TBC: "tbc",
+-  WOTLK: "wotlk"
+-};
+-
+-export default Expansion;
+diff --git a/js/application/angular/Expansion.ts b/js/application/angular/Expansion.ts
+new file mode 100644
+index 0000000..40c2d19
+--- /dev/null
++++ b/js/application/angular/Expansion.ts
+@@ -0,0 +1,23 @@
++//const Expansion = {
++//  CLASSIC: "classic",
++//  TBC: "tbc",
++//  WOTLK: "wotlk"
++//};
++//
++//export default Expansion;
++
++// Expansion.ts
++const Expansion = {
++  CLASSIC: "classic",
++  TBC: "tbc",
++  WOTLK: "wotlk"
++} as const;
++
++export default Expansion;
++
++// Expansion.ts (using enum)
++//export enum Expansion {
++//  CLASSIC = "classic",
++//  TBC = "tbc",
++//  WOTLK = "wotlk"
++//}
+diff --git a/js/application/angular/app_wow.ts b/js/application/angular/app_wow.ts
+new file mode 100644
+index 0000000..dd68690
+--- /dev/null
++++ b/js/application/angular/app_wow.ts
+@@ -0,0 +1,66 @@
++import { initViewer } from './directives/wowJsRenderDirective_noangular';
++import Expansion from './Expansion';
++
++// Extend the Window interface to include the custom property.
++declare global {
++  interface Window {
++    //selectedExpansion: typeof Expansion.WOTLK;
++    selectedExpansion: typeof Expansion[keyof typeof Expansion];
++  }
++}
++
++// Set a default expansion value.
++window.selectedExpansion = Expansion.WOTLK;
++let expansionLoaded: boolean = false;
++
++// Determine the expansion first.
++(async () => {
++  try {
++    const url: string = "http://localhost:3002/files/exp.txt";
++    const response: Response = await fetch(url);
++    if (response.ok) {
++      const text: string = (await response.text()).trim().toLowerCase();
++      if (text === "classic") {
++        window.selectedExpansion = Expansion.CLASSIC;
++      } else if (text === "tbc") {
++        window.selectedExpansion = Expansion.TBC;
++      } else {
++        window.selectedExpansion = Expansion.WOTLK;
++      }
++    } else {
++      console.error("Error fetching exp.txt:", response.statusText);
++    }
++  } catch (error: unknown) {
++    console.error("Error during fetch:", error);
++  } finally {
++    console.log("selectedExpansion:", window.selectedExpansion);
++    expansionLoaded = true;
++  }
++})();
++
++// Returns a Promise that resolves once the expansion is loaded.
++function waitForExpansion(): Promise<void> {
++  return new Promise(resolve => {
++    const check = () => {
++      if (expansionLoaded) {
++        resolve();
++      } else {
++        setTimeout(check, 50);
++      }
++    };
++    check();
++  });
++}
++
++// Entry point.
++window.onload = async () => {
++  await waitForExpansion(); // Wait until the expansion has been set
++
++  const container: HTMLElement | null = document.getElementById('viewer-container');
++  if (!container) {
++    console.error("Viewer container not found!");
++    return;
++  }
++  initViewer(container);
++};
++
+diff --git a/js/application/angular/directives/wowJsRenderDirective_noangular.js b/js/application/angular/directives/wowJsRenderDirective_noangular.js
+index c483d30..82fec53 100644
+--- a/js/application/angular/directives/wowJsRenderDirective_noangular.js
++++ b/js/application/angular/directives/wowJsRenderDirective_noangular.js
+@@ -366,13 +366,24 @@ export async function initViewer(containerEl) {
+     //    name: 'Caverns of Time',
+     //    source: 'http',
+     //    sceneType: 'map',
+-    //    mapId: 0,
++    //    mapId: 1,
+     //    mapName: 'Kalimdor',
+     //    x: -8181.35,
+     //    y: -4596.92,
+     //    z: -125.34
+     //}
+ 
++    //const mapParams = {
++    //    name: 'Orgrimmar',
++    //    source: 'http',
++    //    sceneType: 'map',
++    //    mapId: 1,
++    //    mapName: 'Kalimdor',
++    //    x: 1096.1,
++    //    y: -4549.0,
++    //    z: 135.0
++    //}
++
+     //const mapParams = {
+     //    name: 'Darkshire blacksmith',
+     //    source: 'http',
+@@ -522,6 +533,7 @@ export async function initViewer(containerEl) {
+           [-1600, 5100, 30],
+           [-1650, 5150, 35]
+         ];
++
+         newWorldUnit.setMovingData(1000, 8000, 0, vectorArray); // curr_time, total_time, movementflag
+ 
+         // Position and rotation
+diff --git a/js/application/angular/services/chunkedLoader.js b/js/application/angular/services/chunkedLoader.js
+index bc9cb4c..7c5b97f 100644
+--- a/js/application/angular/services/chunkedLoader.js
++++ b/js/application/angular/services/chunkedLoader.js
+@@ -39,6 +39,7 @@ export default function (filePath, arrayBuffer) {
+                                 subchunkHandler(resultObj, subChunk, this);
+                             } else {
+                                 //$log.info("Unknown SubChunk. Ident = " + subChunk.chunkIdent+", file = "+fullPath);
++                                //console.log("Unknown SubChunk. Ident = " + subChunk.chunkIdent);
+                             }
+ 
+                             subChunk = this.loadChunkAtOffset(subChunk.nextChunkOffset);
+@@ -46,6 +47,7 @@ export default function (filePath, arrayBuffer) {
+                     }
+                 } else {
+                     //$log.info("Unknown Chunk. Ident = " + chunk.chunkIdent+", file = "+fullPath);
++                    //console.log("Unknown SubChunk. Ident = " + subChunk.chunkIdent);
+                 }
+             },
+             processFile: function(resultObj){
+diff --git a/js/application/angular/services/linedfileLoader.js b/js/application/angular/services/linedfileLoader.js
+index b390477..5c0c82a 100644
+--- a/js/application/angular/services/linedfileLoader.js
++++ b/js/application/angular/services/linedfileLoader.js
+@@ -182,6 +182,88 @@ export default function (filePath , arrayBuffer) {
+                             }
+                         }
+ 
++                        //console.log("red ablock_tbc: ", result);
++                        break;
++                    }
++
++                    case "ablock_tbc2": {
++                        const block = {};
++                        const interpolationType        = block.interpolation_type      = fileObject.readUint16(offset);
++                        const globalSequence           = block.global_sequence         = fileObject.readInt16(offset);
++                        const rangesCnt                = block.interpolation_ranges_nb = fileObject.readUint32(offset);
++                        const rangesOff                = block.ofsRanges               = fileObject.readUint32(offset);
++                        const timeCnt                  = block.timestamps_nb           = fileObject.readUint32(offset);
++                        const timesOff                 = block.ofsTimes                = fileObject.readUint32(offset);
++                        const valueCnt                 = block.values_nb               = fileObject.readUint32(offset);
++                        const valuesOff                = block.ofsValues               = fileObject.readUint32(offset);
++
++                        // Ranges table
++                        const ranges = [];
++                        if (rangesCnt > 0) {
++                            const off = { offs: rangesOff };
++                            for (let i = 0; i < rangesCnt; ++i) {
++                                const first = fileObject.readInt32(off);
++                                const last  = fileObject.readInt32(off);
++                                ranges.push({ first, last });
++                            }
++                        } else if (interpolationType !== 0 && globalSequence === -1) {
++                            // wholeΓÇætrack range
++                            ranges.push({ first: 0, last: valueCnt - 1 });
++                        }
++                        block.ranges = ranges;
++
++                        // Flat timestamps
++                        const flatTimes = [];
++                        if (timeCnt > 0) {
++                            const off = { offs: timesOff };
++                            for (let i = 0; i < timeCnt; ++i) {
++                                flatTimes.push(fileObject.readUint32(off));
++                            }
++                        }
++
++                        // Flat values
++                        const flatValues = [];
++                        if (valueCnt > 0) {
++                            const off = { offs: valuesOff };
++                            for (let i = 0; i < valueCnt; ++i) {
++                                flatValues.push(
++                                    self.readType(
++                                        fileObject,
++                                        { type: sectionDef.valType, len: sectionDef.len },
++                                        off,
++                                        sectionDef.len
++                                    )
++                                );
++                            }
++                        }
++
++                        // Slice into perΓÇæanimation lists
++                        const animCnt = ranges.length;
++                        block.timestampsPerAnimation = new Array(animCnt);
++                        block.valuesPerAnimation     = new Array(animCnt);
++
++                        for (let i = 0; i < animCnt; ++i) {
++                            let { first, last } = ranges[i];
++
++                            // clamp to avoid corrupt files blowing up
++                            first = Math.max(0, Math.min(first, valueCnt - 1));
++                            last  = Math.max(first, Math.min(last, valueCnt - 1));
++
++                            const sliceLen = last - first + 1;
++                            const ts   = new Array(sliceLen);
++                            const vals = new Array(sliceLen);
++
++                            for (let k = 0; k < sliceLen; ++k) {
++                                const idx = first + k;
++                                ts[k]   = flatTimes[idx]  ?? 0;
++                                vals[k] = flatValues[idx] ?? undefined;
++                            }
++
++                            block.timestampsPerAnimation[i] = ts;
++                            block.valuesPerAnimation[i]     = vals;
++                        }
++
++                        result = block; // hand the finished block back to the caller
+                         break;
+                     }
+ 
+diff --git a/js/application/angular/services/map/adtLoader.js b/js/application/angular/services/map/adtLoader.js
+index 0749849..5a23945 100644
+--- a/js/application/angular/services/map/adtLoader.js
++++ b/js/application/angular/services/map/adtLoader.js
+@@ -306,6 +306,7 @@ export default function(filename) {
+       .then((chunkedFile) => {
+         /* First chunk in file has to be MVER */
+         const adtObj = {};
++        adtObj.filename = filename;
+         chunkedFile.setSectionReaders(defaultAdtLoader);
+         chunkedFile.processFile(adtObj);
+         addTextureNames(adtObj);
+diff --git a/js/application/angular/services/map/blpLoader.js b/js/application/angular/services/map/blpLoader.js
+index fcbc8d2..451297f 100644
+--- a/js/application/angular/services/map/blpLoader.js
++++ b/js/application/angular/services/map/blpLoader.js
+@@ -25,10 +25,12 @@ export default function (filePath) {
+             var offset = {offs: 0};
+             var fileIdent = fileObject.readNZTString(offset, 4);
+             //var fileVersion  = fileObject.readInt32(offset); //is this really version?
+-
++            
+             /* Check the ident */
+             if (fileIdent != "BLP2") {
+-                var errorMessage = "Unknown BLP file ident = " + fileIdent + ", filepath = ", filePath;
++                console.log("fileIdent: ", fileIdent);
++                //var errorMessage = "Unknown BLP file ident = " + fileIdent + ", filepath = ", filePath;
++                var errorMessage = "Unknown BLP file ident = " + fileIdent;
+                 //$log.error(errorMessage);
+                 console.error(errorMessage);
+                 throw errorMessage;
+diff --git a/js/application/angular/services/map/mdxLoader.js b/js/application/angular/services/map/mdxLoader.js
+index ce53ba6..86bf274 100644
+--- a/js/application/angular/services/map/mdxLoader.js
++++ b/js/application/angular/services/map/mdxLoader.js
+@@ -1,5 +1,6 @@
+ import linedFileLoader from './../linedfileLoader.js';
+ 
++// WOTLK
+ const mdx_ver264 = {
+     name : "header",
+     type : "layout",
+@@ -725,6 +726,7 @@ const mdx_ver274 = {
+     ]
+ };
+ 
++// TBC
+ const mdx_ver262 = {
+     name : "header",
+     type : "layout",
+@@ -881,7 +883,7 @@ const mdx_ver262 = {
+                 {name: "timeStart",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
+                 {name: "timeEnd",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
+                 {name: "moving_speed",          type: "float32"}, // This is the speed the character moves with in this animation.
+-                {name: "loopType",                 type: "uint32"},  // See below.
++                //{name: "loopType",                 type: "uint32"},  // See below.
+                 {name: "flags",                 type: "uint32"},  // See below.
+                 {name: "probability",           type: "int16"},   // This is used to determine how often the animation is played. For all animations of the same type, this adds up to 0x7FFF (32767).
+                 {name: "_padding",              type: "uint16"},
+@@ -979,18 +981,18 @@ const mdx_ver262 = {
+                 {name: "unk2", type: "uint16"},
+                 {
+                     name: "translation",
+-                    type: "ablock_tbc",
++                    type: "ablock_tbc2",
+                     valType: "vector3f"
+                 },
+                 {
+                     name: "rotation",
+-                    type: "ablock_tbc",
++                    type: "ablock_tbc2",
+                     valType: "int16Array",
+                     len: 4
+                 },
+                 {
+                     name: "scale",
+-                    type: "ablock_tbc",
++                    type: "ablock_tbc2",
+                     valType: "vector3f"
+                 },
+                 {name: "pivot", type: "vector3f"}
+@@ -1144,6 +1146,7 @@ const mdx_ver262 = {
+     ]
+ };
+ 
++// Classic
+ const mdx_ver256 = {
+     name : "header",
+     type : "layout",
+@@ -1301,7 +1304,7 @@ const mdx_ver256 = {
+                 {name: "timeStart",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
+                 {name: "timeEnd",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
+                 {name: "moving_speed",          type: "float32"}, // This is the speed the character moves with in this animation.
+-                //{name: "loopType",                 type: "uint32"},  // See below.
++                {name: "loopType",                 type: "uint32"},  // See below.
+                 {name: "flags",                 type: "uint32"},  // See below.
+                 {name: "minimum_repetitions",   type: "uint32"},  // May both be 0 to not repeat. Client will pick a random number of repetitions within bounds if given.
+                 {name: "maximum_repetitions",   type: "uint32"},
+@@ -1395,19 +1398,19 @@ const mdx_ver256 = {
+                 {name: "submesh_id", type: "uint16"},
+                 {
+                     name: "translation",
+-                    type: "ablock_tbc",
++                    type: "ablock_tbc2",
+                     valType: "vector3f"
+                 },
+                 {
+                     name: "rotation",
+-                    type: "ablock_tbc",
++                    type: "ablock_tbc2",
+                     //valType: "int16Array",
+                     //len: 4
+                     valType: "vector4f"
+                 },
+                 {
+                     name: "scale",
+-                    type: "ablock_tbc",
++                    type: "ablock_tbc2",
+                     valType: "vector3f"
+                 },
+                 {name: "pivot", type: "vector3f"}
+@@ -1624,13 +1627,20 @@ function parseOldFile(fileObject){
+                     anim.hasOwnProperty("timeEnd")
+                 ) {
+                     // Create length property
++                    // TODO: is this correct?
++                    if (anim.timeStart > anim.timeEnd)
++                    {
++                        var timeStartTemp = anim.timeStart;
++                        anim.timeStart = anim.timeEnd;
++                        anim.timeEnd -= timeStartTemp;
++                    }
+                     anim.length = anim.timeEnd - anim.timeStart;
+                 }
+             });
+         }
+ 
+         // Debug
+-        console.log("resultMDXObject:", resultMDXObject);
++        //console.log("resultMDXObject:", resultMDXObject);
+     } catch (e) {
+         throw e;
+     }
+diff --git a/js/application/angular/services/map/skinLoader.js b/js/application/angular/services/map/skinLoader.js
+index 13a607d..779e755 100644
+--- a/js/application/angular/services/map/skinLoader.js
++++ b/js/application/angular/services/map/skinLoader.js
+@@ -1,5 +1,5 @@
+ import linedFileLoader from './../linedfileLoader.js';
+-import Expansion from '../../Expansion.js';
++import Expansion from '../../Expansion';
+ 
+ const skinDefinition = {
+     name: "header",
+@@ -268,7 +268,7 @@ export default function(filePath) {
+             }
+ 
+             // Debug
+-            console.log("SKIN resultSkinObject:", resultSkinObject);
++            //console.log("SKIN resultSkinObject:", resultSkinObject);
+ 
+             resultSkinObject.fileName = filePath;
+             return resultSkinObject;
+diff --git a/js/application/angular/wowRenderJs/geometry/adtGeomCache.js b/js/application/angular/wowRenderJs/geometry/adtGeomCache.js
+index 40dfe4c..451565d 100644
+--- a/js/application/angular/wowRenderJs/geometry/adtGeomCache.js
++++ b/js/application/angular/wowRenderJs/geometry/adtGeomCache.js
+@@ -5,6 +5,10 @@ function parseAlphaTextures(adtObj, wdtObj){
+     var megaTexture = [];
+     var xStride = 64*4; // (width of alphaTex) * (max number of textures per chunk)
+     //megaTexture[xStride*256*64-1] = 0;
++    // Debug
++    //if (adtObj.filename.includes("28_28")) {
++    //  console.log("adtObj: ", adtObj);
++    //}
+ 
+     for (var i = 0; i < adtObj.mcnkObjs.length; i++) {
+         var mcnkObj = adtObj.mcnkObjs[i];
+@@ -304,6 +308,10 @@ class AdtGeomCache {
+             adtGeomObj.assign(adtFile);
+             adtGeomObj.createTriangleStrip();
+             adtGeomObj.createVBO();
++            // Debug
++            //if (adtGeomObj.adtFile.filename.includes("28_28")) {
++            //  console.log("adtGeomObj: ", adtGeomObj);
++            //}
+             adtGeomObj.loadTextures();
+ 
+             return adtGeomObj;
+diff --git a/js/application/angular/wowRenderJs/geometry/skinGeomCache.js b/js/application/angular/wowRenderJs/geometry/skinGeomCache.js
+index 6cef66a..9dae255 100644
+--- a/js/application/angular/wowRenderJs/geometry/skinGeomCache.js
++++ b/js/application/angular/wowRenderJs/geometry/skinGeomCache.js
+@@ -1,6 +1,6 @@
+ import cacheTemplate from './../cache.js';
+ import skinLoader from './../../services/map/skinLoader.js'
+-import Expansion from '../../Expansion.js';
++import Expansion from '../../Expansion';
+ 
+ class SkinGeom {
+     constructor(sceneApi) {
+diff --git a/js/application/angular/wowRenderJs/manager/animationManager.js b/js/application/angular/wowRenderJs/manager/animationManager.js
+index 72910ea..50034ae 100644
+--- a/js/application/angular/wowRenderJs/manager/animationManager.js
++++ b/js/application/angular/wowRenderJs/manager/animationManager.js
+@@ -1,5 +1,5 @@
+ import {vec4, mat4, vec3, quat} from 'gl-matrix';
+-import Expansion from '../../Expansion.js';
++import Expansion from '../../Expansion';
+ 
+ export default class AnimationManager {
+ 
+@@ -220,8 +220,21 @@ export default class AnimationManager {
+             blendAnimationIndex = this.nextSubAnimationIndex
+         }
+ 
++        //var cycleAnims = true;
++        var cycleAnims = false;
++
+         if (this.currentAnimationTime >= currentAnimationRecord.length) {
+-            if (this.nextSubAnimationIndex > -1) {
++            if (cycleAnims) {
++              // RANDOM
++              //this.currentAnimationIndex = Math.floor(Math.random() * m2File.animations.length);
++              //this.currentAnimationTime = 0;
++              // CYCLE
++              this.currentAnimationIndex = (this.currentAnimationIndex + 1) % m2File.animations.length;
++              this.currentAnimationTime = 0;
++              //console.log("this.currentAnimationTime: ", this.currentAnimationTime);
++              console.log(`New animation ID: ${this.currentAnimationIndex} / ${m2File.animations.length - 1}`);
++            }
++            else if (this.nextSubAnimationIndex > -1) {
+                 this.currentAnimationIndex = this.nextSubAnimationIndex;
+                 this.currentAnimationTime = this.nextSubAnimationTime;
+ 
+@@ -234,7 +247,6 @@ export default class AnimationManager {
+             }
+         }
+ 
+-
+         /* Update animated values */
+ 
+         this.calcAnimMatrixes(textAnimMatrices, this.currentAnimationIndex, this.currentAnimationTime);
+@@ -297,9 +309,8 @@ export default class AnimationManager {
+         this.blendMatrixArray = blendMatrixArray;
+     }
+ 
+-
+     /* Interpolate functions */
+-    interpolateValues (currentTime, interpolType, time1, time2, value1, value2, valueType){
++    interpolateValues(currentTime, interpolType, time1, time2, value1, value2, valueType){
+         //Support and use only linear interpolation for now
+         if (interpolType == 0) {
+             return value1;
+@@ -390,9 +401,12 @@ export default class AnimationManager {
+           // Test (will show up as non-animated)
+           //return undefined;
+ 
+-          // Test another animation
+-          //animation = 4;
+-          //this.currentAnimationIndex = 4;
++          // TODO: fix
++          // Problem: for example druidbear in tbc starts with animationIndex 2 even if setting 0 via SetAnimationId...
++          // In js i don't need AnimationLookup for non-wotlk so it doesn't affect it... Should try to figure out SetAnimationId...
++          // Only first animation works currently...
++          //animation = 0;
++          //this.currentAnimationIndex = 0;
+ 
+           const currentAnimationRecord = this.m2File.animations[this.currentAnimationIndex];
+           //console.log("m2file:", this.m2File);
+@@ -417,6 +431,13 @@ export default class AnimationManager {
+         var globalSequence = animationBlock.global_sequence;
+         var interpolType = animationBlock.interpolation_type;
+ 
++        if (animation < 0
++            || animation >= animationBlock.timestampsPerAnimation.length
++            || animation >= animationBlock.valuesPerAnimation.length)
++        {
++            return null;
++        }
++
+         var times = animationBlock.timestampsPerAnimation[animation];
+         var values =  animationBlock.valuesPerAnimation[animation];
+ 
+@@ -460,6 +481,12 @@ export default class AnimationManager {
+ 
+                 for (var i = 0; i < times_len; i++) {
+                     if (times[i] > animTime) {
++
++                        if (i - 1 < 0)
++                        {
++                            return null;
++                        }
++
+                         var value1 = values[i - 1];
+                         var value2 = values[i];
+ 
+@@ -536,7 +563,7 @@ export default class AnimationManager {
+             if (quaternionResult1) {
+               var orientMatrix = mat4.create();
+ 
+-              mat4.fromQuat(orientMatrix, quaternionResult1 );
++              mat4.fromQuat(orientMatrix, quaternionResult1);
+               mat4.multiply(tranformMat, tranformMat, orientMatrix);
+             }
+             this.isAnimated = true;
+diff --git a/js/application/angular/wowRenderJs/manager/instanceManager.js b/js/application/angular/wowRenderJs/manager/instanceManager.js
+index 101a692..b298cac 100644
+--- a/js/application/angular/wowRenderJs/manager/instanceManager.js
++++ b/js/application/angular/wowRenderJs/manager/instanceManager.js
+@@ -91,4 +91,4 @@ export default class InstanceManager {
+ 
+         lastDrawn.drawInstancedTransparentMeshes(this.lastUpdatedNumber, this.placementVBO);
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/js/application/angular/wowRenderJs/objects/M2Object.js b/js/application/angular/wowRenderJs/objects/M2Object.js
+index 60a5c81..3c1a2a2 100644
+--- a/js/application/angular/wowRenderJs/objects/M2Object.js
++++ b/js/application/angular/wowRenderJs/objects/M2Object.js
+@@ -3,7 +3,7 @@ import AnimationManager from './../manager/animationManager.js'
+ import mathHelper from './../math/mathHelper.js';
+ import QuickSort from './../math/quickSort';
+ import {vec4, mat4, vec3, quat} from 'gl-matrix';
+-import Expansion from '../../Expansion.js';
++import Expansion from '../../Expansion';
+ 
+ const pixelShaderTable = {
+     "Combiners_Opaque" : 0,
+diff --git a/js/application/angular/wowRenderJs/objects/wmoObject.js b/js/application/angular/wowRenderJs/objects/wmoObject.js
+index eb82a8d..f8d7837 100644
+--- a/js/application/angular/wowRenderJs/objects/wmoObject.js
++++ b/js/application/angular/wowRenderJs/objects/wmoObject.js
+@@ -466,6 +466,8 @@ class WmoObject {
+             if (!this.wmoGroupArray[i] || !this.wmoGroupArray[i].wmoGroupFile) continue;
+             if (!this.drawGroup[i] && this.drawGroup[i]!==undefined) continue;
+ 
++            // TOOD: this should be accessed from wmoGroupArray?
++            // We never get here so doesn't really matter atm...
+             var bb1 = this.volumeWorldGroupBorders[i][0],
+             bb2 = this.volumeWorldGroupBorders[i][1];
+ 
+diff --git a/js/application/angular/wowRenderJs/objects/worldObjects/worldUnit.js b/js/application/angular/wowRenderJs/objects/worldObjects/worldUnit.js
+index d84ed1b..8e1b395 100644
+--- a/js/application/angular/wowRenderJs/objects/worldObjects/worldUnit.js
++++ b/js/application/angular/wowRenderJs/objects/worldObjects/worldUnit.js
+@@ -3,7 +3,7 @@ import TextureCompositionManager from './../../manager/textureCompositionManager
+ import WowTextureRegions from './../../math/wowTextureRegions.js';
+ import CharacterComponents from '../../algorithms/characterComponents'
+ import {vec4, mat4, vec3, quat} from 'gl-matrix';
+-import Expansion from '../../../Expansion.js';
++import Expansion from '../../../Expansion';
+ 
+ const fHairGeoset = [1, 3, 2, 16, 17];
+ 
+diff --git a/js/application/angular/wowRenderJs/scene.js b/js/application/angular/wowRenderJs/scene.js
+index 394297c..a298301 100644
+--- a/js/application/angular/wowRenderJs/scene.js
++++ b/js/application/angular/wowRenderJs/scene.js
+@@ -46,7 +46,7 @@ import itemDisplayInfoDBC           from './../services/dbc/itemDisplayInfoDBC.j
+ import itemDBC                      from './../services/dbc/itemDBC.js'
+ import mapDBC                       from './../services/dbc/mapDBC.js'
+ 
+-import Expansion from '../Expansion.js';
++import Expansion from '../Expansion';
+ 
+ function getShaderSourceById(id) {
+   const el = document.getElementById(id);
+@@ -1327,6 +1327,9 @@ class Scene {
+         var adt_x = Math.floor((32 - (this.mainCamera[1] / 533.33333)));
+         var adt_y = Math.floor((32 - (this.mainCamera[0] / 533.33333)));
+ 
++        //console.log("adt_x: ", adt_x);
++        //console.log("adt_y: ", adt_y);
++
+         //TODO: HACK!!
+         for (var x = adt_x-1; x <= adt_x+1; x++) {
+             for (var y = adt_y-1; y <= adt_y+1; y++) {
+@@ -1499,6 +1502,20 @@ class Scene {
+         if (!this.currentWdt) return;
+         if (this.currentWdt.isWMOMap) return;
+ 
++        // Debug
++        //for (let testY in this.currentWdt.tileTable) {
++        //    // Check that the row exists and is not null
++        //    let row = this.currentWdt.tileTable[testY];
++        //    if (!row) continue;
++        //
++        //    for (let testX in row) {
++        //        let value = row[x];
++        //        if (value !== 0 && value != null) {
++        //            console.log(`Value at [${testY}][${testX}] = ${value}`);
++        //        }
++        //    }
++        //}
++
+         if (this.currentWdt.tileTable[y][x]) {
+             var adtFileName = "world/maps/"+this.currentMapName+"/"+this.currentMapName+"_"+x+"_"+y+".adt";
+             this.graphManager.addADTObject(x, y, adtFileName);
+diff --git a/package-lock.json b/package-lock.json
+index 1316a2f..8faec0d 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -13,6 +13,8 @@
+         "gl-matrix": "^3.4.3"
+       },
+       "devDependencies": {
++        "ts-loader": "^9.5.2",
++        "typescript": "^5.8.2",
+         "webpack": "^5.98.0",
+         "webpack-cli": "^6.0.1",
+         "webpack-dev-server": "^5.2.0"
+@@ -643,6 +645,21 @@
+         "ansi-html": "bin/ansi-html"
+       }
+     },
++    "node_modules/ansi-styles": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz",
++      "integrity": "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==",
++      "dev": true,
++      "dependencies": {
++        "color-convert": "^2.0.1"
++      },
++      "engines": {
++        "node": ">=8"
++      },
++      "funding": {
++        "url": "https://github.com/chalk/ansi-styles?sponsor=1"
++      }
++    },
+     "node_modules/anymatch": {
+       "version": "3.1.3",
+       "resolved": "https://registry.npmjs.org/anymatch/-/anymatch-3.1.3.tgz",
+@@ -851,6 +868,34 @@
+         }
+       ]
+     },
++    "node_modules/chalk": {
++      "version": "4.1.2",
++      "resolved": "https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz",
++      "integrity": "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==",
++      "dev": true,
++      "dependencies": {
++        "ansi-styles": "^4.1.0",
++        "supports-color": "^7.1.0"
++      },
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/chalk/chalk?sponsor=1"
++      }
++    },
++    "node_modules/chalk/node_modules/supports-color": {
++      "version": "7.2.0",
++      "resolved": "https://registry.npmjs.org/supports-color/-/supports-color-7.2.0.tgz",
++      "integrity": "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==",
++      "dev": true,
++      "dependencies": {
++        "has-flag": "^4.0.0"
++      },
++      "engines": {
++        "node": ">=8"
++      }
++    },
+     "node_modules/chokidar": {
+       "version": "3.6.0",
+       "resolved": "https://registry.npmjs.org/chokidar/-/chokidar-3.6.0.tgz",
+@@ -898,6 +943,24 @@
+         "node": ">=6"
+       }
+     },
++    "node_modules/color-convert": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz",
++      "integrity": "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==",
++      "dev": true,
++      "dependencies": {
++        "color-name": "~1.1.4"
++      },
++      "engines": {
++        "node": ">=7.0.0"
++      }
++    },
++    "node_modules/color-name": {
++      "version": "1.1.4",
++      "resolved": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz",
++      "integrity": "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==",
++      "dev": true
++    },
+     "node_modules/colorette": {
+       "version": "2.0.20",
+       "resolved": "https://registry.npmjs.org/colorette/-/colorette-2.0.20.tgz",
+@@ -2606,6 +2669,18 @@
+         "node": ">=10"
+       }
+     },
++    "node_modules/semver": {
++      "version": "7.7.1",
++      "resolved": "https://registry.npmjs.org/semver/-/semver-7.7.1.tgz",
++      "integrity": "sha512-hlq8tAfn0m/61p4BVRcPzIGr6LKiMwo4VM6dGi6pt4qcRkmNzTcWq6eCEjEh+qXjkMDvPlOFFSGwQjoEa6gyMA==",
++      "dev": true,
++      "bin": {
++        "semver": "bin/semver.js"
++      },
++      "engines": {
++        "node": ">=10"
++      }
++    },
+     "node_modules/send": {
+       "version": "0.19.0",
+       "resolved": "https://registry.npmjs.org/send/-/send-0.19.0.tgz",
+@@ -3189,6 +3264,35 @@
+         "tslib": "2"
+       }
+     },
++    "node_modules/ts-loader": {
++      "version": "9.5.2",
++      "resolved": "https://registry.npmjs.org/ts-loader/-/ts-loader-9.5.2.tgz",
++      "integrity": "sha512-Qo4piXvOTWcMGIgRiuFa6nHNm+54HbYaZCKqc9eeZCLRy3XqafQgwX2F7mofrbJG3g7EEb+lkiR+z2Lic2s3Zw==",
++      "dev": true,
++      "dependencies": {
++        "chalk": "^4.1.0",
++        "enhanced-resolve": "^5.0.0",
++        "micromatch": "^4.0.0",
++        "semver": "^7.3.4",
++        "source-map": "^0.7.4"
++      },
++      "engines": {
++        "node": ">=12.0.0"
++      },
++      "peerDependencies": {
++        "typescript": "*",
++        "webpack": "^5.0.0"
++      }
++    },
++    "node_modules/ts-loader/node_modules/source-map": {
++      "version": "0.7.4",
++      "resolved": "https://registry.npmjs.org/source-map/-/source-map-0.7.4.tgz",
++      "integrity": "sha512-l3BikUxvPOcn5E74dZiq5BGsTb5yEwhaTSzccU6t4sDOH8NWJCstKO5QT2CvtFoK6F0saL7p9xHAqHOlCPJygA==",
++      "dev": true,
++      "engines": {
++        "node": ">= 8"
++      }
++    },
+     "node_modules/tslib": {
+       "version": "2.8.1",
+       "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
+@@ -3208,6 +3312,19 @@
+         "node": ">= 0.6"
+       }
+     },
++    "node_modules/typescript": {
++      "version": "5.8.2",
++      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.8.2.tgz",
++      "integrity": "sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ==",
++      "dev": true,
++      "bin": {
++        "tsc": "bin/tsc",
++        "tsserver": "bin/tsserver"
++      },
++      "engines": {
++        "node": ">=14.17"
++      }
++    },
+     "node_modules/undici-types": {
+       "version": "6.20.0",
+       "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-6.20.0.tgz",
+diff --git a/package.json b/package.json
+index bfc0644..46df974 100644
+--- a/package.json
++++ b/package.json
+@@ -13,6 +13,8 @@
+   "author": "",
+   "license": "ISC",
+   "devDependencies": {
++    "ts-loader": "^9.5.2",
++    "typescript": "^5.8.2",
+     "webpack": "^5.98.0",
+     "webpack-cli": "^6.0.1",
+     "webpack-dev-server": "^5.2.0"
+diff --git a/tsconfig.json b/tsconfig.json
+new file mode 100644
+index 0000000..41cc3a3
+--- /dev/null
++++ b/tsconfig.json
+@@ -0,0 +1,13 @@
++{
++  "compilerOptions": {
++    "target": "es5",                
++    "module": "esnext",             
++    "strict": true,                 
++    "sourceMap": true,              
++    "moduleResolution": "node",     
++    "esModuleInterop": true,        
++    "skipLibCheck": true,
++    "allowJs": true
++  },
++  "include": ["js/**/*"] 
++}
+diff --git a/webpack.config.js b/webpack.config.js
+index 345100a..7a75a76 100644
+--- a/webpack.config.js
++++ b/webpack.config.js
+@@ -8,7 +8,8 @@ module.exports = {
+     mode: 'development',
+     devtool: 'source-map',
+     context: __dirname,
+-    entry: "./js/application/angular/app_wowjs.js", // Simplified entry point
++    //entry: "./js/application/angular/app_wowjs.js", // Simplified entry point
++    entry: "./js/application/angular/app_wow.ts", // Simplified entry point
+ 
+     output: {
+         path: path.resolve(__dirname, 'build'),
+@@ -17,7 +18,7 @@ module.exports = {
+     },
+ 
+     resolve: {
+-        extensions: ['.js', '.jsx', '.glsl'],
++        extensions: ['.js', '.jsx', '.glsl', '.ts', '.tsx'],
+         modules: [
+             path.resolve('./js/application/angular'),
+             path.resolve('./glsl/'),
+@@ -47,6 +48,11 @@ module.exports = {
+                 test: /\.css$/,
+                 use: [ 'style-loader', 'css-loader' ]
+             },
++            {
++              test: /\.ts$/,
++              use: 'ts-loader',
++              exclude: /node_modules/
++            }
+         ],
+     },
+ 
