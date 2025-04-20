@@ -466,6 +466,8 @@ class WmoObject {
             if (!this.wmoGroupArray[i] || !this.wmoGroupArray[i].wmoGroupFile) continue;
             if (!this.drawGroup[i] && this.drawGroup[i]!==undefined) continue;
 
+            // TOOD: this should be accessed from wmoGroupArray?
+            // We never get here so doesn't really matter atm...
             var bb1 = this.volumeWorldGroupBorders[i][0],
             bb2 = this.volumeWorldGroupBorders[i][1];
 

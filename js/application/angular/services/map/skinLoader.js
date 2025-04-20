@@ -1,5 +1,5 @@
 import linedFileLoader from './../linedfileLoader.js';
-import Expansion from '../../Expansion.js';
+import Expansion from '../../Expansion';
 
 const skinDefinition = {
     name: "header",
@@ -268,7 +268,7 @@ export default function(filePath) {
             }
 
             // Debug
-            console.log("SKIN resultSkinObject:", resultSkinObject);
+            //console.log("SKIN resultSkinObject:", resultSkinObject);
 
             resultSkinObject.fileName = filePath;
             return resultSkinObject;

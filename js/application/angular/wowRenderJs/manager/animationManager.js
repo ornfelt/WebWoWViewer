@@ -1,5 +1,5 @@
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
-import Expansion from '../../Expansion.js';
+import Expansion from '../../Expansion';
 
 export default class AnimationManager {
 
@@ -220,8 +220,21 @@ export default class AnimationManager {
             blendAnimationIndex = this.nextSubAnimationIndex
         }
 
+        //var cycleAnims = true;
+        var cycleAnims = false;
+
         if (this.currentAnimationTime >= currentAnimationRecord.length) {
-            if (this.nextSubAnimationIndex > -1) {
+            if (cycleAnims) {
+              // RANDOM
+              //this.currentAnimationIndex = Math.floor(Math.random() * m2File.animations.length);
+              //this.currentAnimationTime = 0;
+              // CYCLE
+              this.currentAnimationIndex = (this.currentAnimationIndex + 1) % m2File.animations.length;
+              this.currentAnimationTime = 0;
+              //console.log("this.currentAnimationTime: ", this.currentAnimationTime);
+              console.log(`New animation ID: ${this.currentAnimationIndex} / ${m2File.animations.length - 1}`);
+            }
+            else if (this.nextSubAnimationIndex > -1) {
                 this.currentAnimationIndex = this.nextSubAnimationIndex;
                 this.currentAnimationTime = this.nextSubAnimationTime;
 
@@ -233,7 +246,6 @@ export default class AnimationManager {
                 this.currentAnimationTime = this.currentAnimationTime % currentAnimationRecord.length;
             }
         }
-
 
         /* Update animated values */
 
@@ -297,9 +309,8 @@ export default class AnimationManager {
         this.blendMatrixArray = blendMatrixArray;
     }
 
-
     /* Interpolate functions */
-    interpolateValues (currentTime, interpolType, time1, time2, value1, value2, valueType){
+    interpolateValues(currentTime, interpolType, time1, time2, value1, value2, valueType){
         //Support and use only linear interpolation for now
         if (interpolType == 0) {
             return value1;
@@ -390,9 +401,12 @@ export default class AnimationManager {
           // Test (will show up as non-animated)
           //return undefined;
 
-          // Test another animation
-          //animation = 4;
-          //this.currentAnimationIndex = 4;
+          // TODO: fix
+          // Problem: for example druidbear in tbc starts with animationIndex 2 even if setting 0 via SetAnimationId...
+          // In js i don't need AnimationLookup for non-wotlk so it doesn't affect it... Should try to figure out SetAnimationId...
+          // Only first animation works currently...
+          //animation = 0;
+          //this.currentAnimationIndex = 0;
 
           const currentAnimationRecord = this.m2File.animations[this.currentAnimationIndex];
           //console.log("m2file:", this.m2File);
@@ -416,6 +430,13 @@ export default class AnimationManager {
 
         var globalSequence = animationBlock.global_sequence;
         var interpolType = animationBlock.interpolation_type;
+
+        if (animation < 0
+            || animation >= animationBlock.timestampsPerAnimation.length
+            || animation >= animationBlock.valuesPerAnimation.length)
+        {
+            return null;
+        }
 
         var times = animationBlock.timestampsPerAnimation[animation];
         var values =  animationBlock.valuesPerAnimation[animation];
@@ -460,6 +481,12 @@ export default class AnimationManager {
 
                 for (var i = 0; i < times_len; i++) {
                     if (times[i] > animTime) {
+
+                        if (i - 1 < 0)
+                        {
+                            return null;
+                        }
+
                         var value1 = values[i - 1];
                         var value2 = values[i];
 
@@ -536,7 +563,7 @@ export default class AnimationManager {
             if (quaternionResult1) {
               var orientMatrix = mat4.create();
 
-              mat4.fromQuat(orientMatrix, quaternionResult1 );
+              mat4.fromQuat(orientMatrix, quaternionResult1);
               mat4.multiply(tranformMat, tranformMat, orientMatrix);
             }
             this.isAnimated = true;

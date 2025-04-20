@@ -3,7 +3,7 @@ import TextureCompositionManager from './../../manager/textureCompositionManager
 import WowTextureRegions from './../../math/wowTextureRegions.js';
 import CharacterComponents from '../../algorithms/characterComponents'
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
-import Expansion from '../../../Expansion.js';
+import Expansion from '../../../Expansion';
 
 const fHairGeoset = [1, 3, 2, 16, 17];
 

@@ -366,11 +366,22 @@ export async function initViewer(containerEl) {
     //    name: 'Caverns of Time',
     //    source: 'http',
     //    sceneType: 'map',
-    //    mapId: 0,
+    //    mapId: 1,
     //    mapName: 'Kalimdor',
     //    x: -8181.35,
     //    y: -4596.92,
     //    z: -125.34
+    //}
+
+    //const mapParams = {
+    //    name: 'Orgrimmar',
+    //    source: 'http',
+    //    sceneType: 'map',
+    //    mapId: 1,
+    //    mapName: 'Kalimdor',
+    //    x: 1096.1,
+    //    y: -4549.0,
+    //    z: 135.0
     //}
 
     //const mapParams = {
@@ -522,6 +533,7 @@ export async function initViewer(containerEl) {
           [-1600, 5100, 30],
           [-1650, 5150, 35]
         ];
+
         newWorldUnit.setMovingData(1000, 8000, 0, vectorArray); // curr_time, total_time, movementflag
 
         // Position and rotation

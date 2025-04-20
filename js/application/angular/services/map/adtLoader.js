@@ -306,6 +306,7 @@ export default function(filename) {
       .then((chunkedFile) => {
         /* First chunk in file has to be MVER */
         const adtObj = {};
+        adtObj.filename = filename;
         chunkedFile.setSectionReaders(defaultAdtLoader);
         chunkedFile.processFile(adtObj);
         addTextureNames(adtObj);

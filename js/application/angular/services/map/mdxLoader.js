@@ -1,5 +1,6 @@
 import linedFileLoader from './../linedfileLoader.js';
 
+// WOTLK
 const mdx_ver264 = {
     name : "header",
     type : "layout",
@@ -725,6 +726,7 @@ const mdx_ver274 = {
     ]
 };
 
+// TBC
 const mdx_ver262 = {
     name : "header",
     type : "layout",
@@ -881,7 +883,7 @@ const mdx_ver262 = {
                 {name: "timeStart",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
                 {name: "timeEnd",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
                 {name: "moving_speed",          type: "float32"}, // This is the speed the character moves with in this animation.
-                {name: "loopType",                 type: "uint32"},  // See below.
+                //{name: "loopType",                 type: "uint32"},  // See below.
                 {name: "flags",                 type: "uint32"},  // See below.
                 {name: "probability",           type: "int16"},   // This is used to determine how often the animation is played. For all animations of the same type, this adds up to 0x7FFF (32767).
                 {name: "_padding",              type: "uint16"},
@@ -979,18 +981,18 @@ const mdx_ver262 = {
                 {name: "unk2", type: "uint16"},
                 {
                     name: "translation",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "vector3f"
                 },
                 {
                     name: "rotation",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "int16Array",
                     len: 4
                 },
                 {
                     name: "scale",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "vector3f"
                 },
                 {name: "pivot", type: "vector3f"}
@@ -1144,6 +1146,7 @@ const mdx_ver262 = {
     ]
 };
 
+// Classic
 const mdx_ver256 = {
     name : "header",
     type : "layout",
@@ -1301,7 +1304,7 @@ const mdx_ver256 = {
                 {name: "timeStart",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
                 {name: "timeEnd",                type: "uint32"},  // The length (timestamps) of the animation. I believe this actually the length of the animation in milliseconds.
                 {name: "moving_speed",          type: "float32"}, // This is the speed the character moves with in this animation.
-                //{name: "loopType",                 type: "uint32"},  // See below.
+                {name: "loopType",                 type: "uint32"},  // See below.
                 {name: "flags",                 type: "uint32"},  // See below.
                 {name: "minimum_repetitions",   type: "uint32"},  // May both be 0 to not repeat. Client will pick a random number of repetitions within bounds if given.
                 {name: "maximum_repetitions",   type: "uint32"},
@@ -1395,19 +1398,19 @@ const mdx_ver256 = {
                 {name: "submesh_id", type: "uint16"},
                 {
                     name: "translation",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "vector3f"
                 },
                 {
                     name: "rotation",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     //valType: "int16Array",
                     //len: 4
                     valType: "vector4f"
                 },
                 {
                     name: "scale",
-                    type: "ablock_tbc",
+                    type: "ablock_tbc2",
                     valType: "vector3f"
                 },
                 {name: "pivot", type: "vector3f"}
@@ -1624,13 +1627,20 @@ function parseOldFile(fileObject){
                     anim.hasOwnProperty("timeEnd")
                 ) {
                     // Create length property
+                    // TODO: is this correct?
+                    if (anim.timeStart > anim.timeEnd)
+                    {
+                        var timeStartTemp = anim.timeStart;
+                        anim.timeStart = anim.timeEnd;
+                        anim.timeEnd -= timeStartTemp;
+                    }
                     anim.length = anim.timeEnd - anim.timeStart;
                 }
             });
         }
 
         // Debug
-        console.log("resultMDXObject:", resultMDXObject);
+        //console.log("resultMDXObject:", resultMDXObject);
     } catch (e) {
         throw e;
     }

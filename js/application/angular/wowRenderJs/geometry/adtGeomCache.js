@@ -5,6 +5,10 @@ function parseAlphaTextures(adtObj, wdtObj){
     var megaTexture = [];
     var xStride = 64*4; // (width of alphaTex) * (max number of textures per chunk)
     //megaTexture[xStride*256*64-1] = 0;
+    // Debug
+    //if (adtObj.filename.includes("28_28")) {
+    //  console.log("adtObj: ", adtObj);
+    //}
 
     for (var i = 0; i < adtObj.mcnkObjs.length; i++) {
         var mcnkObj = adtObj.mcnkObjs[i];
@@ -304,6 +308,10 @@ class AdtGeomCache {
             adtGeomObj.assign(adtFile);
             adtGeomObj.createTriangleStrip();
             adtGeomObj.createVBO();
+            // Debug
+            //if (adtGeomObj.adtFile.filename.includes("28_28")) {
+            //  console.log("adtGeomObj: ", adtGeomObj);
+            //}
             adtGeomObj.loadTextures();
 
             return adtGeomObj;

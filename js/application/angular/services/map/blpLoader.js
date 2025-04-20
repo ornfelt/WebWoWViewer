@@ -25,10 +25,12 @@ export default function (filePath) {
             var offset = {offs: 0};
             var fileIdent = fileObject.readNZTString(offset, 4);
             //var fileVersion  = fileObject.readInt32(offset); //is this really version?
-
+            
             /* Check the ident */
             if (fileIdent != "BLP2") {
-                var errorMessage = "Unknown BLP file ident = " + fileIdent + ", filepath = ", filePath;
+                console.log("fileIdent: ", fileIdent);
+                //var errorMessage = "Unknown BLP file ident = " + fileIdent + ", filepath = ", filePath;
+                var errorMessage = "Unknown BLP file ident = " + fileIdent;
                 //$log.error(errorMessage);
                 console.error(errorMessage);
                 throw errorMessage;

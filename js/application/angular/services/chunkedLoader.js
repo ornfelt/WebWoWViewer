@@ -39,6 +39,7 @@ export default function (filePath, arrayBuffer) {
                                 subchunkHandler(resultObj, subChunk, this);
                             } else {
                                 //$log.info("Unknown SubChunk. Ident = " + subChunk.chunkIdent+", file = "+fullPath);
+                                //console.log("Unknown SubChunk. Ident = " + subChunk.chunkIdent);
                             }
 
                             subChunk = this.loadChunkAtOffset(subChunk.nextChunkOffset);
@@ -46,6 +47,7 @@ export default function (filePath, arrayBuffer) {
                     }
                 } else {
                     //$log.info("Unknown Chunk. Ident = " + chunk.chunkIdent+", file = "+fullPath);
+                    //console.log("Unknown SubChunk. Ident = " + subChunk.chunkIdent);
                 }
             },
             processFile: function(resultObj){
