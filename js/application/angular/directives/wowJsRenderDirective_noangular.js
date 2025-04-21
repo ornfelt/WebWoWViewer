@@ -166,6 +166,7 @@ export async function initViewer(containerEl) {
 
         <label><input type="checkbox" id="chkDrawAdt"> Draw ADT</label><br/>
         <label><input type="checkbox" id="chkDrawM2"> Draw M2</label><br/>
+        <label><input type="checkbox" id="chkDrawWMO"> Draw WMO</label><br/>
         <label><input type="checkbox" id="chkDrawPortals"> Draw Portals</label><br/>
         <label><input type="checkbox" id="chkDrawM2BB"> Draw M2 BB</label><br/>
         <label><input type="checkbox" id="chkDrawWmoBB"> Draw WMO BB</label><br/>
@@ -191,6 +192,7 @@ export async function initViewer(containerEl) {
 
   const chkDrawAdt          = containerEl.querySelector('#chkDrawAdt');
   const chkDrawM2           = containerEl.querySelector('#chkDrawM2');
+  const chkDrawWMO           = containerEl.querySelector('#chkDrawWMO');
   const chkDrawPortals      = containerEl.querySelector('#chkDrawPortals');
   const chkDrawM2BB         = containerEl.querySelector('#chkDrawM2BB');
   const chkDrawWmoBB        = containerEl.querySelector('#chkDrawWmoBB');
@@ -373,16 +375,16 @@ export async function initViewer(containerEl) {
     //    z: -125.34
     //}
 
-    //const mapParams = {
-    //    name: 'Orgrimmar',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    mapId: 1,
-    //    mapName: 'Kalimdor',
-    //    x: 1096.1,
-    //    y: -4549.0,
-    //    z: 135.0
-    //}
+    const mapParams = {
+        name: 'Orgrimmar',
+        source: 'http',
+        sceneType: 'map',
+        mapId: 1,
+        mapName: 'Kalimdor',
+        x: 1096.1,
+        y: -4549.0,
+        z: 135.0
+    }
 
     //const mapParams = {
     //    name: 'Darkshire blacksmith',
@@ -413,12 +415,12 @@ export async function initViewer(containerEl) {
     //    //cameraIndex: 0
     //}
 
-    const mapParams = {
-        name: 'ragnaros',
-        source: 'http',
-        sceneType: 'm2',
-        modelName: 'creature\\ragnaros\\ragnaros.m2',
-    }
+    //const mapParams = {
+    //    name: 'ragnaros',
+    //    source: 'http',
+    //    sceneType: 'm2',
+    //    modelName: 'creature\\ragnaros\\ragnaros.m2',
+    //}
 
     //const mapParams = {
     //    name: 'drake',
@@ -580,6 +582,7 @@ export async function initViewer(containerEl) {
   // Initialize config + checkbox states
   chkDrawAdt.checked          = config.getRenderAdt();
   chkDrawM2.checked           = config.getRenderM2();
+  chkDrawWMO.checked           = config.getRenderWMO();
   chkDrawPortals.checked      = config.getRenderPortals();
   chkDrawM2BB.checked         = config.getDrawM2BB();
   chkDrawWmoBB.checked        = config.getDrawWmoBB();
@@ -596,6 +599,7 @@ export async function initViewer(containerEl) {
   // Link checkboxes => config
   chkDrawAdt.addEventListener('change', () => { config.setRenderAdt(chkDrawAdt.checked); });
   chkDrawM2.addEventListener('change', () => { config.setRenderM2(chkDrawM2.checked); });
+  chkDrawWMO.addEventListener('change', () => { config.setRenderWMO(chkDrawWMO.checked); });
   chkDrawPortals.addEventListener('change', () => { config.setRenderPortals(chkDrawPortals.checked); });
   chkDrawM2BB.addEventListener('change', () => { config.setDrawM2BB(chkDrawM2BB.checked); });
   chkDrawWmoBB.addEventListener('change', () => { config.setDrawWmoBB(chkDrawWmoBB.checked); });

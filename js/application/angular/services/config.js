@@ -7,6 +7,7 @@ var archiveFile = null;
 
 var renderAdt = true;
 var renderMd2 = true;
+var renderWmo = true;
 var renderBSP = false;
 var renderPortals = false;
 var usePortalCulling = true;
@@ -74,6 +75,12 @@ export default {
     },
     setRenderAdt : function (value) {
         renderAdt = value;
+    },
+    getRenderWMO : function () {
+        return renderWmo;
+    },
+    setRenderWMO : function (value) {
+        renderWmo = value;
     },
     getRenderBSP : function () {
         return renderBSP;

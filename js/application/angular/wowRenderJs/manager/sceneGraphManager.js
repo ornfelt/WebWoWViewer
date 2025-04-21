@@ -399,16 +399,17 @@ class GraphManager {
         }
 
         //2. Draw WMO
-        this.sceneApi.shaders.activateWMOShader();
-        for (var i = 0; i < this.wmoRenderedThisFrame.length; i++) {
-            if (config.getUsePortalCulling()) {
-                this.wmoRenderedThisFrame[i].drawPortalBased(false)
-            } else {
-                this.wmoRenderedThisFrame[i].draw();
-            }
+        if (config.getRenderWMO()) {
+          this.sceneApi.shaders.activateWMOShader();
+          for (var i = 0; i < this.wmoRenderedThisFrame.length; i++) {
+              if (config.getUsePortalCulling()) {
+                  this.wmoRenderedThisFrame[i].drawPortalBased(false)
+              } else {
+                  this.wmoRenderedThisFrame[i].draw();
+              }
+          }
+          this.sceneApi.shaders.deactivateWMOShader();
         }
-        this.sceneApi.shaders.deactivateWMOShader();
-
 
         //3. Draw background WDL
 
