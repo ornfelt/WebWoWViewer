@@ -455,41 +455,53 @@ class WmoObject {
             }
         }
     }
-    drawBB () {
-        var gl = this.sceneApi.getGlContext();
-        var uniforms = this.sceneApi.shaders.getShaderUniforms();
-        var mat4_ident = mat4.create();
-        mat4.identity(mat4_ident);
-        gl.uniformMatrix4fv(uniforms.uPlacementMat, false, new Float32Array(mat4_ident));
 
-        for (var i = 0; i < this.wmoGroupArray.length; i++) {
-            if (!this.wmoGroupArray[i] || !this.wmoGroupArray[i].wmoGroupFile) continue;
-            if (!this.drawGroup[i] && this.drawGroup[i]!==undefined) continue;
+    drawBB() {
+        const gl       = this.sceneApi.getGlContext();
+        const uniforms = this.sceneApi.shaders.getShaderUniforms();
 
-            // TOOD: this should be accessed from wmoGroupArray?
-            // We never get here so doesn't really matter atm...
-            var bb1 = this.volumeWorldGroupBorders[i][0],
-            bb2 = this.volumeWorldGroupBorders[i][1];
+        /* 1) identity placement matrix */
+        const mat4_ident = mat4.create();          // mat4.create() already returns I₄
+        gl.uniformMatrix4fv(uniforms.uPlacementMat, false, mat4_ident);
 
-            var center = [
-                (bb1[0] + bb2[0])/2,
-                (bb1[1] + bb2[1])/2,
-                (bb1[2] + bb2[2])/2
+        /* 2) iterate over WMO groups */
+        for (let i = 0; i < this.wmoGroupArray.length; ++i) {
+            const group = this.wmoGroupArray[i];
+            if (!group)
+                continue;
+
+            /* C# test:  i < drawGroup.Count && drawGroup[i] == 0 */
+            if (i < this.drawGroup.length && !this.drawGroup[i])
+                continue;
+
+            /* -- the two corners of the AABB ------------------------------------------------ */
+            // C# uses group.volumeWorldGroupBorder[0 / 1]
+            const bbMin = group.volumeWorldGroupBorder[0];   // [x, y, z]
+            const bbMax = group.volumeWorldGroupBorder[1];
+
+            /* centre and half‑extent (scale) */
+            const center = [
+                (bbMin[0] + bbMax[0]) * 0.5,
+                (bbMin[1] + bbMax[1]) * 0.5,
+                (bbMin[2] + bbMax[2]) * 0.5
             ];
 
-            var scale = [
-                bb2[0] - center[0],
-                bb2[1] - center[1],
-                bb2[2] - center[2]
+            const scale = [
+                (bbMax[0] - bbMin[0]) * 0.5,
+                (bbMax[1] - bbMin[1]) * 0.5,
+                (bbMax[2] - bbMin[2]) * 0.5
             ];
 
-            gl.uniform3fv(uniforms.uBBScale, new Float32Array(scale));
-            gl.uniform3fv(uniforms.uBBCenter, new Float32Array(center));
-            gl.uniform3fv(uniforms.uColor, new Float32Array([0.058, 0.058, 0.819607843])); //blue
+            /* 3) upload uniforms */
+            gl.uniform3fv(uniforms.uBBScale,   scale);
+            gl.uniform3fv(uniforms.uBBCenter,  center);
+            gl.uniform3fv(uniforms.uColor,     [0.058, 0.058, 0.819607843]); // blue
 
+            /* 4) draw the 12 BB edges (48 indices, 16‑bit) */
             gl.drawElements(gl.LINES, 48, gl.UNSIGNED_SHORT, 0);
         }
     }
+
     drawPortals () {
         if (!this.wmoObj) return;
         if (this.wmoObj.nPortals == 0) return;
