@@ -1,6 +1,15 @@
 import { initViewer } from './directives/wowJsRenderDirective_noangular';
 import Expansion from './Expansion';
 
+// Example usage:
+// npm run start
+// npm run server
+// or:
+// npm run build
+// or:
+// npm run build:prod
+// Note: Also start wow mpq file server...
+
 // Extend the Window interface to include the custom property.
 declare global {
   interface Window {

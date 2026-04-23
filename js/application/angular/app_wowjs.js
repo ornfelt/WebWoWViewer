@@ -292,6 +292,15 @@
 import { initViewer } from './directives/wowJsRenderDirective_noangular.js';
 import Expansion from './Expansion.js';
 
+// Example usage:
+// npm run start
+// npm run server
+// or:
+// npm run build
+// or:
+// npm run build:prod
+// Note: Also start wow mpq file server...
+
 window.selectedExpansion = Expansion.WOTLK; // default
 let expansionLoaded = false;
 
