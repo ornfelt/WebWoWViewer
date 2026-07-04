@@ -1,0 +1,46 @@
+// Mock packet: the "SkeletonNaked" creature model (display 26563) wielding
+// Thunderfury (item 19019 -> item display 30606, the blue Ashbringer 2H sword
+// model). No mount (mount is optional; simply omit UNIT_FIELD_MOUNTDISPLAYID).
+//
+// obj_type 3 = a plain WorldUnit (no character skin/appearance compositing), so
+// the skeleton renders as-is with just the weapon attached to its main hand.
+// Weapons are driven by UNIT_VIRTUAL_ITEM_SLOT_DISPLAY (the item *display* id) +
+// UNIT_VIRTUAL_ITEM_INFO (class / subclass / inventoryType / sheath).
+[
+  {
+    "opcode": "SMSG_COMPRESSED_UPDATE_OBJECT",
+    "payload": {
+      "updates": [
+        {
+          "updateType": "UPDATE_TYPE_CREATE_SELF",
+          "objectGuid": 17786964,
+          "obj_type": 3,
+          "movementflag": 0,
+          "timestamp": 0,
+          "x": 0, "y": 0, "z": 0, "f": 0.0,
+          "speedWalk": 2.5,
+          "speedRun": 7.0,
+          "speedRunBack": 4.5,
+          "speedSwim": 4.7222223,
+          "speedSwimBack": 2.5,
+          "speedFly": 7.0,
+          "speedFlyBack": 4.5,
+          "speedTurnRate": 3.1415927,
+          "updateFields": {
+            "OBJECT_FIELD_SCALE_X": 1.0,
+            "UNIT_FIELD_DISPLAYID": 26563,
+            "UNIT_FIELD_NATIVEDISPLAYID": 26563,
+            "UNIT_FIELD_BYTES_0": [1, 1, 1, 1],
+            "UNIT_VIRTUAL_ITEM_SLOT_DISPLAY": [
+              { "index": 0, "value": 30606 }
+            ],
+            "UNIT_VIRTUAL_ITEM_INFO": [
+              { "index": 0, "value": [2, 7, 255, 1] },
+              { "index": 1, "value": [17, 1, 0, 0] }
+            ]
+          }
+        }
+      ]
+    }
+  }
+]
