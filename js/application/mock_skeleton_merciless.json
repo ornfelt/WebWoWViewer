@@ -1,8 +1,7 @@
 // Mock packet: the "SkeletonNaked" creature model (display 26563) wielding
-// Thunderfury (item 19019 -> item display 30606, the blue Ashbringer 2H sword
-// model). No mount (mount is optional; simply omit UNIT_FIELD_MOUNTDISPLAYID).
+// No mount (mount is optional; simply omit UNIT_FIELD_MOUNTDISPLAYID).
 // see displayid here:
-// https://www.wowhead.com/wotlk/item=19019/thunderfury-blessed-blade-of-the-windseeker
+// https://www.wowhead.com/tbc/item=32055/merciless-gladiators-war-staff
 // add this after UNIT_FIELD_NATIVEDISPLAYID to add mount:
 // "UNIT_FIELD_MOUNTDISPLAYID": 24101,
 //
@@ -36,7 +35,7 @@
             "UNIT_FIELD_NATIVEDISPLAYID": 26563,
             "UNIT_FIELD_BYTES_0": [1, 1, 1, 1],
             "UNIT_VIRTUAL_ITEM_SLOT_DISPLAY": [
-              { "index": 0, "value": 30606 }
+              { "index": 0, "value": 41557 }
             ],
             "UNIT_VIRTUAL_ITEM_INFO": [
               { "index": 0, "value": [2, 7, 255, 1] },

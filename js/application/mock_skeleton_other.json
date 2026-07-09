@@ -2,6 +2,8 @@
 // Item                       Item entry   Display id (use this)
 // Ivory Idol / other staff   32374        45161
 // No mount (mount is optional; simply omit UNIT_FIELD_MOUNTDISPLAYID).
+// add this after UNIT_FIELD_NATIVEDISPLAYID to add mount:
+// "UNIT_FIELD_MOUNTDISPLAYID": 24101,
 //
 // obj_type 3 = a plain WorldUnit (no character skin/appearance compositing), so
 // the skeleton renders as-is with just the weapon attached to its main hand.

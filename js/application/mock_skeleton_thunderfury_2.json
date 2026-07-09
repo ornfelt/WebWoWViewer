@@ -1,6 +1,8 @@
 // Mock packet: the "SkeletonNaked" creature model (display 26563) wielding
 // Thunderfury (item 19019 -> item display 30606, the blue Ashbringer 2H sword
 // model). No mount (mount is optional; simply omit UNIT_FIELD_MOUNTDISPLAYID).
+// add this after UNIT_FIELD_NATIVEDISPLAYID to add mount:
+// "UNIT_FIELD_MOUNTDISPLAYID": 24101,
 //
 // obj_type 3 = a plain WorldUnit (no character skin/appearance compositing), so
 // the skeleton renders as-is with just the weapon attached to its main hand.
