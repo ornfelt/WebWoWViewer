@@ -1,7 +1,9 @@
 // Mock packet: the "SkeletonNaked" creature model (display 26563) wielding
-// Item                       Item entry   Display id (use this)
-// (S4 staff)                 35065        46606
 // No mount (mount is optional; simply omit UNIT_FIELD_MOUNTDISPLAYID).
+// see displayid here:
+// https://www.wowhead.com/wotlk/item=17182/sulfuras-hand-of-ragnaros
+// add this after UNIT_FIELD_NATIVEDISPLAYID to add mount:
+// "UNIT_FIELD_MOUNTDISPLAYID": 24101,
 //
 // obj_type 3 = a plain WorldUnit (no character skin/appearance compositing), so
 // the skeleton renders as-is with just the weapon attached to its main hand.
@@ -33,7 +35,7 @@
             "UNIT_FIELD_NATIVEDISPLAYID": 26563,
             "UNIT_FIELD_BYTES_0": [1, 1, 1, 1],
             "UNIT_VIRTUAL_ITEM_SLOT_DISPLAY": [
-              { "index": 0, "value": 47743 }
+              { "index": 0, "value": 29698 }
             ],
             "UNIT_VIRTUAL_ITEM_INFO": [
               { "index": 0, "value": [2, 7, 255, 1] },
