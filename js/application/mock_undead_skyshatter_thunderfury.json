@@ -1,0 +1,55 @@
+// Mock packet: an undead male warrior wearing the Shaman T6 "Skyshatter Regalia"
+// and wielding two Thunderfury, matching the default player in wow_client_new
+// (client/wow.c: PLAYER_MODEL_UNDEAD_MALE + g_skyshatter_regalia + g_twin_thunderfury).
+//
+// https://www.wowhead.com/tbc/item-set=684/skyshatter-regalia
+// https://www.wowhead.com/tbc/item=19019/thunderfury-blessed-blade-of-the-windseeker
+//
+// PLAYER_VISIBLE_ITEM_<n>_0 holds the item ENTRY of equipment slot n-1:
+//   1 head, 3 shoulders, 5 chest, 7 legs, 8 feet, 10 hands, 16 main hand, 17 off hand
+// UNIT_FIELD_BYTES_0 = [race, class, gender, power type]: 5 undead, 1 warrior, 0 male.
+// PLAYER_BYTES / PLAYER_BYTES_2 are left at 0 like wow_client_new's default player.
+//
+// wow_client_new's default also rides the Onyx Netherwing Drake; to add it, put
+// "UNIT_FIELD_MOUNTDISPLAYID": 21520, after UNIT_FIELD_NATIVEDISPLAYID.
+[
+  {
+    "opcode": "SMSG_COMPRESSED_UPDATE_OBJECT",
+    "payload": {
+      "updates": [
+        {
+          "updateType": "UPDATE_TYPE_CREATE_SELF",
+          "objectGuid": 17786964,
+          "obj_type": 4,
+          "movementflag": 0,
+          "timestamp": 0,
+          "x": 0, "y": 0, "z": 0, "f": 0.0,
+          "speedWalk": 2.5,
+          "speedRun": 7.0,
+          "speedRunBack": 4.5,
+          "speedSwim": 4.7222223,
+          "speedSwimBack": 2.5,
+          "speedFly": 7.0,
+          "speedFlyBack": 4.5,
+          "speedTurnRate": 3.1415927,
+          "updateFields": {
+            "OBJECT_FIELD_SCALE_X": 1.0,
+            "UNIT_FIELD_DISPLAYID": 57,
+            "UNIT_FIELD_NATIVEDISPLAYID": 57,
+            "UNIT_FIELD_BYTES_0": [5, 1, 0, 1],
+            "PLAYER_BYTES": [0, 0, 0, 0],
+            "PLAYER_BYTES_2": [0, 0, 0, 0],
+            "PLAYER_VISIBLE_ITEM_1_0": [{ "index": 0, "value": 31014 }],
+            "PLAYER_VISIBLE_ITEM_3_0": [{ "index": 0, "value": 31023 }],
+            "PLAYER_VISIBLE_ITEM_5_0": [{ "index": 0, "value": 31017 }],
+            "PLAYER_VISIBLE_ITEM_7_0": [{ "index": 0, "value": 31020 }],
+            "PLAYER_VISIBLE_ITEM_8_0": [{ "index": 0, "value": 34566 }],
+            "PLAYER_VISIBLE_ITEM_10_0": [{ "index": 0, "value": 31008 }],
+            "PLAYER_VISIBLE_ITEM_16_0": [{ "index": 0, "value": 19019 }],
+            "PLAYER_VISIBLE_ITEM_17_0": [{ "index": 0, "value": 19019 }]
+          }
+        }
+      ]
+    }
+  }
+]
