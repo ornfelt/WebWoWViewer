@@ -301,10 +301,17 @@ class Liquid {
         // water and ocean are transparent, magma and slime opaque (the type is known once the textures are)
         this.transparent = (this.type != 0);
 
+        // The M2 and WMO materials drawn before leave face culling, blending and depth writes as their last
+        // mesh needed them, so set all three: both faces (the terrain liquid triangles are clockwise seen
+        // from above, back faces under culling), blending only for the transparent water
+        gl.disable(gl.CULL_FACE);
         if (this.transparent) {
             gl.enable(gl.BLEND);
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
             gl.depthMask(false);
+        } else {
+            gl.disable(gl.BLEND);
+            gl.depthMask(true);
         }
 
         var shader = sceneApi.shaders.getLiquidShader();
