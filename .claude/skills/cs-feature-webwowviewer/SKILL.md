@@ -284,8 +284,6 @@ fix with a follow-up commit on that branch (never amend); then run the check aga
 
 Known differences that exist independently of this skill (do not "fix" them without asking):
 
-- `directives/wowJsRenderDirective_noangular` - the default start location (`Orgrimmar` on
-  `new-clean`, `AV` / `PVPZone01` on `new-clean-ts`), since commit `bf1bdc9` on `new-clean`.
 - `JS-ONLY` files: `directives/fileDownload.js`, `directives/wowJsRenderDirective.js` (old
   AngularJS directives) and `js/lib/webgl-debug.js` - JavaScript only, unused by the bundle.
 - `TYPE-ONLY` files: `wowRenderJs/sceneApi.ts` - types only, no `.js` needed (`.d.ts` files such
