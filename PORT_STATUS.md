@@ -92,7 +92,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 51 | `wowRenderJs/manager/animationManager.ts` `getTimedValue` | `var maxTime = times[times_len-1]` overwrites the parameter (and the global sequence length) | the `animTime > last key && animTime <= maxTime` branch never runs, so past the last key the track holds the last value instead of the first |
 | 52 | `wowRenderJs/manager/animationManager.ts` `calcBones` / `calcChildBones` | `calcBones` passes 5 arguments to the 8-parameter `calcChildBones`, which passes 8 to the 5-parameter `calcBoneMatrix` | the camera position lands in `blendAnimationIndex` and is forwarded into `calcBoneMatrix`'s `cameraPosInLocal` - works by accident |
 | 53 | `wowRenderJs/manager/animationManager.ts` `calcSubMeshColors` | the blend branch evaluates the alpha track with `time` / `animationRecord` / `animationIndex` instead of the blend animation's | alpha is not blended between animations; unreachable today (sub-animation picking is disabled by `if (false)` in `update()`) |
-| 54 | `wowRenderJs/manager/animationManager.ts` `calcLights` | indexes (`[0]`) and scales the `getTimedValue` results without checking them | a light whose track has no keys for the current animation (`null` / `undefined`) throws a TypeError |
 | 56 | `wowRenderJs/objects/M2Object.ts` `load` | the `!m2Geom` branch calls `$log.log(... + modelName)` - neither is declared | ReferenceError; unreachable (`skinGeom.fixData(m2Geom.m2File)` above already throws for a missing `m2Geom`, inside the same `try`) |
 | 57 | `wowRenderJs/objects/M2Object.ts` `getShaderNames` | the retry calls the three-parameter `getTabledShaderNames` with four arguments | `0x11` becomes `tex_unit_number2` and `textureUnitNum` is dropped; harmless - the `return 0` paths do not depend on that argument, so the retry always returns 0 again |
 | 58 | `wowRenderJs/objects/M2Object.ts` `getShaderNames` | cases 1-3 of the `0x8000` branch store the `Combiners_*` name in `vertexShader` and `Diffuse_T1_Env` in `pixelShader` - probably swapped | `pixelShaderTable["Diffuse_T1_Env"]` is undefined, so those batches draw with pixel shader 0 (Combiners_Opaque) |
@@ -191,8 +190,8 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   `type` (`as Vector3f` / `as Vector4f` / `as number[]` / `as number`). `!` on `probability`, `timeStart` / `timeEnd`
   (optional in `M2Animation`), `nAnimationLookup` / `animationLookup` / `keyBoneLookup` (bugs 28-29),
   `subAnimRecord!` (a `var` assigned in a branch), `value1!` / `value2!` (convert returns `undefined` only for an
-  unknown type), `interpolateValues(...)!` in `calcSubMeshColors` (interpolation type 1 always returns), and the
-  `getTimedValue` results in `calcLights` (bug 54); `unk_ambient` is declared `vec4 | number | null | undefined` and
+  unknown type), and `interpolateValues(...)!` in `calcSubMeshColors` (interpolation type 1 always returns);
+  `unk_ambient` is declared `vec4 | number | null | undefined` and
   stored `as number | undefined`. `calcChildBones` is typed as it is really called (`blendAnimationIndex: ReadonlyVec4`,
   the last three optional `unknown`), with `@ts-expect-error` on the 8-argument `calcBoneMatrix` call (bug 52).
   `isAnimated`, `leftHandClosed`, `rightHandClosed`, `nextSubAnimationActive` are `| undefined` - not set by the

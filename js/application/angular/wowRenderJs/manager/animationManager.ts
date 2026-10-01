@@ -1043,44 +1043,43 @@ export default class AnimationManager {
         for (var i = 0; i < lightRecords.length; i++) {
             var lightRecord = lightRecords[i];
 
-            // JS-BUG: indexes and scales the results without checking them - a light track without keys for this animation (null / undefined) throws a TypeError
             var ambient_color = this.getTimedValue(
                 0,
                 animationTime,
                 animationRecord.length,
                 animationIndex,
-                lightRecord.ambient_color);
+                lightRecord.ambient_color) || vec4.fromValues(0, 0, 0, 0);
 
-            var ambient_intensity = this.getTimedValue(
+            var ambient_intensity = (this.getTimedValue(
                 4,
                 animationTime,
                 animationRecord.length,
                 animationIndex,
-                lightRecord.ambient_intensity)![0];
+                lightRecord.ambient_intensity) || [0])[0];
             var diffuse_color = this.getTimedValue(
                 0,
                 animationTime,
                 animationRecord.length,
                 animationIndex,
-                lightRecord.diffuse_color);
-            var diffuse_intensity = this.getTimedValue(
+                lightRecord.diffuse_color) || vec4.fromValues(0, 0, 0, 0);
+            var diffuse_intensity = (this.getTimedValue(
                 4,
                 animationTime,
                 animationRecord.length,
                 animationIndex,
-                lightRecord.diffuse_intensity)![0];
-            var attenuation_start = this.getTimedValue(
+                lightRecord.diffuse_intensity) || [0])[0];
+            var attenuation_start = (this.getTimedValue(
                 4,
                 animationTime,
                 animationRecord.length,
                 animationIndex,
-                lightRecord.attenuation_start)![0];
-            var attenuation_end = this.getTimedValue(
+                lightRecord.attenuation_start) || [0])[0];
+            var attenuation_end = (this.getTimedValue(
                 4,
                 animationTime,
                 animationRecord.length,
                 animationIndex,
-                lightRecord.attenuation_end)![0];
+                lightRecord.attenuation_end) || [0])[0];
 
             var unk_ambient: vec4 | number | null | undefined = this.getTimedValue(
                 4,
@@ -1088,8 +1087,8 @@ export default class AnimationManager {
                 animationRecord.length,
                 animationIndex,
                 lightRecord.unknown);
-            if (unk_ambient !== undefined) {
-                unk_ambient = unk_ambient![0];
+            if (unk_ambient) {
+                unk_ambient = unk_ambient[0];
             }
 
             var boneMat = bonesMatrices[lightRecord.bone];
@@ -1098,14 +1097,14 @@ export default class AnimationManager {
             var position = vec4.fromValues(pos_vec.x, pos_vec.y, pos_vec.z, 1.0);
             vec4.transformMat4(position, position, boneMat);
 
-            lights[i].ambient_color = ambient_color!;
+            lights[i].ambient_color = ambient_color;
             lights[i].ambient_intensity = ambient_intensity;
             lights[i].ambient_color[0] *= ambient_intensity;
             lights[i].ambient_color[1] *= ambient_intensity;
             lights[i].ambient_color[2] *= ambient_intensity;
             lights[i].ambient_color[3] *= ambient_intensity;
 
-            lights[i].diffuse_color = diffuse_color!;
+            lights[i].diffuse_color = diffuse_color;
             lights[i].diffuse_intensity = diffuse_intensity;
             lights[i].attenuation_start = attenuation_start;
             lights[i].attenuation_end = attenuation_end;
