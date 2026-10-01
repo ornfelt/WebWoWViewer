@@ -1,22 +1,64 @@
 
-import adtObjectFactory from './../objects/adtObject.js';
-import adtM2ObjectFactory from './../objects/adtM2Object.js';
-import wmoM2ObjectFactory from '../objects/wmoM2Object.js';
-import WorldMDXObject from '../objects/worldM2Object.js';
-import WmoObject from '../objects/wmoObject.js';
+import adtObjectFactory from './../objects/adtObject';
+import adtM2ObjectFactory from './../objects/adtM2Object';
+import wmoM2ObjectFactory from '../objects/wmoM2Object';
+import WorldMDXObject from '../objects/worldM2Object';
+import WmoObject from '../objects/wmoObject';
 
-import InstanceManager from './instanceManager.js';
+import InstanceManager from './instanceManager';
 
-import mathHelper from './../math/mathHelper.js';
-import PortalCullingAlgo from './../math/portalCullingAlgo.js';
+import mathHelper from './../math/mathHelper';
+import PortalCullingAlgo from './../math/portalCullingAlgo';
 
-import config from './../../services/config.js';
+import config from './../../services/config';
 
 import {mat4} from 'gl-matrix';
+import type {ReadonlyMat4, vec4} from 'gl-matrix';
+import type { AdtM2Placement } from '../../services/map/adtLoader';
+import type { WmoDoodad } from '../../services/map/wmoLoader';
+import type { M2Object } from '../objects/M2Object';
+import type { WmoPlacement } from '../objects/wmoObject';
+import type { SceneApi } from '../sceneApi';
 
 
 class GraphManager {
-    constructor(sceneApi) {
+    sceneApi: SceneApi;
+    m2Objects: (adtM2ObjectFactory | wmoM2ObjectFactory)[];
+    worldM2Objects: WorldMDXObject[];
+    instanceMap: { [fileIdent: string]: InstanceManager };
+    instanceList: InstanceManager[];
+    wmoObjects: WmoObject[];
+    wmoRenderedThisFrame: WmoObject[];
+    uniqueIdM2Map: { [uniqueId: number]: adtM2ObjectFactory };
+    uniqueIdWmoMap: { [uniqueId: number]: WmoObject };
+    adtObjects: adtObjectFactory[];
+    adtRenderedThisFrame: adtObjectFactory[];
+    m2RenderedThisFrame: M2Object[];
+    /* nothing assigns a sky dome; drawExterior() draws one only if it is set */
+    skyDom: { draw(): void } | null;
+    currentTime: number;
+    lastTimeSort: number;
+    lastTimeDistanceCalc: number;
+    lastInstanceCollect: number;
+    lastFogParamCheck: number;
+    globalM2Counter: number;
+    portalCullingAlgo: PortalCullingAlgo;
+    /* [x][y] of the 64x64 ADT grid */
+    adtObjectsMap: adtObjectFactory[][];
+    /* set by loadWmoMap() */
+    isWmoMap: boolean | undefined;
+    wmoMap!: WmoObject;
+    /* set by setCameraPos() / setLookAtMat() before update() */
+    position!: vec4;
+    lookAtMat!: mat4;
+    /* set by update() */
+    currentInteriorGroup!: number;
+    currentWMO!: WmoObject | null;
+    /* reset by draw() */
+    m2OpaqueRenderedThisFrame!: { [sceneNumber: number]: boolean };
+    m2TranspRenderedThisFrame!: { [sceneNumber: number]: boolean };
+
+    constructor(sceneApi: SceneApi) {
         this.sceneApi = sceneApi;
         this.m2Objects = [];
         this.worldM2Objects = [];
@@ -52,16 +94,18 @@ class GraphManager {
     /*
     * Function for adding a new geometry to scene
     * */
-    loadWmoMap(modf) {
+    loadWmoMap(modf: WmoPlacement) {
         this.isWmoMap = true;
         this.wmoMap = this.addWmoObject(modf);
     }
-    addAdtM2Object(doodad) {
+    addAdtM2Object(doodad: AdtM2Placement) {
         if (this.uniqueIdM2Map[doodad.uniqueId]) {
             return this.uniqueIdM2Map[doodad.uniqueId];
         }
 
         var adtM2 = new adtM2ObjectFactory(this.sceneApi);
+        // JS-BUG: AdtM2Object.load takes one argument; the second (false) is ignored - harmless
+        // @ts-expect-error load takes one argument; ported as-is
         adtM2.load(doodad, false);
         adtM2.sceneNumber = this.globalM2Counter++;
 
@@ -69,7 +113,7 @@ class GraphManager {
         this.uniqueIdM2Map[doodad.uniqueId] = adtM2;
         return adtM2;
     }
-    addWorldMDXObject(modelName, meshIds,replaceTextures) {
+    addWorldMDXObject(modelName: string, meshIds: number[] | null,replaceTextures: string[] | null) {
         var worldMdxObject = new WorldMDXObject(this.sceneApi);
         worldMdxObject.setLoadParams(modelName, 0, meshIds,replaceTextures);
         worldMdxObject.sceneNumber = this.globalM2Counter++;
@@ -79,7 +123,7 @@ class GraphManager {
         this.worldM2Objects.push(worldMdxObject);
         return worldMdxObject;
     }
-    addWmoM2Object(doodadDef, placementMatrix, useLocalLighting) {
+    addWmoM2Object(doodadDef: WmoDoodad, placementMatrix: mat4, useLocalLighting: boolean) {
         var wmoM2Object = new wmoM2ObjectFactory(this.sceneApi);
         wmoM2Object.load(doodadDef, placementMatrix, useLocalLighting);
 
@@ -88,7 +132,7 @@ class GraphManager {
 
         return wmoM2Object;
     }
-    addWmoObject(wmoDef) {
+    addWmoObject(wmoDef: WmoPlacement) {
         if (this.uniqueIdWmoMap[wmoDef.uniqueId]) {
             return this.uniqueIdWmoMap[wmoDef.uniqueId];
         }
@@ -102,7 +146,7 @@ class GraphManager {
         return wmoObject;
     }
 
-    addADTObject(x, y, fileName) {
+    addADTObject(x: number, y: number, fileName: string) {
         if (this.adtObjectsMap[x][y]) return;
 
         var adtObject = new adtObjectFactory(this.sceneApi);
@@ -112,7 +156,8 @@ class GraphManager {
 
         this.adtObjects.push(adtObject);
     }
-    addM2ObjectToInstanceManager(m2Object, newBucket) {
+    /* no caller passes newBucket */
+    addM2ObjectToInstanceManager(m2Object: M2Object, newBucket?: unknown) {
         var fileIdent = m2Object.getFileNameIdent();
         var instanceManager = this.instanceMap[fileIdent];
         //1. Create Instance manager for this type of file if it was not created yet
@@ -123,6 +168,8 @@ class GraphManager {
         }
 
         //2. Add object to instance
+        // JS-BUG: InstanceManager.addMDXObject takes one argument; newBucket (never passed anyway) is ignored - harmless
+        // @ts-expect-error addMDXObject takes one argument; ported as-is
         instanceManager.addMDXObject(m2Object, newBucket);
 
         //3. Assign instance to object
@@ -133,20 +180,20 @@ class GraphManager {
     * Local variables
     * */
 
-    setCameraPos(position) {
+    setCameraPos(position: vec4) {
         this.position = position;
     }
-    setLookAtMat(lookAtMat) {
+    setLookAtMat(lookAtMat: mat4) {
         this.lookAtMat = lookAtMat;
     }
 
     /*
     * Culling algorithms
     * */
-    checkCulling(frustumMat, lookAtMat4) {
-        var adtRenderedThisFrame = new Set();
-        var m2RenderedThisFrame = new Set();
-        var wmoRenderedThisFrame = new Set();
+    checkCulling(frustumMat: ReadonlyMat4, lookAtMat4: ReadonlyMat4) {
+        var adtRenderedThisFrame = new Set<adtObjectFactory>();
+        var m2RenderedThisFrame = new Set<M2Object>();
+        var wmoRenderedThisFrame = new Set<WmoObject>();
 
         if (this.currentInteriorGroup >= 0 && config.getUsePortalCulling()) {
             var combinedMat4 = mat4.create();
@@ -155,12 +202,12 @@ class GraphManager {
             mathHelper.fixNearPlane(frustumPlanes, this.position);
 
             //Travel through portals
-            if (this.portalCullingAlgo.startTraversingFromInteriorWMO(this.currentWMO, this.currentInteriorGroup, this.position,
+            if (this.portalCullingAlgo.startTraversingFromInteriorWMO(this.currentWMO!, this.currentInteriorGroup, this.position,
                 lookAtMat4, frustumPlanes, m2RenderedThisFrame)) {
 
-                wmoRenderedThisFrame.add(this.currentWMO);
+                wmoRenderedThisFrame.add(this.currentWMO!);
 
-                if (this.currentWMO.exteriorPortals.length > 0) {
+                if (this.currentWMO!.exteriorPortals.length > 0) {
                     this.checkExterior(frustumPlanes, lookAtMat4, 6,
                         m2RenderedThisFrame, wmoRenderedThisFrame, adtRenderedThisFrame);
                 }
@@ -172,6 +219,7 @@ class GraphManager {
             var frustumPlanes = mathHelper.getFrustumClipsFromMatrix(combinedMat4);
             mathHelper.fixNearPlane(frustumPlanes, this.position);
 
+            // JS-BUG: points is computed and never used - harmless
             var points = mathHelper.getFrustumPoints(frustumMat, lookAtMat4);
 
             //Plain check for exterior
@@ -182,6 +230,7 @@ class GraphManager {
         //Add WorldObjects
         for (var i = 0; i < this.worldM2Objects.length; i++) {
             var m2Object = this.worldM2Objects[i];
+            // JS-BUG: return, not continue - a missing entry would skip the rest of checkCulling (the rendered lists are not updated); unreachable, worldM2Objects has no holes
             if(!m2Object ) return;
 
             var frustumResult = true;
@@ -205,12 +254,12 @@ class GraphManager {
         }
     }
 
-    checkExterior(frustumPlanes, lookAtMat4, num_planes,
-                  m2RenderedThisFrame, wmoRenderedThisFrame, adtRenderedThisFrame) {
+    checkExterior(frustumPlanes: vec4[], lookAtMat4: ReadonlyMat4, num_planes: number,
+                  m2RenderedThisFrame: Set<M2Object>, wmoRenderedThisFrame: Set<WmoObject>, adtRenderedThisFrame: Set<adtObjectFactory>) {
         var self = this;
         /* 3. Check frustum for graphs */
-        var m2ObjectsCandidates = new Set();
-        var wmoCandidates = new Set();
+        var m2ObjectsCandidates = new Set<adtM2ObjectFactory>();
+        var wmoCandidates = new Set<WmoObject>();
 
         if (!this.isWmoMap) {
             //3.1 if this is not WMO map iterate over ADTs
@@ -219,6 +268,7 @@ class GraphManager {
 
             for (var i = adt_x-1; i <= adt_x+1; i++) {
                 for (var j = adt_y-1; j <= adt_y+1; j++) {
+                    // JS-BUG: `> 64` instead of `>= 64` (also for j) - at the map edge adtObjectsMap[64] is undefined and [j] throws a TypeError
                     if ((i < 0) || (i > 64)) continue;
                     if ((j < 0) || (j > 64)) continue;
                     var adtObject = this.adtObjectsMap[i][j];
@@ -269,7 +319,7 @@ class GraphManager {
 
     }
 
-    sortGeometry(frustumMat, lookAtMat4) {
+    sortGeometry(frustumMat: ReadonlyMat4, lookAtMat4: ReadonlyMat4) {
         for (var j = 0; j < this.m2RenderedThisFrame.length; j++) {
             this.m2RenderedThisFrame[j].sortMaterials(lookAtMat4);
         }
@@ -278,12 +328,12 @@ class GraphManager {
     /*
      * Update function
      * */
-    sortM2 (a, b) {
+    sortM2 (a: M2Object, b: M2Object) {
         return b.getCurrentDistance() - a.getCurrentDistance() > 0 ? 1 : -1;
     }
-    update(deltaTime) {
+    update(deltaTime: number) {
         //1. Update all wmo and m2 objects
-        var i;
+        var i: number;
 
         if (config.getRenderM2()) {
             for (i = 0; i < this.m2RenderedThisFrame.length; i++) {
@@ -292,6 +342,8 @@ class GraphManager {
         }
 
         for (i = 0; i < this.wmoRenderedThisFrame.length; i++) {
+            // JS-BUG: WmoObject.update takes no arguments; deltaTime is ignored - harmless
+            // @ts-expect-error update takes no arguments; ported as-is
             this.wmoRenderedThisFrame[i].update(deltaTime);
         }
 
@@ -317,7 +369,7 @@ class GraphManager {
 
 
 //        if (this.currentTime + deltaTime - this.lastInstanceCollect > 30) {
-            var map = {};
+            var map: { [fileIdent: string]: M2Object } = {};
             if (this.sceneApi.extensions.getInstancingExt()) {
                 for (var j = 0; j < this.m2RenderedThisFrame.length; j++) {
                     var m2Object = this.m2RenderedThisFrame[j];
@@ -356,11 +408,14 @@ class GraphManager {
         var interiorGroupNum = -1;
         for (var i = 0; i < this.wmoObjects.length; i++) {
             var result = this.wmoObjects[i].isInsideInterior(this.position);
+            // JS-BUG: isInsideInterior returns -1 (a number) when the camera is outside the WMO's box, so groupId is undefined - works because undefined >= 0 is false, but update() then returns interiorGroupNum undefined (the UI shows `|| 0`)
+            // @ts-expect-error isInsideInterior may return -1; ported as-is
             interiorGroupNum = result.groupId;
 
             if (interiorGroupNum >= 0) {
                 this.currentWMO = this.wmoObjects[i];
                 this.currentInteriorGroup = interiorGroupNum;
+                // @ts-expect-error isInsideInterior may return -1 (not here: groupId >= 0); ported as-is
                 bspNodeId = result.nodeId;
                 break;
             }
@@ -511,6 +566,8 @@ class GraphManager {
             for (var i = 0; i < this.m2RenderedThisFrame.length; i++) {
                 if (!this.m2RenderedThisFrame[i].getIsRendered()) continue;
 
+                // JS-BUG: WorldMDXObject does not override drawBB(color), so world M2s pass no color - probably a GL INVALID_VALUE from uniform3fv(uColor, empty array), the box keeps the previous color
+                // @ts-expect-error MDXObject.drawBB takes a color; WorldMDXObject does not override it; ported as-is
                 this.m2RenderedThisFrame[i].drawBB();
             }
         }

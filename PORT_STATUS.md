@@ -5,8 +5,8 @@ the tree is. Re-derive with:
 `find js/application/angular -name '*.js'` (unported) and
 `grep -rn 'TS-PORT' js/application/angular` (partially typed / parked).
 
-**Last run:** run 8 - group 7 (Scene objects)
-**Next:** group 8 - World objects (worldObject first)
+**Last run:** run 9 - group 8 (World objects) and sceneGraphManager (group 9)
+**Next:** group 9 - Scene (wowRenderJs/scene.js; check `SceneApi` against `initSceneApi()`)
 
 ## Porting order
 
@@ -17,8 +17,9 @@ the tree is. Re-derive with:
 - [x] 5. Caches - adt/skin/m2/wmo geometry caches, wmoMainCache, textureCache
 - [x] 6. Math, camera, managers - portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager
 - [x] 7. Scene objects - M2Object, adtM2Object, wmoM2Object, worldM2Object, adtObject, wmoObject
-- [ ] 8. World objects - worldObject, worldUnit, worldPlayer, worldGameObject, worldObjectManager
+- [x] 8. World objects - worldObject, worldUnit, worldPlayer, worldGameObject, worldObjectManager
 - [ ] 9. Scene - sceneGraphManager, scene
+  - sceneGraphManager done (run 9); scene.js not started
 - [ ] 10. Entry and UI - wowJsRenderDirective_noangular, app_wowjs -> app_wow; last sweep; switch-over
 
 ## Parked types
@@ -120,6 +121,23 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 75 | `wowRenderJs/objects/wmoObject.ts` `drawBspVerticles` | reads `wmoGroupFile`, `combinedVBO` and `mobrVBO` from the WmoGroupObject; they are members of its `wmoGeom` | TypeError whenever BSP rendering is on and the camera is inside an interior group (`currentGroupId >= 0`) |
 | 76 | `wowRenderJs/objects/wmoObject.ts` `WmoGroupObject.updateWorldGroupBBWithM2` | `mogp.flags` - the field is `Flags` | `dontUseLocalLighting` is always false; nothing calls this method today |
 | 77 | `wowRenderJs/objects/wmoObject.ts` `WmoGroupObject.checkIfInsideGroup` | the `candidateGroups.push` is inside the BSP descent loop (probably meant after it) | every inner node on the way down becomes a candidate with an intermediate `nodeId`; `isInsideInterior` can then pick a non-leaf node |
+| 78 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `getAnimationIdByMovementFlag` | debug override `animationId = 77` after the walk / run pick from `movementFlag` | every moving unit (and every mount, bug 79) plays animation 77 (fly fast) instead of walk / run |
+| 79 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `update` | `if (this.isMoving \|\| 1)` - always true | a mount never plays the stand animation; it always plays the movement animation (77) |
+| 80 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `update` | three `setAnimationId(id, false)` calls - `M2Object.setAnimationId` takes one argument | harmless, the `false` is ignored |
+| 81 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `update` | the interpolated position `result` starts as `pointsTotalPath[0]` (a path length) instead of a point (probably `pointsArray[0]`) | `setPosition(number)` if no path segment matches; unreachable in practice - the time check before it guarantees a match |
+| 82 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `update` | `this.objectModel.objectUpdate(...)` is not guarded like the calls around it | TypeError every frame for a unit whose model was never created (no display id in its packet); scene's `try` around `worldObjectManager.update` logs it and the objects after it in `objectMap` are not updated that frame |
+| 83 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `setDisplayId` | `this.modelChanged = value` - stores the display id, the sibling setters store `true` | harmless: any non-zero id is truthy, and `complete()` loads `nativeDisplayId` either way |
+| 84 | `wowRenderJs/objects/worldObjects/worldGameObject.ts` `update` | takes and forwards only `(deltaTime, cameraPos)`; `objectUpdate` needs `viewMat` | `M2Object.update` transforms the lights by `undefined` - TypeError for a game object model with lights (caught and logged like 82) |
+| 85 | `wowRenderJs/manager/worldObjectManager.ts` `processPacket` | the "Main hand" block reads `PLAYER_VISIBLE_ITEM_15_0`, the back slot again (probably `16_0`) | `mainHandItemId` gets the back item; nothing reads it today |
+| 86 | `wowRenderJs/manager/worldObjectManager.ts` `processPacket` | the "Off hand" block calls `setMainHandItem` (probably `setOffHandItem`, and slot `17_0`) | `offHandItemId` is never set; nothing reads it today |
+| 87 | `wowRenderJs/manager/sceneGraphManager.ts` `addAdtM2Object` | `adtM2.load(doodad, false)` - `AdtM2Object.load` takes one argument | harmless, the `false` is ignored |
+| 88 | `wowRenderJs/manager/sceneGraphManager.ts` `addM2ObjectToInstanceManager` | passes `newBucket` to the one-parameter `InstanceManager.addMDXObject`; no caller passes `newBucket` | harmless |
+| 89 | `wowRenderJs/manager/sceneGraphManager.ts` `checkCulling` | `points = mathHelper.getFrustumPoints(...)` is computed and never used | harmless, wasted work per frame |
+| 90 | `wowRenderJs/manager/sceneGraphManager.ts` `checkCulling` | `if (!m2Object) return;` in the world-M2 loop - `return`, not `continue` | would skip the rest of `checkCulling` and keep last frame's rendered lists; unreachable (`worldM2Objects` has no holes) |
+| 91 | `wowRenderJs/manager/sceneGraphManager.ts` `checkExterior` | ADT grid bounds test `i > 64` / `j > 64` instead of `>= 64` | at the east / south map edge `adtObjectsMap[64]` is undefined and `[j]` throws a TypeError |
+| 92 | `wowRenderJs/manager/sceneGraphManager.ts` `update` | `wmoObject.update(deltaTime)` - `WmoObject.update` takes no arguments | harmless, ignored |
+| 93 | `wowRenderJs/manager/sceneGraphManager.ts` `update` | reads `.groupId` / `.nodeId` from `isInsideInterior()`, which returns `-1` (a number) when the camera is outside the WMO's box | works by accident (`undefined >= 0` is false), but the returned `interiorGroupNum` is `undefined` rather than -1 when the last WMO's box does not contain the camera; the UI shows `\|\| 0` |
+| 94 | `wowRenderJs/manager/sceneGraphManager.ts` `drawM2s` | `drawBB()` without a color - `WorldMDXObject` does not override `MDXObject.drawBB(color)` like the ADT / WMO doodads do | world M2 boxes call `uniform3fv(uColor, new Float32Array(undefined))` - probably a GL INVALID_VALUE, the box keeps the previous color (debug drawing only) |
 
 ## Runtime notes
 
@@ -214,6 +232,23 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   vec4]`, `wmoDoodads[i]!` and `aabb!` (in `updateWorldGroupBBWithM2`). `@ts-expect-error` on bugs 70, 72, 73, 74, 75
   (three lines) and 76; `portalCullingAlgo.ts` now also needs it on both lines of bug 44.
 
+- `worldObject.ts`: `scale` is `number | undefined` (set only by `setScale()`); the `this.scale! > 0.0001` tests in
+  `worldUnit.ts` / `worldGameObject.ts` rely on `undefined > x` being false. `pos` / `f` are declared with `!`.
+- `worldUnit.ts`: `createMaterialFromOwnItem` has an overload signature `(replaceTextures?, meshIds?): boolean | void` above the
+  empty implementation (erased), so WorldPlayer's two-parameter override and the call in `createModelFromDisplayId` type-check.
+  `this.objectModel!` where the JS guards it through the `objectModelIsLoaded` `var` (TS does not narrow through it) and on
+  bug 82. `result: number | vec3` on both declarations and `setPosition(result as vec3)` (bug 81). `@ts-expect-error` on the
+  three calls of bug 80. Fields set after construction (movement, packet data) are declared with `!`.
+- `worldGameObject.ts`: `@ts-expect-error` on bug 84.
+- `worldObjectManager.ts`: `processPacket(packet: any)` - the mock packet JSON is walked field by field. Local `ItemToWear`
+  interface for the virtual item slots. `(newWorldUnit as WorldPlayer)` in the `obj_type == 4` block (TS does not narrow on
+  `obj_type`), `(this.objectMap[guid] as WorldUnit)` in `SMSG_MONSTER_MOVE` - the JS assumes the guid is a unit (a game object
+  would throw). `vectorArray: number[]` on all three declarations in `update()` (`new Array()` and a literal).
+- `sceneGraphManager.ts`: `@ts-expect-error` on bugs 87, 88, 92, 93 (both lines) and 94. `this.currentWMO!` in `checkCulling`
+  (set whenever `currentInteriorGroup >= 0`). `skyDom` is `{ draw(): void } | null` (nothing assigns it). `var i: number` for
+  the bare `var i;` in `update()`; `new Set<T>()` type arguments (erased). `m2Objects` is `(AdtM2Object | WmoM2Object)[]`,
+  `m2RenderedThisFrame` the `M2Object` union.
+
 ## Run log
 
 | Run | Files | ~Lines | tsc | build | emit check |
@@ -227,3 +262,4 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 | 6 | group 4: mdxLoader; group 5: adtGeomCache, skinGeomCache, m2GeomCache, wmoGeomCache, wmoMainCache, textureCache; parked loaders resolved in sceneApi.ts | 3,790 | clean | green | all SAME |
 | 7 | group 6: portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager; parked `lights` resolved in m2GeomCache.ts | 1,900 | clean | green | all SAME |
 | 8 | group 7: M2Object, adtM2Object, wmoM2Object, worldM2Object, adtObject, wmoObject; every parked type resolved (config, instanceManager, m2GeomCache, portalCullingAlgo, sceneApi) | 2,620 | clean | green | all SAME |
+| 9 | group 8: worldObject, worldUnit, worldPlayer, worldGameObject, worldObjectManager; group 9: sceneGraphManager | 2,270 | clean | green | all SAME |

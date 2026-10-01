@@ -1,6 +1,6 @@
-import WorldUnit from '../objects/worldObjects/worldUnit.js'
-import WorldPlayer from '../objects/worldObjects/worldPlayer.js'
-import WorldGameObject from '../objects/worldObjects/worldGameObject.js'
+import WorldUnit from '../objects/worldObjects/worldUnit'
+import WorldPlayer from '../objects/worldObjects/worldPlayer'
+import WorldGameObject from '../objects/worldObjects/worldGameObject'
 //import packetList from '../../../mountedNpc.json'
 //import packetList from '../../../47EC8D2E.json'
 //import packetList from '../../../npc_wood.json'
@@ -16,10 +16,31 @@ import packetList from '../../../rag_no_mount.json'
 //import packetList from '../../../attacketdMinion1.json'
 //let packetList = [];
 import {vec3} from 'gl-matrix'
+import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix'
+import type { SceneApi } from '../sceneApi';
+
+/* One UNIT_VIRTUAL_ITEM_SLOT_DISPLAY entry, completed from UNIT_VIRTUAL_ITEM_INFO when the packet has it */
+interface ItemToWear {
+    displayId: number;
+    itemClass?: number;
+    itemSubClass?: number;
+    itemMaterial?: number;
+    itemInventoryType?: number;
+    itemSheath?: number;
+}
 
 
 class WorldObjectManager {
-    constructor(sceneApi){
+    /* keyed by object GUID */
+    objectMap: { [guid: string]: WorldUnit | WorldGameObject };
+    sceneApi: SceneApi;
+    lastPacketIndex: number;
+    playPackets: boolean;
+    /* set by startPlayingPackets() */
+    serverTime!: number;
+    clientTime!: number;
+
+    constructor(sceneApi: SceneApi){
         this.objectMap = {};
         this.sceneApi = sceneApi;
         this.lastPacketIndex = 0;
@@ -27,7 +48,7 @@ class WorldObjectManager {
         this.playPackets = false;
     }
 
-    update(deltaTime, cameraPos, viewMat) {
+    update(deltaTime: number, cameraPos: ReadonlyVec4, viewMat: ReadonlyMat4) {
         /* 1. Load the next portion of packets */
         if (this.playPackets) {
             this.serverTime += deltaTime;
@@ -58,7 +79,7 @@ class WorldObjectManager {
         //console.log("cameraPos: " + cameraPos[0]);
         //console.log("type: " + typeof(cameraPos));
         if (this.objectMap[17786964]) {
-            var vectorArray = new Array();
+            var vectorArray: number[] = new Array();
             //vectorArray[0] = cameraPos[0]+10;
             //vectorArray[1] = cameraPos[1]-10;
 
@@ -70,7 +91,7 @@ class WorldObjectManager {
         }
 
         if (this.objectMap[17786930]) {
-            var vectorArray = new Array();
+            var vectorArray: number[] = new Array();
             vectorArray[0] = cameraPos[0]-15;
             vectorArray[1] = cameraPos[1]+15;
             vectorArray[2] = cameraPos[2]-8;
@@ -82,14 +103,14 @@ class WorldObjectManager {
             //vectorArray[0] = cameraPos[0]-15;
             //vectorArray[1] = cameraPos[1]+15;
             //vectorArray[2] = cameraPos[2]-8;
-            var vectorArray = [0+30, 0+30, 0];
+            var vectorArray: number[] = [0+30, 0+30, 0];
             this.objectMap[333].setPosition(vectorArray);
         }
         // Debug
         //console.log("this.objectMap:", this.objectMap);
     }
 
-    processPacket(packet) {
+    processPacket(packet: any) { // a mock packet from the JSON capture, walked field by field
         if (packet.opcode == 'SMSG_COMPRESSED_UPDATE_OBJECT') {
             var updates = packet.payload.updates;
             for (var j = 0; j < updates.length; j++) {
@@ -108,7 +129,7 @@ class WorldObjectManager {
 
                     if (update.obj_type == 3 || update.obj_type == 4) {
                         //Player + unit;
-                        var newWorldUnit
+                        var newWorldUnit: WorldUnit
                         if (update.obj_type == 4) {
                             newWorldUnit = new WorldPlayer(this.sceneApi);
                         } else {
@@ -152,7 +173,7 @@ class WorldObjectManager {
                         }
 
                         //Items to wear
-                        var itemsToWear = [];
+                        var itemsToWear: ItemToWear[] = [];
                         if (updateFields['UNIT_VIRTUAL_ITEM_SLOT_DISPLAY']) {
                             for (var k = 0; k < updateFields['UNIT_VIRTUAL_ITEM_SLOT_DISPLAY'].length; k++) {
                                 var item_index = updateFields['UNIT_VIRTUAL_ITEM_SLOT_DISPLAY'][k].index;
@@ -210,16 +231,16 @@ class WorldObjectManager {
                                 var hair = updateFields['PLAYER_BYTES'][2];
                                 var hairColor = updateFields['PLAYER_BYTES'][3];
 
-                                newWorldUnit.setPlayerSkin(skin);
-                                newWorldUnit.setPlayerFace(face);
-                                newWorldUnit.setPlayerHair(hair);
-                                newWorldUnit.setPlayerHairColor(hairColor);
+                                (newWorldUnit as WorldPlayer).setPlayerSkin(skin);
+                                (newWorldUnit as WorldPlayer).setPlayerFace(face);
+                                (newWorldUnit as WorldPlayer).setPlayerHair(hair);
+                                (newWorldUnit as WorldPlayer).setPlayerHairColor(hairColor);
                             }
 
                             if (updateFields.hasOwnProperty("PLAYER_BYTES_2")) {
                                 // facehair
                                 var faceFeatures = updateFields['PLAYER_BYTES_2'][0];
-                                newWorldUnit.setPlayerFaceFeatures(faceFeatures);
+                                (newWorldUnit as WorldPlayer).setPlayerFaceFeatures(faceFeatures);
                             }
 
                             //Head
@@ -227,7 +248,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_1_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setHeadItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setHeadItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -236,7 +257,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_2_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setNeckItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setNeckItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -245,7 +266,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_3_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setShouldersItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setShouldersItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -255,7 +276,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_4_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setBodyItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setBodyItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -265,7 +286,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_5_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setChestItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setChestItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -275,7 +296,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_6_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setWaistItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setWaistItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -285,7 +306,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_7_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setLegsItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setLegsItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -294,7 +315,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_8_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setFeetItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setFeetItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -303,7 +324,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_9_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setWristItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setWristItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -312,7 +333,7 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_10_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setHandsItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setHandsItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -321,16 +342,17 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_15_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setBackItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setBackItem(itemData[kk].value);
                                     }
                                 }
                             }
                             //Main hand
+                            // JS-BUG: reads PLAYER_VISIBLE_ITEM_15_0, the back slot again (probably meant 16_0) - nothing reads mainHandItemId today
                             if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_15_0")) {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_15_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setMainHandItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setMainHandItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -339,7 +361,8 @@ class WorldObjectManager {
                                 var itemData = updateFields['PLAYER_VISIBLE_ITEM_16_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setMainHandItem(itemData[kk].value);
+                                        // JS-BUG: the off-hand slot calls setMainHandItem (probably setOffHandItem, and slot 17_0) - nothing reads offHandItemId / mainHandItemId today
+                                        (newWorldUnit as WorldPlayer).setMainHandItem(itemData[kk].value);
                                     }
                                 }
                             }
@@ -411,14 +434,14 @@ class WorldObjectManager {
                     }
                 }
                 packetPoints.push([payload.m_end_x, payload.m_end_y, payload.m_end_z]);
-                this.objectMap[guid].setMovingData(0, moveTime, payload.m_move_flag, packetPoints);
+                (this.objectMap[guid] as WorldUnit).setMovingData(0, moveTime, payload.m_move_flag, packetPoints);
                 if (payload.m_stop_flag == 3) {
-                    this.objectMap[guid].setFacingOnMovementEndGuid(payload.m_stop_flag_turn_to_guid)
+                    (this.objectMap[guid] as WorldUnit).setFacingOnMovementEndGuid(payload.m_stop_flag_turn_to_guid)
                 } else if (payload.m_stop_flag == 4) {
-                    this.objectMap[guid].setFacingOnMovementEndFacing(payload.m_stop_flag_face_to)
+                    (this.objectMap[guid] as WorldUnit).setFacingOnMovementEndFacing(payload.m_stop_flag_face_to)
                 }
             } else {
-                this.objectMap[guid].moveToFromCurrent(1000, packetPoints);
+                (this.objectMap[guid] as WorldUnit).moveToFromCurrent(1000, packetPoints);
             }
 
         }

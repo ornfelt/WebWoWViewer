@@ -1,4 +1,5 @@
-import WorldUnit from './worldUnit.js';
+import WorldUnit from './worldUnit';
+import type { SceneApi } from '../../sceneApi';
 
 //For ref: http://images.staticjw.com/wor/3751/addon-use-char.png
 const player_item_HEAD = 1;
@@ -22,7 +23,28 @@ const player_item_RELIC = 18;
 const player_item_TABARD = 19;
 
 class WorldPlayer extends WorldUnit {
-    constructor(sceneApi) {
+    headItemId: number;
+    neckItemId: number;
+    shoulderItemId: number;
+    bodyItemId: number;
+    chestItemId: number;
+    waistItemId: number;
+    legsItemId: number;
+    feetItemId: number;
+    wristItemId: number;
+    handsItemId: number;
+    backItemId: number;
+    mainHandItemId: number;
+    offHandItemId: number;
+    tabardItemId: number;
+    /* set from the update packet (PLAYER_BYTES / PLAYER_BYTES_2) before complete() */
+    playerFaceFeatures!: number;
+    playerSkin!: number;
+    playerFace!: number;
+    playerHair!: number;
+    playerHairColor!: number;
+
+    constructor(sceneApi: SceneApi) {
         super(sceneApi);
 
         this.headItemId = -1;
@@ -41,28 +63,28 @@ class WorldPlayer extends WorldUnit {
         this.tabardItemId = -1;
     }
 
-    setPlayerFaceFeatures(faceFeatures) {
+    setPlayerFaceFeatures(faceFeatures: number) {
         this.playerFaceFeatures = faceFeatures;
     }
 
-    setPlayerSkin(skin) {
+    setPlayerSkin(skin: number) {
         this.playerSkin = skin;
     }
 
-    setPlayerFace(face) {
+    setPlayerFace(face: number) {
         this.playerFace = face;
     }
 
-    setPlayerHair(hair) {
+    setPlayerHair(hair: number) {
         this.playerHair = hair;
     }
 
-    setPlayerHairColor(hairColor) {
+    setPlayerHairColor(hairColor: number) {
         this.playerHairColor = hairColor;
     }
 
     /* Items */
-    setHeadItem(entry) {
+    setHeadItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.headItemId = itemRecord.displayId;
@@ -70,91 +92,91 @@ class WorldPlayer extends WorldUnit {
 
     }
 
-    setNeckItem(entry) {
+    setNeckItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.neckItemId = itemRecord.displayId;
         }
     }
 
-    setShouldersItem(entry) {
+    setShouldersItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.shoulderItemId = itemRecord.displayId;
         }
     }
 
-    setBodyItem(entry) {
+    setBodyItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.bodyItemId = itemRecord.displayId;
         }
     }
 
-    setChestItem(entry) {
+    setChestItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.chestItemId = itemRecord.displayId;
         }
     }
 
-    setWaistItem(entry) {
+    setWaistItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.waistItemId = itemRecord.displayId;
         }
     }
 
-    setLegsItem(entry) {
+    setLegsItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.legsItemId = itemRecord.displayId;
         }
     }
 
-    setFeetItem(entry) {
+    setFeetItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.feetItemId = itemRecord.displayId;
         }
     }
 
-    setWristItem(entry) {
+    setWristItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.wristItemId = itemRecord.displayId;
         }
     }
 
-    setHandsItem(entry) {
+    setHandsItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.handsItemId = itemRecord.displayId;
         }
     }
 
-    setBackItem(entry) {
+    setBackItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.backItemId = itemRecord.displayId;
         }
     }
 
-    setMainHandItem(entry) {
+    setMainHandItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.mainHandItemId = itemRecord.displayId;
         }
     }
 
-    setOffHandItem(entry) {
+    setOffHandItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.offHandItemId = itemRecord.displayId;
         }
     }
 
-    setTabardItem(entry) {
+    setTabardItem(entry: number) {
         var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
         if (itemRecord) {
             this.tabardItemId = itemRecord.displayId;
@@ -163,7 +185,7 @@ class WorldPlayer extends WorldUnit {
 
     /* ---------------*/
 
-    createMaterialFromOwnItem(replaceTextures, meshIds) {
+    createMaterialFromOwnItem(replaceTextures: string[], meshIds: number[]) {
         this.createMaterialData(replaceTextures, meshIds,
             this.unitRace, this.unitGender,
 

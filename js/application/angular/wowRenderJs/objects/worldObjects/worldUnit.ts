@@ -1,9 +1,16 @@
-import WorldObject from './worldObject.js'
-import TextureCompositionManager from './../../manager/textureCompositionManager.js'
-import WowTextureRegions from './../../math/wowTextureRegions.js';
+import WorldObject from './worldObject'
+import TextureCompositionManager from './../../manager/textureCompositionManager'
+import WowTextureRegions from './../../math/wowTextureRegions';
 import CharacterComponents from '../../algorithms/characterComponents'
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
+import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix';
 import Expansion from '../../../Expansion';
+import type { CharacterFacialHairStylesRecord } from '../../../services/dbc/characterFacialHairStylesDBC';
+import type { CharHairGeosetsRecord } from '../../../services/dbc/charHairGeosetsDBC';
+import type { CharSectionsRecord } from '../../../services/dbc/charSectionsDBC';
+import type { ItemDisplayInfoRecord } from '../../../services/dbc/itemDisplayInfoDBC';
+import type { SceneApi } from '../../sceneApi';
+import type WorldMDXObject from '../worldM2Object';
 
 const fHairGeoset = [1, 3, 2, 16, 17];
 
@@ -16,7 +23,7 @@ const helm_race_names = ['', 'hu', 'or', 'dw', 'ni', 'sc', 'ta', 'gn', 'tr', 'go
 'be', 'dr', 'fo', 'na', 'br', 'sk', 'vr', 'tu', 'ft', 'fwt', 'ns', 'it'];
 const helm_gender = ['m', 'f'];
 
-function extractFilePath(filePath) {
+function extractFilePath(filePath: string) {
     for (var i = filePath.length-1; i >0; i-- ) {
         if (filePath[i] == '\\' || filePath[i] == '/') {
             return filePath.substr(0, i+1);
@@ -28,7 +35,7 @@ function extractFilePath(filePath) {
 
 
 
-function findSectionRec(csd, race, gender, section, type, color) {
+function findSectionRec(csd: CharSectionsRecord[], race: number, gender: number, section: number, type: number, color: number) {
     for (var i = 0; i < csd.length; i++) {
         if (csd[i].race == race &&
             csd[i].gender == gender &&
@@ -42,7 +49,7 @@ function findSectionRec(csd, race, gender, section, type, color) {
     }
     return null;
 }
-function findHairGeosetRec(chgd, race, gender, type ) {
+function findHairGeosetRec(chgd: CharHairGeosetsRecord[], race: number, gender: number, type: number ) {
     for (var i = 0; i < chgd.length; i++) {
         if (chgd[i].race == race &&
             chgd[i].gender == gender &&
@@ -54,7 +61,7 @@ function findHairGeosetRec(chgd, race, gender, type ) {
     return null;
 }
 
-function findFaceHairStyleRec(cfhsd, race, gender, type ) {
+function findFaceHairStyleRec(cfhsd: CharacterFacialHairStylesRecord[], race: number, gender: number, type: number ) {
     for (var i = 0; i < cfhsd.length; i++) {
         if (cfhsd[i].race == race &&
             cfhsd[i].gender == gender &&
@@ -67,7 +74,7 @@ function findFaceHairStyleRec(cfhsd, race, gender, type ) {
 }
 
 
-function saveObjectToFile(obj, filename = 'output.txt') {
+function saveObjectToFile(obj: unknown, filename: string = 'output.txt') {
   const jsonStr = JSON.stringify(obj, null, 2); // Pretty-printed JSON
   const blob = new Blob([jsonStr], { type: 'text/plain' });
 
@@ -85,7 +92,51 @@ function saveObjectToFile(obj, filename = 'output.txt') {
 }
 
 class WorldUnit extends WorldObject {
-    constructor(sceneApi){
+    sceneApi: SceneApi;
+    currentTime: number;
+    movementFlag: number;
+    speedWalk: number;
+    speedRun: number;
+    speedRunBack: number;
+    speedSwim: number;
+    speedSwimBack: number;
+    speedFly: number;
+    speedFlyBack: number;
+    speedTurnRate: number;
+    isMoving: boolean;
+    objectModel: WorldMDXObject | null;
+    mountModel: WorldMDXObject | null;
+    items: WorldMDXObject[];
+    helmet: WorldMDXObject | null;
+    textureCompositionManager: TextureCompositionManager;
+    /* set by createMaterialData() for a unit with a shoulder item */
+    leftShoulder: WorldMDXObject | undefined;
+    rightShoulder: WorldMDXObject | undefined;
+    /* set by createModelFromDisplayId() */
+    modelScale!: number;
+    displayIDScale!: number;
+    /* set by setMovingData() / moveToFromCurrent() */
+    currentMovingTime!: number;
+    totalMovingTime!: number;
+    pointsArray!: vec3[];
+    pointsTotalPath!: number[];
+    onStopfaceToGuid!: boolean;
+    onStopfaceToFloat!: boolean;
+    /* set by setFacingOnMovementEndGuid() / setFacingOnMovementEndFacing() */
+    faceToGuid: string | number | undefined;
+    faceToRotation!: number;
+    /* set from the update packet before complete() */
+    unitRace!: number;
+    unitClass!: number;
+    unitGender!: number;
+    mountDisplayId!: number;
+    mountModelChanged: boolean | undefined;
+    displayId: number | undefined;
+    modelChanged: boolean | number | undefined;
+    nativeDisplayId!: number;
+    entry: number | undefined;
+
+    constructor(sceneApi: SceneApi){
         super();
 
         this.sceneApi = sceneApi;
@@ -113,28 +164,28 @@ class WorldUnit extends WorldObject {
         this.helmet = null;
         this.textureCompositionManager = new TextureCompositionManager(sceneApi);
     }
-    setSpeedWalk(value){
+    setSpeedWalk(value: number){
         this.speedWalk = value;
     }
-    setSpeedRun(value) {
+    setSpeedRun(value: number) {
         this.speedRun = value;
     }
-    setSpeedRunBack(value) {
+    setSpeedRunBack(value: number) {
         this.speedRunBack = value;
     }
-    setSpeedSwim(value) {
+    setSpeedSwim(value: number) {
         this.speedSwim = value;
     }
-    setSpeedSwimBack(value) {
+    setSpeedSwimBack(value: number) {
         this.speedSwimBack = value;
     }
-    setSpeedFly(value) {
+    setSpeedFly(value: number) {
         this.speedFly = value;
     }
-    setSpeedFlyBack(value) {
+    setSpeedFlyBack(value: number) {
         this.speedFlyBack = value;
     }
-    setSpeedTurnRate(value) {
+    setSpeedTurnRate(value: number) {
         this.speedTurnRate = value; // rads per second?
     }
     getAnimationIdByMovementFlag(){
@@ -161,6 +212,7 @@ class WorldUnit extends WorldObject {
         //animationId = 60; // NPC fly faster?
         //animationId = 68; // fly backwards2
         //animationId = 75; // fly jump?
+        // JS-BUG: debug override - the walk / run id picked from movementFlag above is always replaced by 77 (fly fast)
         animationId = 77; // FLY FAST!!
         //animationId = 78; // FLY jump?
         //animationId = 80; // FLY backwards
@@ -169,13 +221,15 @@ class WorldUnit extends WorldObject {
         return animationId;
     }
 
+    /* WorldPlayer overrides it with (replaceTextures, meshIds) and returns true; this one returns undefined */
+    createMaterialFromOwnItem(replaceTextures?: string[], meshIds?: number[]): boolean | void;
     createMaterialFromOwnItem(){
 
     }
 
-    createMaterialData(replaceTextures, meshIds, race, gender,
-                       skin, face, hairType, hairStyle, faceHairStyle,
-                       helmItem, shoulderItem, capeItem, chestItem, shirtItem, tabardItem, wristItem, glovesItem, beltItem, legsItem, bootsItem) {
+    createMaterialData(replaceTextures: string[], meshIds: number[], race: number, gender: number,
+                       skin: number, face: number, hairType: number, hairStyle: number, faceHairStyle: number,
+                       helmItem: number, shoulderItem: number, capeItem: number, chestItem: number, shirtItem: number, tabardItem: number, wristItem: number, glovesItem: number, beltItem: number, legsItem: number, bootsItem: number) {
 
 
         var idid = this.sceneApi.dbc.getItemDisplayInfoDBC();
@@ -316,7 +370,7 @@ class WorldUnit extends WorldObject {
                 var hgvdRec = hgvd[helmetGeoset];
                 if (hgvdRec) {
 
-                    function checkGeoset(geoset, race, mask) {
+                    function checkGeoset(geoset: number, race: number, mask: number) {
                         if ((mask & (1 << race)) > 0) {
                             return 1;
                         } else {
@@ -337,7 +391,7 @@ class WorldUnit extends WorldObject {
         }
     }
 
-    createModelFromDisplayId(value) {
+    createModelFromDisplayId(value: number) {
         //const useHardcodedData = false;
         //const useHardcodedData = true;
         const useHardcodedData = (window.selectedExpansion !== Expansion.WOTLK);
@@ -383,7 +437,7 @@ class WorldUnit extends WorldObject {
           this.modelScale = modelScale;
           this.displayIDScale = displayIDScale;
 
-          var replaceTextures = [];
+          var replaceTextures: string[] = [];
 
           if (modelFilename === "creature\\ragnaros\\ragnaros.mdx")
             replaceTextures[11] = "Creature\\Ragnaros\\RagnarosSkin.blp";
@@ -402,7 +456,7 @@ class WorldUnit extends WorldObject {
 
           // ...
 
-          var meshIds = [];
+          var meshIds: number[] = [];
           for (var i = 0; i < 19; i++) {
               meshIds[i] = 1;
           }
@@ -443,7 +497,7 @@ class WorldUnit extends WorldObject {
         var modelScale = cmdd[displayInf.model1].modelScale;
         this.modelScale = modelScale;
 
-        var replaceTextures = [];
+        var replaceTextures: string[] = [];
         if (displayInf.skin1 != '')
             replaceTextures[11] = extractFilePath(modelFilename)+displayInf.skin1+'.blp';
 
@@ -453,7 +507,7 @@ class WorldUnit extends WorldObject {
         if (displayInf.skin3 != '')
             replaceTextures[13] = extractFilePath(modelFilename)+displayInf.skin3+'.blp';
 
-        var meshIds = [];
+        var meshIds: number[] = [];
         for (var i = 0; i < 19; i++)
             meshIds[i] = 1;
 
@@ -497,7 +551,7 @@ class WorldUnit extends WorldObject {
         return model;
 
     }
-    createHelmetFromItemDisplayInfo(race, gender, ItemDInfo) {
+    createHelmetFromItemDisplayInfo(race: number, gender: number, ItemDInfo: ItemDisplayInfoRecord) {
         var helmPath = "Item\\ObjectComponents\\head\\";
         var suffix = "_" + helm_race_names[race] + helm_gender[gender];
 
@@ -505,7 +559,7 @@ class WorldUnit extends WorldObject {
         var nameTemplate = modelName.split('.')[0];
         modelName = nameTemplate + suffix + '.m2';
 
-        var replaceTextures = [];
+        var replaceTextures: string[] = [];
         if (ItemDInfo.leftTextureModel)
             replaceTextures[2] = helmPath + ItemDInfo.leftTextureModel + '.blp';
 
@@ -513,14 +567,14 @@ class WorldUnit extends WorldObject {
         var model = this.sceneApi.objects.loadWorldM2Obj(modelName, null, replaceTextures);
         return model
     }
-    createShoulderFromItemDisplayInfo(modelName, texture) {
+    createShoulderFromItemDisplayInfo(modelName: string, texture: string) {
         var shoulderPath = "item/objectcomponents/shoulder/";
         var suffix = '';
         var trueModelName = shoulderPath + modelName;
         var nameTemplate = trueModelName.split('.')[0];
         trueModelName = nameTemplate + suffix + '.m2';
 
-        var replaceTextures = [];
+        var replaceTextures: string[] = [];
         if (texture)
             replaceTextures[2] = shoulderPath + texture + '.blp';
 
@@ -529,9 +583,9 @@ class WorldUnit extends WorldObject {
         return model
     }
 
-    update (deltaTime, cameraPos, viewMat) {
+    update (deltaTime: number, cameraPos: ReadonlyVec4, viewMat: ReadonlyMat4) {
         var objectModelIsLoaded = this.objectModel && this.objectModel.m2Geom && this.objectModel.m2Geom.m2File;
-        var objectModelHasBones = objectModelIsLoaded &&  this.objectModel.bonesMatrices;
+        var objectModelHasBones = objectModelIsLoaded &&  this.objectModel!.bonesMatrices;
 
         /* 1. Calculate current position */
         if (this.isMoving) {
@@ -548,7 +602,8 @@ class WorldUnit extends WorldObject {
                 var totalPath = this.pointsTotalPath[this.pointsTotalPath.length - 1];
                 var currentPath = (totalPath / this.totalMovingTime) * (this.currentMovingTime + deltaTime);
                 var pointIndex = 0;
-                var result = this.pointsTotalPath[0]
+                // JS-BUG: starts as a path length (a number), not a point (probably meant this.pointsArray[0]); only reaches setPosition() if no segment matches, which the time check above rules out
+                var result: number | vec3 = this.pointsTotalPath[0]
 
                 for (var i = 1; i < this.pointsArray.length; i++) {
                     if (currentPath < this.pointsTotalPath[i]) {
@@ -561,7 +616,7 @@ class WorldUnit extends WorldObject {
                         var diff = vec4.create();
                         vec3.subtract(diff, value2, value1);
                         vec3.scale(diff, diff, (currentPath - path1)/(path2 - path1));
-                        var result = vec3.create();
+                        var result: number | vec3 = vec3.create();
                         vec3.add(result, value1, diff);
 
                         //CalcF
@@ -577,20 +632,23 @@ class WorldUnit extends WorldObject {
                     }
                 }
 
-                this.setPosition(result);
+                this.setPosition(result as vec3);
             }
             this.currentMovingTime += deltaTime;
         }
 
         /* 2. Update position for all models */
         var properScale = this.displayIDScale * this.modelScale;
-        if (this.scale > 0.0001) {
-            properScale = this.displayIDScale * this.modelScale *  this.scale;
+        if (this.scale! > 0.0001) {
+            properScale = this.displayIDScale * this.modelScale *  this.scale!;
         }
 
         if (this.mountModel && objectModelIsLoaded) {
+            // JS-BUG: `|| 1` makes the condition always true - the mount plays the movement animation (77, see getAnimationIdByMovementFlag) even when standing
             if (this.isMoving || 1) {
                 var animationId = this.getAnimationIdByMovementFlag();
+                // JS-BUG: setAnimationId takes one argument; the second (false) is ignored - harmless (also the two calls below)
+                // @ts-expect-error setAnimationId takes one argument; ported as-is
                 this.mountModel.setAnimationId(animationId, false);
             } else {
                 this.mountModel.setAnimationId(0); //Stand(0) animation
@@ -606,27 +664,29 @@ class WorldUnit extends WorldObject {
 
             if (this.mountModel.bonesMatrices) {
                 /* Update main model */
-                this.objectModel.createPlacementMatrixFromParent(this.mountModel, 0, properScale);
-                this.objectModel.setAnimationId(91, false);
+                this.objectModel!.createPlacementMatrixFromParent(this.mountModel, 0, properScale);
+                // @ts-expect-error setAnimationId takes one argument; ported as-is
+                this.objectModel!.setAnimationId(91, false);
             }
             //this.objectModel.animation
         } else if (objectModelIsLoaded){
             if (this.isMoving) {
                 var animationId = this.getAnimationIdByMovementFlag()
-                this.objectModel.setAnimationId(animationId, false);
+                // @ts-expect-error setAnimationId takes one argument; ported as-is
+                this.objectModel!.setAnimationId(animationId, false);
             } else {
-                this.objectModel.setAnimationId(0); //Stand(0) animation
+                this.objectModel!.setAnimationId(0); //Stand(0) animation
             }
-            this.objectModel.createPlacementMatrix(this.pos, this.f, properScale);
+            this.objectModel!.createPlacementMatrix(this.pos, this.f, properScale);
         }
 
         /* Configure hands */
         if (objectModelIsLoaded) {
             if (this.items[0] && this.items[0].m2Geom) {
-                this.objectModel.setRightHandClosed(true)
+                this.objectModel!.setRightHandClosed(true)
             }
             if (this.items[1] && this.items[1].m2Geom) {
-                this.objectModel.setLeftHandClosed(true)
+                this.objectModel!.setLeftHandClosed(true)
             }
         }
 
@@ -634,11 +694,12 @@ class WorldUnit extends WorldObject {
         //this.mountModel.setAnimationId(5);
 
         /* Update bone matrices */
-        this.objectModel.objectUpdate(deltaTime, cameraPos, viewMat);
+        // JS-BUG: not guarded like the calls around it - TypeError every frame for a unit whose model was never created (no display id in its update packet)
+        this.objectModel!.objectUpdate(deltaTime, cameraPos, viewMat);
 
         if (objectModelIsLoaded && objectModelHasBones && this.helmet) {
             /* Update helm model */
-            this.helmet.createPlacementMatrixFromParent(this.objectModel, 11, properScale);
+            this.helmet.createPlacementMatrixFromParent(this.objectModel!, 11, properScale);
 
             if (this.helmet.loaded) {
                 this.helmet.objectUpdate(deltaTime, cameraPos, viewMat);
@@ -647,7 +708,7 @@ class WorldUnit extends WorldObject {
 
         if (objectModelIsLoaded && objectModelHasBones && this.leftShoulder) {
             /* Update left shoulder model */
-            this.leftShoulder.createPlacementMatrixFromParent(this.objectModel, 6, properScale);
+            this.leftShoulder.createPlacementMatrixFromParent(this.objectModel!, 6, properScale);
 
             if (this.leftShoulder.loaded) {
                 this.leftShoulder.objectUpdate(deltaTime, cameraPos, viewMat);
@@ -655,7 +716,7 @@ class WorldUnit extends WorldObject {
         }
         if (objectModelIsLoaded && objectModelHasBones && this.rightShoulder) {
             /* Update right shoulder model */
-            this.rightShoulder.createPlacementMatrixFromParent(this.objectModel, 5, properScale);
+            this.rightShoulder.createPlacementMatrixFromParent(this.objectModel!, 5, properScale);
 
             if (this.rightShoulder.loaded) {
                 this.rightShoulder.objectUpdate(deltaTime, cameraPos, viewMat);
@@ -667,7 +728,7 @@ class WorldUnit extends WorldObject {
         if ( objectModelIsLoaded && objectModelHasBones) {
             for (var i = 0; i < this.items.length; i++) {
                 if (this.items[i]) {
-                    this.items[i].createPlacementMatrixFromParent(this.objectModel, virtualItemMap[i], properScale);
+                    this.items[i].createPlacementMatrixFromParent(this.objectModel!, virtualItemMap[i], properScale);
                     if (this.items[i].loaded) {
                         this.items[i].objectUpdate(deltaTime, cameraPos, viewMat);
                     }
@@ -686,7 +747,7 @@ class WorldUnit extends WorldObject {
 
         this.currentTime += deltaTime;
     }
-    setMovingData(currentMovingTime, totalMovingTime, movementFlag, points) {
+    setMovingData(currentMovingTime: number, totalMovingTime: number, movementFlag: number, points: vec3[]) {
         this.onStopfaceToGuid = false;
         this.onStopfaceToFloat = false;
 
@@ -713,7 +774,7 @@ class WorldUnit extends WorldObject {
 
         this.isMoving = true;
     }
-    moveToFromCurrent(time, packetPoints) {
+    moveToFromCurrent(time: number, packetPoints: vec3[]) {
         this.onStopfaceToGuid = false;
         this.onStopfaceToFloat = false;
 
@@ -745,30 +806,30 @@ class WorldUnit extends WorldObject {
         this.movementFlag = 0;
         this.isMoving = true;
     }
-    setFacingOnMovementEndGuid(guid) {
+    setFacingOnMovementEndGuid(guid: string | number) {
         this.onStopfaceToGuid = true;
         this.faceToGuid = guid;
     }
-    setFacingOnMovementEndFacing(float) {
+    setFacingOnMovementEndFacing(float: number) {
         this.onStopfaceToFloat = true;
         this.faceToRotation = float;
     }
-    setCurrentTime(value){
+    setCurrentTime(value: number){
         this.currentTime = value;
     }
-    setUnitRace(race) {
+    setUnitRace(race: number) {
         this.unitRace = race;
     }
-    setUnitClass(unitClass) {
+    setUnitClass(unitClass: number) {
         this.unitClass = unitClass;
     }
-    setUnitGender(gender){
+    setUnitGender(gender: number){
         this.unitGender = gender;
     }
-    setUnitPowerType(powerType){
+    setUnitPowerType(powerType: number){
 
     }
-    setVirtualItemSlot(slot, displayId, itemClass, itemSubClass, itemInventoryType) {
+    setVirtualItemSlot(slot: number, displayId: number, itemClass: number | undefined, itemSubClass: number | undefined, itemInventoryType: number | undefined) {
         var idid = this.sceneApi.dbc.getItemDisplayInfoDBC();
 
         /* 1. Free previous model */
@@ -782,8 +843,8 @@ class WorldUnit extends WorldObject {
         }
         var ItemDInfo = idid[displayId];
         if (ItemDInfo) {
-            var modelName;
-            var replaceTextures = [];
+            var modelName: string;
+            var replaceTextures: string[] = [];
 
             modelName = ItemDInfo.leftModel;
             if (ItemDInfo.leftTextureModel)
@@ -804,20 +865,21 @@ class WorldUnit extends WorldObject {
         }
     }
 
-    setMountDisplayId(value) {
+    setMountDisplayId(value: number) {
         this.mountDisplayId = value;
         this.mountModelChanged = true;
 
     }
-    setDisplayId( value ) {
+    setDisplayId( value: number ) {
         this.displayId = value;
+        // JS-BUG: stores the display id instead of true (setNativeDisplayId / setMountDisplayId store true) - harmless, any non-zero id is truthy and complete() loads nativeDisplayId either way
         this.modelChanged = value;
     }
-    setNativeDisplayId( value ) {
+    setNativeDisplayId( value: number ) {
         this.nativeDisplayId = value;
         this.modelChanged = true;
     }
-    setEntry ( value ) {
+    setEntry ( value: number ) {
         this.entry = value;
     }
     complete () {
