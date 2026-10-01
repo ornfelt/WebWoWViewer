@@ -259,8 +259,7 @@ class MathHelper {
         var det = (p2[1] - p3[1]) * (p1[0] - p3[0]) + (p3[0] - p2[0]) * (p1[1] - p3[1]);
 
         if (det > -0.001 && det < 0.001) {
-            // JS-BUG: degenerate-triangle fallback returns the minimum x coordinate ([0]), not z ([2])
-            return Math.min(p1[0], p2[0], p3[0]);
+            return Math.min(p1[2], p2[2], p3[2]);
         }
 
         var l1 = ((p2[1] - p3[1]) * (x - p3[0]) + (p3[0] - p2[0]) * (y - p3[1])) / det;

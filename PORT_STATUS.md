@@ -44,7 +44,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | # | Where | What | Effect |
 | --- | --- | --- | --- |
 | 2 | `wowRenderJs/math/mathHelper.ts` `createPlaneFromVertexes` | uses undeclared `edgeDir` (local is `edgeDir1`); never returns the plane | ReferenceError if called; nothing calls it |
-| 3 | `wowRenderJs/math/mathHelper.ts` `calcZ` | degenerate-triangle fallback returns `Math.min` of the x coordinates (`[0]`) | wrong height for near-degenerate triangles (should probably be `[2]`) |
 | 5 | `wowRenderJs/math/quickSort.ts` `multiQuickSort` | `var newRight = 1` instead of `left + 1` | wrong grouping when `left != 0`; harmless today (M2Object passes 0) |
 | 6 | `wowRenderJs/cache.ts` `remove` | calls `destroy()` on every cached object | ADTGeom, M2Geom, SkinGeom and the parsed WMO file have no `destroy()` - TypeError when they are unloaded; no caller unloads them today |
 | 7 | `services/chunkedLoader.ts` (load by path) | rejection handler returns `e` | a failed load resolves with the error object as if it were the ChunkedFile; callers then fail on it |
