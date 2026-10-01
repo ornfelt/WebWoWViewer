@@ -14,8 +14,18 @@ export const waterTint = [0.10915033, 0.21372549, 0.34509805];
 const noTint = [0, 0, 0];
 
 /* LiquidType.dbc liquid classes */
+const LIQUID_CLASS_OCEAN = 1;
 const LIQUID_CLASS_MAGMA = 2;
 const LIQUID_CLASS_SLIME = 3;
+
+/* Water and ocean alpha at depth 0 (shallow) and 1 (deep): the medians of the LightParams.dbc rows,
+ * which agree across Classic, TBC and WotLK (the light of the camera's zone is not looked up) */
+const WATER_SHALLOW_ALPHA = 0.5;
+const WATER_DEEP_ALPHA    = 1.0;
+const OCEAN_SHALLOW_ALPHA = 0.75;
+const OCEAN_DEEP_ALPHA    = 1.0;
+/* MLIQ has no depth: WMO water gets the middle of the shallow / deep range */
+const WMO_LIQUID_DEPTH = 0.5;
 
 /* MH2O liquid instance (SMLiquidInstance); the offsets are relative to the MH2O chunk data */
 export interface Mh2oInstance {
@@ -44,10 +54,12 @@ class Liquid {
     texRepeats: number;
     /* 0: not coloured (magma, slime), 1: coloured by col (indoor WMO water), 2: water colour */
     type: number;
+    /* water and ocean are transparent (by depth), magma and slime are opaque; set by draw() */
     transparent: boolean;
+    /* ocean instead of river / lake water: different shallow / deep alphas */
+    ocean: boolean;
     /* the vertices are in a WMO's local coordinates (pos is the MLIQ corner) instead of on the terrain */
     wmo: boolean;
-    indoor: boolean;
     col: vec3;
     /* LiquidType.dbc id (WotLK); when set, the textures and the type come from the DBC on the first draw */
     liquidTypeId: number;
@@ -67,6 +79,8 @@ class Liquid {
     texturePromise: Promise<void> | undefined;
     // pending data only lives until GPU upload
     pendingHeights: number[] | null;
+    /* per vertex, 0 (shallow) - 1 (deep) */
+    pendingDepths: number[] | null;
     pendingTileFlags: Uint8Array | null;
 
     // init
@@ -80,8 +94,8 @@ class Liquid {
         this.texRepeats = 0;
         this.type = 0;
         this.transparent = false;
+        this.ocean = false;
         this.wmo = false;
-        this.indoor = false;
         this.col = vec3.create();
         this.liquidTypeId = 0;
 
@@ -94,6 +108,7 @@ class Liquid {
         this.liquidTextureLast = 0;
 
         this.pendingHeights = null;
+        this.pendingDepths = null;
         this.pendingTileFlags = null;
     }
 
@@ -123,10 +138,12 @@ class Liquid {
             this.liquidTextureFirst    = 1;
             this.liquidTextureLast     = 30;
             this.type = 2;
+            this.ocean = true;
         }
 
         var vCount  = (this.xtiles + 1) * (this.ytiles + 1);
         var heights: number[] = new Array(vCount);
+        var depths: number[] = new Array(vCount);
         var colors  = new Uint8Array(vCount * 4);
 
         for (var v = 0; v < vCount; v++) {
@@ -135,11 +152,14 @@ class Liquid {
             colors[v * 4 + 2] = br.readUint8(off);
             colors[v * 4 + 3] = br.readUint8(off);
             heights[v]        = br.readFloat32(off);
+            // water and ocean vertices start with their depth (magma ones with texture coordinates)
+            depths[v]         = colors[v * 4 + 0] / 255.0;
         }
 
         var tileFlags = br.readUint8Array(off, this.xtiles * this.ytiles);
 
         this.pendingHeights   = heights;
+        this.pendingDepths    = depths;
         this.pendingTileFlags = tileFlags;
         // the GPU buffers stay unset until the first draw
     }
@@ -153,6 +173,7 @@ class Liquid {
 
         var vCount  = (this.xtiles + 1) * (this.ytiles + 1);
         var heights: number[] = new Array(vCount);
+        var depths: number[] = new Array(vCount);
 
         // vertex formats 0, 1 and 3 start with a height per vertex; format 2 (depth only) and
         // instances without vertex data are flat at the min height
@@ -161,6 +182,21 @@ class Liquid {
             for (var v = 0; v < vCount; v++) heights[v] = br.readFloat32(off);
         } else {
             for (var v = 0; v < vCount; v++) heights[v] = inst.minHeight;
+        }
+
+        // a depth byte per vertex: after the heights (format 0), after the heights and the texture
+        // coordinates (format 3) or alone (format 2); without one (format 1, no vertex data: open sea) deep
+        var depthOffs = -1;
+        if (inst.ofsVertexData != 0) {
+            if (inst.vertexFormat == 0) depthOffs = inst.ofsVertexData + vCount * 4;
+            else if (inst.vertexFormat == 2) depthOffs = inst.ofsVertexData;
+            else if (inst.vertexFormat == 3) depthOffs = inst.ofsVertexData + vCount * 8;
+        }
+        if (depthOffs >= 0) {
+            var depthBytes = br.readUint8Array({offs: depthOffs}, vCount);
+            for (var v = 0; v < vCount; v++) depths[v] = depthBytes[v] / 255.0;
+        } else {
+            for (var v = 0; v < vCount; v++) depths[v] = 1.0;
         }
 
         // one bit per tile, row by row, low bit first; no bitmap means every tile has liquid
@@ -173,22 +209,24 @@ class Liquid {
         }
 
         this.pendingHeights   = heights;
+        this.pendingDepths    = depths;
         this.pendingTileFlags = tileFlags;
     }
 
     /* The MLIQ liquid of a WMO group, as my_wow tbc's Liquid.InitFromWMO: magma / slime / water from
-     * the tile flags, indoor water transparent and coloured by the WMO material (color2). On WotLK a
-     * liquid type id from the group header picks the textures and the type from LiquidType.dbc instead. */
+     * the tile flags, indoor water coloured by the WMO material (color2). On WotLK a liquid type id
+     * from the group header picks the textures and the type from LiquidType.dbc instead. */
     initFromWmo(heights: number[], tileFlags: Uint8Array, materialColor: number, indoor: boolean, liquidTypeId: number) {
         this.texRepeats = 4.0;
         this.ydir = -1.0;
         this.wmo = true;
-        this.indoor = indoor;
 
         this.pendingHeights   = heights;
         this.pendingTileFlags = tileFlags;
+        var depths: number[] = new Array(heights.length);
+        for (var v = 0; v < depths.length; v++) depths[v] = WMO_LIQUID_DEPTH;
+        this.pendingDepths    = depths;
 
-        this.transparent = false;
         this.col = vec3.fromValues(((materialColor & 0xFF0000) >> 16) / 255.0, ((materialColor & 0xFF00) >> 8) / 255.0, (materialColor & 0xFF) / 255.0);
 
         if (liquidTypeId != 0) {
@@ -218,7 +256,6 @@ class Liquid {
             this.liquidTextureFirst = 1;
             this.liquidTextureLast  = 30;
             if (indoor) {
-                this.transparent = true;
                 this.type = 1;
             } else {
                 this.type = 2; // outdoor water
@@ -227,8 +264,8 @@ class Liquid {
     }
 
     /* Textures and type from a LiquidType.dbc record: magma and slime are not coloured, water and ocean
-     * get the water colour. Indoor WMO water is transparent like the tbc tile path, but not coloured by
-     * the material: the color2 of WotLK WMO materials is no liquid colour (white in Daggercap Cave) */
+     * get the water colour. Indoor WMO water is not coloured by the material as in the tbc tile path:
+     * the color2 of WotLK WMO materials is no liquid colour (white in Daggercap Cave) */
     initFromLiquidType(liquidType: LiquidTypeRecord | undefined) {
         // an unknown id draws as plain water
         var texture = liquidType ? liquidType.texture : "XTextures\\river\\lake_a.%d.blp";
@@ -241,8 +278,8 @@ class Liquid {
         if (liquidClass == LIQUID_CLASS_MAGMA || liquidClass == LIQUID_CLASS_SLIME) {
             this.type = 0;
         } else {
-            if (this.wmo && this.indoor) this.transparent = true;
             this.type = 2;
+            this.ocean = (liquidClass == LIQUID_CLASS_OCEAN);
         }
     }
 
@@ -261,8 +298,8 @@ class Liquid {
         var gl = sceneApi.getGlContext();
 
         var tex = this.textures[Math.floor(worldTime * 30) % this.textures.length];
-        // TODO: don't force this (terrain liquid only: WMO liquid keeps its transparency, as in my_wow tbc)
-        if (!this.wmo) this.transparent = false;
+        // water and ocean are transparent, magma and slime opaque (the type is known once the textures are)
+        this.transparent = (this.type != 0);
 
         if (this.transparent) {
             gl.enable(gl.BLEND);
@@ -275,13 +312,16 @@ class Liquid {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
 
-        // layout: vec3 pos + vec2 uv
+        // layout: vec3 pos + vec2 uv + float depth
         var aPos = shader.shaderAttributes.aPos;
         var aUV = shader.shaderAttributes.aUV;
+        var aDepth = shader.shaderAttributes.aDepth;
         gl.enableVertexAttribArray(aPos);
-        gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 5 * 4, 0);
+        gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 6 * 4, 0);
         gl.enableVertexAttribArray(aUV);
-        gl.vertexAttribPointer(aUV, 2, gl.FLOAT, false, 5 * 4, 3 * 4);
+        gl.vertexAttribPointer(aUV, 2, gl.FLOAT, false, 6 * 4, 3 * 4);
+        gl.enableVertexAttribArray(aDepth);
+        gl.vertexAttribPointer(aDepth, 1, gl.FLOAT, false, 6 * 4, 5 * 4);
 
         gl.uniformMatrix4fv(shader.shaderUniforms.uVP, false, viewProj);
         gl.uniform1i(shader.shaderUniforms.uTex, 0);
@@ -289,7 +329,14 @@ class Liquid {
         gl.uniform1f(shader.shaderUniforms.uTime, worldTime);
         // GLSL ES 1.00 has no uniform initializers, so the default of uWaveAmp is set here
         gl.uniform1f(shader.shaderUniforms.uWaveAmp, 0.08);
-        gl.uniform1f(shader.shaderUniforms.uAlpha, this.transparent ? 0.9 : 1.0);
+        // alpha from shallow to deep by the vertex depth; opaque for magma and slime
+        var shallowAlpha = 1.0, deepAlpha = 1.0;
+        if (this.transparent) {
+            shallowAlpha = this.ocean ? OCEAN_SHALLOW_ALPHA : WATER_SHALLOW_ALPHA;
+            deepAlpha    = this.ocean ? OCEAN_DEEP_ALPHA : WATER_DEEP_ALPHA;
+        }
+        gl.uniform1f(shader.shaderUniforms.uShallowAlpha, shallowAlpha);
+        gl.uniform1f(shader.shaderUniforms.uDeepAlpha, deepAlpha);
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, tex.texture);
@@ -298,6 +345,7 @@ class Liquid {
         // attribute 0 stays enabled: the scene enables it for the shaders drawn after this one
         if (aPos != 0) gl.disableVertexAttribArray(aPos);
         if (aUV != 0) gl.disableVertexAttribArray(aUV);
+        if (aDepth != 0) gl.disableVertexAttribArray(aDepth);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
         gl.useProgram(null);
@@ -315,8 +363,9 @@ class Liquid {
         if (this.vbo) return true;                      // already uploaded
 
         if (this.pendingHeights == null) return false;  // no data yet
-        this.buildBuffers(sceneApi, this.pendingHeights, this.pendingTileFlags!);
+        this.buildBuffers(sceneApi, this.pendingHeights, this.pendingDepths!, this.pendingTileFlags!);
         this.pendingHeights   = null;                   // release CPU memory
+        this.pendingDepths    = null;
         this.pendingTileFlags = null;
 
         return true;
@@ -344,7 +393,7 @@ class Liquid {
 
     // GPU buffer builders
 
-    buildBuffers(sceneApi: SceneApi, heights: number[], tileFlags: Uint8Array) {
+    buildBuffers(sceneApi: SceneApi, heights: number[], depths: number[], tileFlags: Uint8Array) {
         var verts: number[] = [];
         var idx: number[]   = [];
 
@@ -365,7 +414,7 @@ class Liquid {
             }
             var nz = h;
 
-            verts.push(nx, ny, nz, i / this.texRepeats, j / this.texRepeats);
+            verts.push(nx, ny, nz, i / this.texRepeats, j / this.texRepeats, depths[p]);
         }
 
         for (var j = 0; j < this.ytiles; j++)
@@ -381,7 +430,6 @@ class Liquid {
         }
 
         this.uploadBuffers(sceneApi, verts, idx);
-        if (!this.wmo) this.transparent = (this.type != 0);
     }
 
     uploadBuffers(sceneApi: SceneApi, verts: number[], indices: number[]) {

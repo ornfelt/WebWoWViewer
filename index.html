@@ -1197,6 +1197,7 @@ void main()
 #ifdef COMPILING_VS
 attribute vec3 aPos;
 attribute vec2 aUV;
+attribute float aDepth;                 // 0 shallow - 1 deep
 
 uniform mat4 uVP;                       // view-projection
 uniform float uTime;                    // seconds
@@ -1207,6 +1208,7 @@ uniform float uWaveAmp;                 // = 0.08 tweak in host
 const float WAVE_SPEED = 8.0 * 6.28318530718 / 50.0;
 
 varying vec2 vUV;
+varying float vDepth;
 
 // Hash-based pseudo-randomness based on position
 float hash(vec2 p) {
@@ -1222,28 +1224,34 @@ void main()
     gl_Position = uVP * vec4(wPos, 1.0);
 
     vUV = aUV + vec2(uTime * 0.02, 0.0);   // slow scroll
+    vDepth = aDepth;
 }
 #endif //COMPILING_VS
 #ifdef COMPILING_FS
 precision mediump float;
 
 varying vec2 vUV;
+varying float vDepth;
 
 uniform sampler2D uTex;
 uniform vec3      uTint;     // colour from sky system
-uniform float     uAlpha;    // 1.0 for magma, <1 for water
+uniform float     uShallowAlpha;  // alpha at depth 0; 1.0 for magma and slime
+uniform float     uDeepAlpha;     // alpha at depth 1
 
 void main()
 {
     vec3 tex = texture2D(uTex, vUV).rgb;
     // This makes it darker
-    //gl_FragColor = vec4(tex * uTint, uAlpha);
+    //gl_FragColor = vec4(tex * uTint, alpha);
 
     /*  add and clamp to [0,1] exactly like fixed-function  */
     // GL.Color4(col);                       // (0.11, 0.21, 0.35)
     // GL.TexEnv( ... , TEXTURE_ENV_MODE, ADD);
+    // shallow water is see-through, deep water nearly opaque
+    float alpha = mix(uShallowAlpha, uDeepAlpha, vDepth);
+
     vec3 outCol = min(tex + uTint, vec3(1.0));
-    gl_FragColor = vec4(outCol, uAlpha);
+    gl_FragColor = vec4(outCol, alpha);
 
     // Additive can wash out the texture. We can instead do a simple mix with
     // some light gray color (blend toward a light color instead of pure add)
@@ -1251,7 +1259,7 @@ void main()
     //// now blend 30% toward the tinted color, 70% keep the original texture
     //const float blend = 0.4;
     //outCol = mix(tex, outCol, blend);
-    //gl_FragColor = vec4(outCol, uAlpha);
+    //gl_FragColor = vec4(outCol, alpha);
 }
 #endif //COMPILING_FS
     </script>

@@ -433,21 +433,13 @@ class GraphManager {
     * Draw functions
     * */
 
-    drawExterior(view: ReadonlyMat4, proj: ReadonlyMat4, time: number) {
+    drawExterior() {
         //1. Draw ADT
 
         if (config.getRenderAdt()) {
             this.sceneApi.shaders.activateAdtShader();
             for (var i = 0; i < this.adtRenderedThisFrame.length; i++) {
                 this.adtRenderedThisFrame[i].draw();
-            }
-        }
-
-        //1.1 Draw liquids
-        if (config.getRenderLiquid()) {
-            // TODO: should activate shader here instead
-            for (var i = 0; i < this.adtRenderedThisFrame.length; i++) {
-                this.adtRenderedThisFrame[i].drawLiquids(view, proj, time);
             }
         }
 
@@ -579,10 +571,16 @@ class GraphManager {
             }
         }
     }
-    /* the liquids of the WMO groups drawn this frame, after the opaque geometry: indoor water is transparent */
-    drawWmoLiquids(view: ReadonlyMat4, proj: ReadonlyMat4, time: number) {
+    /* The liquids, after the opaque geometry as water is transparent: the terrain's when the exterior
+     * was drawn, and those of the WMO groups drawn this frame */
+    drawLiquids(view: ReadonlyMat4, proj: ReadonlyMat4, time: number, exteriorDrawn: boolean) {
         if (!config.getRenderLiquid()) return;
 
+        if (exteriorDrawn) {
+            for (var i = 0; i < this.adtRenderedThisFrame.length; i++) {
+                this.adtRenderedThisFrame[i].drawLiquids(view, proj, time);
+            }
+        }
         for (var i = 0; i < this.wmoRenderedThisFrame.length; i++) {
             this.wmoRenderedThisFrame[i].drawLiquids(view, proj, time);
         }
@@ -601,7 +599,7 @@ class GraphManager {
             this.sceneApi.shaders.deactivateWMOShader();
 
             if (this.currentWMO.exteriorPortals.length > 0) {
-                this.drawExterior(view, proj, liquidTime)
+                this.drawExterior()
             }
             //6. Draw WMO portals
             if (config.getRenderPortals()) {
@@ -611,7 +609,7 @@ class GraphManager {
                 }
             }
             this.drawM2s();
-            this.drawWmoLiquids(view, proj, liquidTime);
+            this.drawLiquids(view, proj, liquidTime, this.currentWMO.exteriorPortals.length > 0);
 
             this.sceneApi.shaders.activateFrustumBoxShader();
             //Draw Wmo portal frustums
@@ -619,9 +617,9 @@ class GraphManager {
                 this.sceneApi.drawCamera()
             }
         } else {
-            this.drawExterior(view, proj, liquidTime);
+            this.drawExterior();
             this.drawM2s();
-            this.drawWmoLiquids(view, proj, liquidTime);
+            this.drawLiquids(view, proj, liquidTime, true);
 
             //6. Draw WMO portals
             if (config.getRenderPortals()) {
