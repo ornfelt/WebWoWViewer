@@ -58,6 +58,7 @@ interface KeyBindTargets {
   chkDrawWmoBB: HTMLInputElement;
   chkDrawDepth: HTMLInputElement;
   chkRenderLiquid: HTMLInputElement;
+  chkRenderLowresTerrain: HTMLInputElement;
   chkRenderSky: HTMLInputElement;
   sliderDrawDistance: HTMLInputElement;
 }
@@ -115,6 +116,9 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
         keyBinds.sliderDrawDistance.value = config.getDrawDistance() === 400 ? '850' : '400';
         keyBinds.sliderDrawDistance.dispatchEvent(new Event('input'));
         break;
+
+      // bind l: toggle RenderLowresTerrain
+      case 'L': toggle(keyBinds.chkRenderLowresTerrain, 'RenderLowresTerrain'); break;
 
       case 'Q': toggle(keyBinds.chkRenderLiquid, 'RenderLiquid'); break;
       case 'E': toggle(keyBinds.chkRenderSky, 'RenderSky');       break;
@@ -292,7 +296,7 @@ export async function initViewer(containerEl: HTMLElement) {
           Space - up, Tab - down, Shift - faster, Mouse - move camera<br/>
           B - M2, Z - ADT, O - WMO, I - WMO BB, K - depth,<br/>
           Q - liquid, E - sky, F - draw distance, F6 - hide this panel,<br/>
-          Wheel - zoom
+          L - lowres terrain, Wheel - zoom
         </p>
 
         <label><input type="checkbox" id="chkDrawAdt"> Draw ADT</label><br/>
@@ -300,6 +304,7 @@ export async function initViewer(containerEl: HTMLElement) {
         <label><input type="checkbox" id="chkDrawWMO"> Draw WMO</label><br/>
         <label><input type="checkbox" id="chkRenderSky"> Render Sky</label><br/>
         <label><input type="checkbox" id="chkRenderLiquid"> Render Liquid</label><br/>
+        <label><input type="checkbox" id="chkRenderLowresTerrain"> Render Lowres Terrain</label><br/>
         <label><input type="checkbox" id="chkDrawPortals"> Draw Portals</label><br/>
         <label><input type="checkbox" id="chkDrawM2BB"> Draw M2 BB</label><br/>
         <label><input type="checkbox" id="chkDrawWmoBB"> Draw WMO BB</label><br/>
@@ -331,6 +336,7 @@ export async function initViewer(containerEl: HTMLElement) {
   const chkDrawWMO           = containerEl.querySelector<HTMLInputElement>('#chkDrawWMO')!;
   const chkRenderSky        = containerEl.querySelector<HTMLInputElement>('#chkRenderSky')!;
   const chkRenderLiquid     = containerEl.querySelector<HTMLInputElement>('#chkRenderLiquid')!;
+  const chkRenderLowresTerrain = containerEl.querySelector<HTMLInputElement>('#chkRenderLowresTerrain')!;
   const chkDrawPortals      = containerEl.querySelector<HTMLInputElement>('#chkDrawPortals')!;
   const chkDrawM2BB         = containerEl.querySelector<HTMLInputElement>('#chkDrawM2BB')!;
   const chkDrawWmoBB        = containerEl.querySelector<HTMLInputElement>('#chkDrawWmoBB')!;
@@ -593,8 +599,9 @@ export async function initViewer(containerEl: HTMLElement) {
   // Create Scene
   const sceneObj = new Scene(canvas);
 
-  // Disable sky rendering if not running map mode
+  // Disable lowres terrain and sky rendering if not running map mode
   if (mapParams.sceneType != 'map') {
+    config.setRenderLowresTerrain(false);
     if (useDebugSky)
       sceneObj.initSky();
     else
@@ -743,6 +750,7 @@ export async function initViewer(containerEl: HTMLElement) {
   chkDrawWMO.checked           = config.getRenderWMO();
   chkRenderSky.checked        = config.getRenderSky();
   chkRenderLiquid.checked     = config.getRenderLiquid();
+  chkRenderLowresTerrain.checked = config.getRenderLowresTerrain();
   chkDrawPortals.checked      = config.getRenderPortals();
   chkDrawM2BB.checked         = config.getDrawM2BB();
   chkDrawWmoBB.checked        = config.getDrawWmoBB();
@@ -765,6 +773,7 @@ export async function initViewer(containerEl: HTMLElement) {
     chkDrawWmoBB,
     chkDrawDepth,
     chkRenderLiquid,
+    chkRenderLowresTerrain,
     chkRenderSky,
     sliderDrawDistance,
   });
@@ -775,6 +784,7 @@ export async function initViewer(containerEl: HTMLElement) {
   chkDrawWMO.addEventListener('change', () => { config.setRenderWMO(chkDrawWMO.checked); });
   chkRenderSky.addEventListener('change', () => { config.setRenderSky(chkRenderSky.checked); });
   chkRenderLiquid.addEventListener('change', () => { config.setRenderLiquid(chkRenderLiquid.checked); });
+  chkRenderLowresTerrain.addEventListener('change', () => { config.setRenderLowresTerrain(chkRenderLowresTerrain.checked); });
   chkDrawPortals.addEventListener('change', () => { config.setRenderPortals(chkDrawPortals.checked); });
   chkDrawM2BB.addEventListener('change', () => { config.setDrawM2BB(chkDrawM2BB.checked); });
   chkDrawWmoBB.addEventListener('change', () => { config.setDrawWmoBB(chkDrawWmoBB.checked); });

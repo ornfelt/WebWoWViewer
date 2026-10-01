@@ -27,6 +27,7 @@ import TextureWoWCache from './texture/textureCache';
 import firstPersonCamera from './camera/firstPersonCamera'
 
 import Skies from './sky/skies'
+import LowresTerrain from './lowresTerrain/lowresTerrain'
 
 import {mat4, vec4, vec3, glMatrix} from 'gl-matrix'
 
@@ -126,6 +127,7 @@ const textureCompositionShader = getShaderSourceById('textureCompositionShader')
 const skyShader                = getShaderSourceById('sky');
 const skyGradientShader        = getShaderSourceById('SkyGradient');
 const liquidShader             = getShaderSourceById('liquid');
+const lowresTerrainShader      = getShaderSourceById('lowresTerrain');
 
 // etc.
 
@@ -206,6 +208,7 @@ class Scene {
     drawFrustumShader!: ShaderProgram;
     skyShader!: ShaderProgram;
     liquidShader!: ShaderProgram;
+    lowresTerrainShader!: ShaderProgram;
     /* set by the activate*Shader() methods */
     currentShaderProgram!: ShaderProgram;
 
@@ -273,6 +276,8 @@ class Scene {
     /* set by initSky(): the quad of the gradient debug sky, or the map's lights.lit sky */
     skyQuadVbo: WebGLBuffer | undefined;
     skies: Skies | undefined;
+    /* set by initLowresTerrain(): the map's WDL low-res terrain */
+    lowresTerrain: LowresTerrain | undefined;
     /* performance.now() when the debug sky palette cycle / the sky day cycle started */
     skyWatchStart: number | undefined;
     skyClockStart: number | undefined;
@@ -636,6 +641,8 @@ class Scene {
         }
 
         self.liquidShader = self.compileShader(liquidShader, liquidShader);
+
+        self.lowresTerrainShader = self.compileShader(lowresTerrainShader, lowresTerrainShader);
     }
     initCaches (){
         this.wmoGeomCache = new WmoGeomCache(this.sceneApi);
@@ -867,6 +874,9 @@ class Scene {
                 },
                 getLiquidShader: function () {
                     return self.liquidShader;
+                },
+                getLowresTerrainShader: function () {
+                    return self.lowresTerrainShader;
                 }
             },
             dbc : {
@@ -1006,6 +1016,9 @@ class Scene {
         } else {
             this.skies = new Skies(this.sceneApi, this.currentMapName, false);
         }
+    }
+    initLowresTerrain () {
+        this.lowresTerrain = new LowresTerrain(this.sceneApi, this.currentMapName);
     }
     initBoxVBO (){
         var gl = this.gl;
@@ -1765,6 +1778,16 @@ class Scene {
             gl.enable(gl.DEPTH_TEST); // restore for everything else
         }
 
+        // Draw lowresterrain
+        if (config.getRenderLowresTerrain() && this.lowresTerrain) {
+            gl.enable(gl.CULL_FACE);
+            gl.disable(gl.DEPTH_TEST);
+            // the sky's projection has the far plane my_web_wow draws everything with (850)
+            this.lowresTerrain.drawAll(lookAtMat4, skyPerspectiveMatrix, this.fogColor);
+            gl.disable(gl.CULL_FACE);
+            gl.enable(gl.DEPTH_TEST); // restore for everything else
+        }
+
         gl.activeTexture(gl.TEXTURE0);
         gl.depthMask(true);
         gl.enableVertexAttribArray(0);
@@ -1831,6 +1854,7 @@ class Scene {
             self.currentMapName = mapName;
 
             self.initSky();
+            self.initLowresTerrain();
 
             if (wdtFile.isWMOMap) {
                 self.graphManager.loadWmoMap(wdtFile.modfChunk!);

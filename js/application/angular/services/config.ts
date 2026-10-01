@@ -20,6 +20,8 @@ var useDebugSky: boolean = false;
 
 var renderLiquid: boolean = true;
 
+var renderLowresTerrain: boolean = true;
+
 var drawWmoBB: boolean = false;
 var drawM2BB: boolean = false;
 var secondCamera: boolean = false;
@@ -131,6 +133,12 @@ export default {
     },
     setRenderLiquid : function (value: boolean) {
         renderLiquid = value;
+    },
+    getRenderLowresTerrain : function () {
+        return renderLowresTerrain;
+    },
+    setRenderLowresTerrain : function (value: boolean) {
+        renderLowresTerrain = value;
     },
     getSceneParams : function () {
         return sceneParams;

@@ -64,6 +64,8 @@ export interface SceneApiShaders {
     getSkyShader(): ShaderProgram;
     /* the liquid surface shader (liquid) */
     getLiquidShader(): ShaderProgram;
+    /* the flat-colour WDL low-res terrain shader (lowresTerrain) */
+    getLowresTerrainShader(): ShaderProgram;
 }
 
 export interface SceneApiDbc {
