@@ -50,12 +50,16 @@ class Skies {
             var off = { offs: 4 };        // skip first 4 bytes (version)
 
             var nSkies = br.readInt32(off);
+            var nSkiesInFile = nSkies;
             if (forced && nSkies > 1) nSkies = 1;
             self.numSkies = nSkies;
 
             // 1) construct skies
             for (var i = 0; i < self.numSkies; i++)
                 self.skies.push(new Sky(br, off));
+
+            // the colour blocks follow the headers (64 bytes each) of all skies in the file
+            off.offs = 8 + nSkiesInFile * 64;
 
             // 2) call init for each
             for (var i = 0; i < self.numSkies; i++)
