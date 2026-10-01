@@ -843,8 +843,7 @@ abstract class MDXObject {
             this.startRightHandClosed = undefined;
         }
         if (typeof this.startLeftHandClosed != 'undefined') {
-            // JS-BUG: the stored left-hand state is applied with setRightHandClosed (probably meant setLeftHandClosed)
-            this.animationManager.setRightHandClosed(this.startLeftHandClosed);
+            this.animationManager.setLeftHandClosed(this.startLeftHandClosed);
             this.startLeftHandClosed = undefined;
         }
     }
