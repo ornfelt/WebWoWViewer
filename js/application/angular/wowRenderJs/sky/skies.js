@@ -30,6 +30,8 @@ class Skies {
 
         this.numSkies = 0;
         this.cs = -1;
+        // set by dispose(): a lights.lit that finishes loading afterwards is dropped
+        this.disposed = false;
 
         var forceDefaultSky = false;
         if (forceDefaultSky) {
@@ -46,6 +48,8 @@ class Skies {
     loadFrom(path, forced) {
         var self = this;
         return fileLoader(path).then(function success(data) {
+            if (self.disposed) return false;
+
             var br = fileReadHelper(data);
             var off = { offs: 4 };        // skip first 4 bytes (version)
 
@@ -76,6 +80,17 @@ class Skies {
         }, function error() {
             return false;
         });
+    }
+
+    dispose() {
+        this.disposed = true;
+
+        // GPU objects only exist when a lights.lit was loaded (initGpu)
+        if (!this.skyVbo) return;
+
+        var gl = this.sceneApi.getGlContext();
+        gl.deleteBuffer(this.skyVbo);
+        gl.deleteBuffer(this.skyEbo);
     }
 
     findSkyWeights(pos) {
