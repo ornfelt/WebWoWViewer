@@ -326,8 +326,8 @@ class WorldObjectManager {
                                 }
                             }
                             //Main hand
-                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_15_0")) {
-                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_15_0'];
+                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_16_0")) {
+                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_16_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
                                         newWorldUnit.setMainHandItem(itemData[kk].value);
@@ -335,11 +335,20 @@ class WorldObjectManager {
                                 }
                             }
                             //Off hand
-                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_16_0")) {
-                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_16_0'];
+                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_17_0")) {
+                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_17_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        newWorldUnit.setMainHandItem(itemData[kk].value);
+                                        newWorldUnit.setOffHandItem(itemData[kk].value);
+                                    }
+                                }
+                            }
+                            //Tabard
+                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_19_0")) {
+                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_19_0'];
+                                for (var kk =0 ; kk < itemData.length; kk++) {
+                                    if (itemData[kk].index == 0) {
+                                        newWorldUnit.setTabardItem(itemData[kk].value);
                                     }
                                 }
                             }
