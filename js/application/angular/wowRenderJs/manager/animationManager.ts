@@ -465,15 +465,16 @@ export default class AnimationManager {
           //animation = 0;
           //this.currentAnimationIndex = 0;
 
-          // JS-BUG: wraps the time into this.currentAnimationIndex's range whatever the animation parameter is (closed-hand and blend animations get the wrong time); NaN when timeEnd == timeStart
-          const currentAnimationRecord = this.m2File.animations[this.currentAnimationIndex];
+          const animationRecord = this.m2File.animations[animation];
           //console.log("m2file:", this.m2File);
-          const tmax = currentAnimationRecord.timeEnd! - currentAnimationRecord.timeStart!;
+          if (animationRecord) {
+            const tmax = animationRecord.timeEnd! - animationRecord.timeStart!;
 
-          // Loop 't' within that range
-          //currTime = parseInt(currTime / 10, 10);
-          currTime = currTime % tmax;
-          currTime += currentAnimationRecord.timeStart!;
+            // Loop 't' within that range (a zero-length animation stays on its first frame)
+            //currTime = parseInt(currTime / 10, 10);
+            currTime = (tmax > 0) ? currTime % tmax : 0;
+            currTime += animationRecord.timeStart!;
+          }
         }
 
         // Debug
