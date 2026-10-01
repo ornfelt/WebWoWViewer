@@ -212,8 +212,7 @@ class WorldUnit extends WorldObject {
         //animationId = 60; // NPC fly faster?
         //animationId = 68; // fly backwards2
         //animationId = 75; // fly jump?
-        // JS-BUG: debug override - the walk / run id picked from movementFlag above is always replaced by 77 (fly fast)
-        animationId = 77; // FLY FAST!!
+        //animationId = 77; // FLY FAST!!
         //animationId = 78; // FLY jump?
         //animationId = 80; // FLY backwards
         //animationId = 91; // Try next!
