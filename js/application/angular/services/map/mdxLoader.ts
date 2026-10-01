@@ -1978,10 +1978,6 @@ export default function(filePath: string): Promise<M2File> {
 
         resultMDXObject.fileName = filePath;
         return resultMDXObject;
-    },
-    // JS-BUG: the rejection handler returns errorObj, so a failed load resolves with the error as if it were the M2File
-    function error(errorObj: unknown): M2File {
-        return errorObj as M2File;
     });
 
     return newPromise;

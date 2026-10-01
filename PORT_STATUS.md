@@ -67,7 +67,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 31 | `services/map/mdxLoader.ts` `parseOldFile` | when `timeStart > timeEnd`, `timeEnd -= timeStartTemp` instead of `timeEnd = timeStartTemp` (the code's own TODO doubts it) | `timeEnd` becomes negative and `length` is `-timeStart` for those TBC / classic animations (probably meant a swap) |
 | 32 | `services/map/mdxLoader.ts` `BaseMdxChunkedLoader.getHandler` | returns `handlerTable[...]`, which is not declared (probably meant `mdxChunked`) | ReferenceError on the first chunk; unreachable today (bug 33) |
 | 33 | `services/map/mdxLoader.ts` default export (MD21 branch) | `chunkedLoader` is not imported | every MD21 (chunked, Legion+) model rejects with a ReferenceError |
-| 34 | `services/map/mdxLoader.ts` default export | rejection handler returns `errorObj` | a failed load resolves with the error as if it were the M2File (like 7) |
 | 35 | `wowRenderJs/geometry/adtGeomCache.ts` `ADTGeom` constructor | initialises `combinedVBO`, while `createVBO()` / `draw()` use `combinedVbo` | harmless, the field is never read |
 | 36 | `wowRenderJs/geometry/adtGeomCache.ts` `ADTGeom.draw` | `stripLength` is 0 for `i == 0` | the first chunk of every ADT is never drawn (probably a leftover debug hack) |
 | 37 | `wowRenderJs/geometry/skinGeomCache.ts` `fixShaderIdBasedOnLayer` | every write goes to `shader_id`, a new property, not `shaderId` | nothing else reads `shader_id`, so the layer-based shader fixes never reach the renderer (probably meant `shaderId`) |
