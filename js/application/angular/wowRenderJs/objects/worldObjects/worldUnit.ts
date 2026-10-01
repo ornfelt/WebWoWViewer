@@ -643,8 +643,7 @@ class WorldUnit extends WorldObject {
         }
 
         if (this.mountModel && objectModelIsLoaded) {
-            // JS-BUG: `|| 1` makes the condition always true - the mount plays the movement animation (77, see getAnimationIdByMovementFlag) even when standing
-            if (this.isMoving || 1) {
+            if (this.isMoving) {
                 var animationId = this.getAnimationIdByMovementFlag();
                 // JS-BUG: setAnimationId takes one argument; the second (false) is ignored - harmless (also the two calls below)
                 // @ts-expect-error setAnimationId takes one argument; ported as-is
