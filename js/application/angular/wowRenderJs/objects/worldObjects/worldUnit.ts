@@ -853,6 +853,8 @@ class WorldUnit extends WorldObject {
     }
     setVirtualItemSlot(slot: number, displayId: number, itemClass: number | undefined, itemSubClass: number | undefined, itemInventoryType: number | undefined) {
         var idid = this.sceneApi.dbc.getItemDisplayInfoDBC();
+        /* ItemDisplayInfo.dbc is only loaded for WotLK, and only once it has been read */
+        if (!idid) return;
 
         /* 1. Free previous model */
 

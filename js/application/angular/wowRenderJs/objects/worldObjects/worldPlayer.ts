@@ -1,5 +1,6 @@
 import WorldUnit from './worldUnit';
 import type { SceneApi } from '../../sceneApi';
+import type { ItemRecord } from '../../../services/dbc/itemDBC';
 
 //For ref: http://images.staticjw.com/wor/3751/addon-use-char.png
 const player_item_HEAD = 1;
@@ -84,8 +85,14 @@ class WorldPlayer extends WorldUnit {
     }
 
     /* Items */
+    /* Item.dbc is only loaded for WotLK, and only once it has been read */
+    getItemRecord(entry: number): ItemRecord | undefined {
+        var itemDBC = this.sceneApi.dbc.getItemDBC();
+        return itemDBC ? itemDBC[entry] : undefined;
+    }
+
     setHeadItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.headItemId = itemRecord.displayId;
         }
@@ -93,91 +100,91 @@ class WorldPlayer extends WorldUnit {
     }
 
     setNeckItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.neckItemId = itemRecord.displayId;
         }
     }
 
     setShouldersItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.shoulderItemId = itemRecord.displayId;
         }
     }
 
     setBodyItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.bodyItemId = itemRecord.displayId;
         }
     }
 
     setChestItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.chestItemId = itemRecord.displayId;
         }
     }
 
     setWaistItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.waistItemId = itemRecord.displayId;
         }
     }
 
     setLegsItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.legsItemId = itemRecord.displayId;
         }
     }
 
     setFeetItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.feetItemId = itemRecord.displayId;
         }
     }
 
     setWristItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.wristItemId = itemRecord.displayId;
         }
     }
 
     setHandsItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.handsItemId = itemRecord.displayId;
         }
     }
 
     setBackItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.backItemId = itemRecord.displayId;
         }
     }
 
     setMainHandItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.mainHandItemId = itemRecord.displayId;
         }
     }
 
     setOffHandItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.offHandItemId = itemRecord.displayId;
         }
     }
 
     setTabardItem(entry: number) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.tabardItemId = itemRecord.displayId;
         }
