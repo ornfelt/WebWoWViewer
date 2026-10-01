@@ -1746,7 +1746,13 @@ class Scene {
                 if (this.skyQuadVbo) {
                     gl.bindBuffer(gl.ARRAY_BUFFER, this.skyQuadVbo);
                     this.activateSkyShader();
-                    gl.drawArrays(gl.TRIANGLES, 0, 6);
+                    if (config.getRenderSkyPolygons()) {
+                        // Wireframe view (F5): the edges of the two triangles
+                        gl.drawArrays(gl.LINE_LOOP, 0, 3);
+                        gl.drawArrays(gl.LINE_LOOP, 3, 3);
+                    } else {
+                        gl.drawArrays(gl.TRIANGLES, 0, 6);
+                    }
                     this.deactivateSkyShader();
                 }
             } else if (this.skies) {

@@ -22,6 +22,13 @@ var renderLiquid: boolean = true;
 
 var renderLowresTerrain: boolean = true;
 
+/* the wireframe views (F1 - F5) */
+var renderAdtPolygons: boolean = false;
+var renderLiquidPolygons: boolean = false;
+var renderMd2Polygons: boolean = false;
+var renderWmoPolygons: boolean = false;
+var renderSkyPolygons: boolean = false;
+
 var drawWmoBB: boolean = false;
 var drawM2BB: boolean = false;
 var secondCamera: boolean = false;
@@ -139,6 +146,36 @@ export default {
     },
     setRenderLowresTerrain : function (value: boolean) {
         renderLowresTerrain = value;
+    },
+    getRenderAdtPolygons : function () {
+        return renderAdtPolygons;
+    },
+    setRenderAdtPolygons : function (value: boolean) {
+        renderAdtPolygons = value;
+    },
+    getRenderLiquidPolygons : function () {
+        return renderLiquidPolygons;
+    },
+    setRenderLiquidPolygons : function (value: boolean) {
+        renderLiquidPolygons = value;
+    },
+    getRenderMd2Polygons : function () {
+        return renderMd2Polygons;
+    },
+    setRenderMd2Polygons : function (value: boolean) {
+        renderMd2Polygons = value;
+    },
+    getRenderWmoPolygons : function () {
+        return renderWmoPolygons;
+    },
+    setRenderWmoPolygons : function (value: boolean) {
+        renderWmoPolygons = value;
+    },
+    getRenderSkyPolygons : function () {
+        return renderSkyPolygons;
+    },
+    setRenderSkyPolygons : function (value: boolean) {
+        renderSkyPolygons = value;
     },
     getSceneParams : function () {
         return sceneParams;

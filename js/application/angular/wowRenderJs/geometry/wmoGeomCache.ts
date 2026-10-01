@@ -1,4 +1,6 @@
 import cacheTemplate from './../cache';
+import config from './../../services/config';
+import { triangleListToLines } from './wireframe';
 import type { Cache } from './../cache';
 
 import {wmoGroupLoader} from './../../services/map/wmoLoader'
@@ -14,6 +16,8 @@ class WmoGeom {
     sceneApi: SceneApi;
     combinedVBO: WebGLBuffer | null;
     indexVBO: WebGLBuffer | null;
+    /* the triangle edges, for the wireframe view */
+    indexLinesVBO: WebGLBuffer | null;
     wmoGroupFile: WmoGroupFile;
     /* per render batch, per texture unit; a slot stays empty until its texture has loaded */
     textureArray: Texture[][];
@@ -32,6 +36,7 @@ class WmoGeom {
 
         this.combinedVBO = null;
         this.indexVBO = null;
+        this.indexLinesVBO = null;
         this.wmoGroupFile = wmoGroupFile;
 
         this.textureArray = [];
@@ -128,6 +133,10 @@ class WmoGeom {
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.indexVBO );
         gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, new Int16Array(wmoGroupObject.indicies), gl.STATIC_DRAW );
 
+        this.indexLinesVBO = gl.createBuffer();
+        gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.indexLinesVBO );
+        gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, triangleListToLines(wmoGroupObject.indicies), gl.STATIC_DRAW );
+
         if (wmoGroupObject.mobr) {
             this.mobrVBO = gl.createBuffer();
             gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.mobrVBO);
@@ -159,7 +168,13 @@ class WmoGeom {
         var wmoGroupObject = this.wmoGroupFile;
         var isIndoor = (wmoGroupObject.mogp.Flags & 0x2000) > 0;
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexVBO);
+        // Wireframe view (F4): the triangle edges, for my_web_wow's PolygonMode(Line);
+        // a line draw has twice the indices of its triangle draw, from twice the offset
+        var wireframe = config.getRenderWmoPolygons();
+        var mode = wireframe ? gl.LINES : gl.TRIANGLES;
+        var lineScale = wireframe ? 2 : 1;
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, wireframe ? this.indexLinesVBO : this.indexVBO);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.combinedVBO);
 
         gl.enableVertexAttribArray(shaderAttributes.aPosition);
@@ -287,11 +302,11 @@ class WmoGeom {
                         triangleCount = mobrPiece[mobrIndex] - currentTriangle;
                     }
 
-                    gl.drawElements(gl.TRIANGLES, triangleCount*3, gl.UNSIGNED_SHORT, currentTriangle*3 * 2);
+                    gl.drawElements(mode, triangleCount*3 * lineScale, gl.UNSIGNED_SHORT, currentTriangle*3 * 2 * lineScale);
                     currentTriangle = currentTriangle + triangleCount;
                 }
             } else {
-                gl.drawElements(gl.TRIANGLES, renderBatch.count, gl.UNSIGNED_SHORT, renderBatch.startIndex * 2);
+                gl.drawElements(mode, renderBatch.count * lineScale, gl.UNSIGNED_SHORT, renderBatch.startIndex * 2 * lineScale);
             }
 
             if (textureObject && textureObject[1]) {
@@ -311,12 +326,16 @@ class WmoGeom {
         if (this.indexVBO) {
             gl.deleteBuffer(this.indexVBO);
         }
+        if (this.indexLinesVBO) {
+            gl.deleteBuffer(this.indexLinesVBO);
+        }
         if (this.mobrVBO) {
             gl.deleteBuffer(this.mobrVBO);
         }
 
         this.combinedVBO = null;
         this.indexVBO = null;
+        this.indexLinesVBO = null;
     }
 }
 

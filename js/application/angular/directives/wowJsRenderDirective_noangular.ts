@@ -59,6 +59,11 @@ interface KeyBindTargets {
   chkDrawDepth: HTMLInputElement;
   chkRenderLiquid: HTMLInputElement;
   chkRenderLowresTerrain: HTMLInputElement;
+  chkRenderAdtPolygons: HTMLInputElement;
+  chkRenderLiquidPolygons: HTMLInputElement;
+  chkRenderMd2Polygons: HTMLInputElement;
+  chkRenderWmoPolygons: HTMLInputElement;
+  chkRenderSkyPolygons: HTMLInputElement;
   chkRenderSky: HTMLInputElement;
   sliderDrawDistance: HTMLInputElement;
 }
@@ -87,6 +92,14 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
       event.preventDefault();
       keyBinds.settingsPanel.style.display = keyBinds.settingsPanel.style.display === 'none' ? '' : 'none';
       return;
+    }
+    // bind F1 - F5: toggle the wireframe views (instead of the browser's own F1 - F5 actions)
+    switch (event.key) {
+      case 'F1': event.preventDefault(); toggle(keyBinds.chkRenderAdtPolygons, 'RenderAdtPolygons'); return;
+      case 'F2': event.preventDefault(); toggle(keyBinds.chkRenderLiquidPolygons, 'RenderLiquidPolygons'); return;
+      case 'F3': event.preventDefault(); toggle(keyBinds.chkRenderMd2Polygons, 'RenderMd2Polygons'); return;
+      case 'F4': event.preventDefault(); toggle(keyBinds.chkRenderWmoPolygons, 'RenderWmoPolygons'); return;
+      case 'F5': event.preventDefault(); toggle(keyBinds.chkRenderSkyPolygons, 'RenderSkyPolygons'); return;
     }
     const key = String.fromCharCode(event.keyCode || event.charCode);
     // Space and Tab move the camera, so keep them from scrolling the page / moving the focus
@@ -296,7 +309,8 @@ export async function initViewer(containerEl: HTMLElement) {
           Space - up, Tab - down, Shift - faster, Mouse - move camera<br/>
           B - M2, Z - ADT, O - WMO, I - WMO BB, K - depth,<br/>
           Q - liquid, E - sky, F - draw distance, F6 - hide this panel,<br/>
-          L - lowres terrain, Wheel - zoom
+          L - lowres terrain, Wheel - zoom,<br/>
+          F1-F5 - wireframe ADT, liquid, M2, WMO, sky
         </p>
 
         <label><input type="checkbox" id="chkDrawAdt"> Draw ADT</label><br/>
@@ -305,6 +319,11 @@ export async function initViewer(containerEl: HTMLElement) {
         <label><input type="checkbox" id="chkRenderSky"> Render Sky</label><br/>
         <label><input type="checkbox" id="chkRenderLiquid"> Render Liquid</label><br/>
         <label><input type="checkbox" id="chkRenderLowresTerrain"> Render Lowres Terrain</label><br/>
+        <label><input type="checkbox" id="chkRenderAdtPolygons"> ADT Polygons</label><br/>
+        <label><input type="checkbox" id="chkRenderLiquidPolygons"> Liquid Polygons</label><br/>
+        <label><input type="checkbox" id="chkRenderMd2Polygons"> M2 Polygons</label><br/>
+        <label><input type="checkbox" id="chkRenderWmoPolygons"> WMO Polygons</label><br/>
+        <label><input type="checkbox" id="chkRenderSkyPolygons"> Sky Polygons</label><br/>
         <label><input type="checkbox" id="chkDrawPortals"> Draw Portals</label><br/>
         <label><input type="checkbox" id="chkDrawM2BB"> Draw M2 BB</label><br/>
         <label><input type="checkbox" id="chkDrawWmoBB"> Draw WMO BB</label><br/>
@@ -337,6 +356,11 @@ export async function initViewer(containerEl: HTMLElement) {
   const chkRenderSky        = containerEl.querySelector<HTMLInputElement>('#chkRenderSky')!;
   const chkRenderLiquid     = containerEl.querySelector<HTMLInputElement>('#chkRenderLiquid')!;
   const chkRenderLowresTerrain = containerEl.querySelector<HTMLInputElement>('#chkRenderLowresTerrain')!;
+  const chkRenderAdtPolygons = containerEl.querySelector<HTMLInputElement>('#chkRenderAdtPolygons')!;
+  const chkRenderLiquidPolygons = containerEl.querySelector<HTMLInputElement>('#chkRenderLiquidPolygons')!;
+  const chkRenderMd2Polygons = containerEl.querySelector<HTMLInputElement>('#chkRenderMd2Polygons')!;
+  const chkRenderWmoPolygons = containerEl.querySelector<HTMLInputElement>('#chkRenderWmoPolygons')!;
+  const chkRenderSkyPolygons = containerEl.querySelector<HTMLInputElement>('#chkRenderSkyPolygons')!;
   const chkDrawPortals      = containerEl.querySelector<HTMLInputElement>('#chkDrawPortals')!;
   const chkDrawM2BB         = containerEl.querySelector<HTMLInputElement>('#chkDrawM2BB')!;
   const chkDrawWmoBB        = containerEl.querySelector<HTMLInputElement>('#chkDrawWmoBB')!;
@@ -751,6 +775,11 @@ export async function initViewer(containerEl: HTMLElement) {
   chkRenderSky.checked        = config.getRenderSky();
   chkRenderLiquid.checked     = config.getRenderLiquid();
   chkRenderLowresTerrain.checked = config.getRenderLowresTerrain();
+  chkRenderAdtPolygons.checked = config.getRenderAdtPolygons();
+  chkRenderLiquidPolygons.checked = config.getRenderLiquidPolygons();
+  chkRenderMd2Polygons.checked = config.getRenderMd2Polygons();
+  chkRenderWmoPolygons.checked = config.getRenderWmoPolygons();
+  chkRenderSkyPolygons.checked = config.getRenderSkyPolygons();
   chkDrawPortals.checked      = config.getRenderPortals();
   chkDrawM2BB.checked         = config.getDrawM2BB();
   chkDrawWmoBB.checked        = config.getDrawWmoBB();
@@ -774,6 +803,11 @@ export async function initViewer(containerEl: HTMLElement) {
     chkDrawDepth,
     chkRenderLiquid,
     chkRenderLowresTerrain,
+    chkRenderAdtPolygons,
+    chkRenderLiquidPolygons,
+    chkRenderMd2Polygons,
+    chkRenderWmoPolygons,
+    chkRenderSkyPolygons,
     chkRenderSky,
     sliderDrawDistance,
   });
@@ -785,6 +819,11 @@ export async function initViewer(containerEl: HTMLElement) {
   chkRenderSky.addEventListener('change', () => { config.setRenderSky(chkRenderSky.checked); });
   chkRenderLiquid.addEventListener('change', () => { config.setRenderLiquid(chkRenderLiquid.checked); });
   chkRenderLowresTerrain.addEventListener('change', () => { config.setRenderLowresTerrain(chkRenderLowresTerrain.checked); });
+  chkRenderAdtPolygons.addEventListener('change', () => { config.setRenderAdtPolygons(chkRenderAdtPolygons.checked); });
+  chkRenderLiquidPolygons.addEventListener('change', () => { config.setRenderLiquidPolygons(chkRenderLiquidPolygons.checked); });
+  chkRenderMd2Polygons.addEventListener('change', () => { config.setRenderMd2Polygons(chkRenderMd2Polygons.checked); });
+  chkRenderWmoPolygons.addEventListener('change', () => { config.setRenderWmoPolygons(chkRenderWmoPolygons.checked); });
+  chkRenderSkyPolygons.addEventListener('change', () => { config.setRenderSkyPolygons(chkRenderSkyPolygons.checked); });
   chkDrawPortals.addEventListener('change', () => { config.setRenderPortals(chkDrawPortals.checked); });
   chkDrawM2BB.addEventListener('change', () => { config.setDrawM2BB(chkDrawM2BB.checked); });
   chkDrawWmoBB.addEventListener('change', () => { config.setDrawWmoBB(chkDrawWmoBB.checked); });

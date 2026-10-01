@@ -1,4 +1,6 @@
 import {vec3} from 'gl-matrix'
+import config from './../../services/config';
+import { triangleListToLines } from '../geometry/wireframe';
 import type {ReadonlyMat4, ReadonlyVec3} from 'gl-matrix'
 import type { FileOffset, FileReadHelper } from './../../services/fileReadHelper';
 import type { LiquidTypeRecord } from './../../services/dbc/liquidTypeDBC';
@@ -67,6 +69,8 @@ class Liquid {
     // GL handles, set by uploadBuffers()
     vbo: WebGLBuffer | null;
     ebo: WebGLBuffer | null;
+    /* the triangle edges, for the wireframe view */
+    lineEbo: WebGLBuffer | null;
     indexCnt: number;
 
     // texture state
@@ -101,6 +105,7 @@ class Liquid {
 
         this.vbo = null;
         this.ebo = null;
+        this.lineEbo = null;
         this.indexCnt = 0;
 
         this.textures = [];
@@ -347,7 +352,13 @@ class Liquid {
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, tex.texture);
-        gl.drawElements(gl.TRIANGLES, this.indexCnt, gl.UNSIGNED_SHORT, 0);
+        // Wireframe view (F2): the triangle edges, for my_web_wow's PolygonMode(Line)
+        if (config.getRenderLiquidPolygons()) {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lineEbo);
+            gl.drawElements(gl.LINES, this.indexCnt * 2, gl.UNSIGNED_SHORT, 0);
+        } else {
+            gl.drawElements(gl.TRIANGLES, this.indexCnt, gl.UNSIGNED_SHORT, 0);
+        }
 
         // attribute 0 stays enabled: the scene enables it for the shaders drawn after this one
         if (aPos != 0) gl.disableVertexAttribArray(aPos);
@@ -450,6 +461,10 @@ class Liquid {
         this.ebo = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+        this.lineEbo = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lineEbo);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, triangleListToLines(indices), gl.STATIC_DRAW);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         gl.bindBuffer(gl.ARRAY_BUFFER, null);

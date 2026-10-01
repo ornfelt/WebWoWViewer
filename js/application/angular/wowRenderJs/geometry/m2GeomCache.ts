@@ -1,4 +1,5 @@
 import cacheTemplate from './../cache';
+import config from './../../services/config';
 import mdxLoader from './../../services/map/mdxLoader';
 import type { M2File } from './../../services/map/mdxLoader';
 import type { mat4 } from 'gl-matrix';
@@ -378,12 +379,21 @@ class M2Geom {
                     gl.bindTexture(gl.TEXTURE_2D, blackPixelText);
                 }
 
+                // Wireframe view (F3) of the opaque meshes, as my_web_wow's PolygonMode(Line) around
+                // them: the triangle edges, twice the indices of the triangle draw from twice the offset
+                var wireframe = config.getRenderMd2Polygons() && !materialData.isTransparent;
+                if (config.getRenderMd2Polygons()) {
+                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, wireframe ? skinObject.indexLinesVBO : skinObject.indexVBO);
+                }
+                var mode = wireframe ? gl.LINES : gl.TRIANGLES;
+                var lineScale = wireframe ? 2 : 1;
+
                 var meshIndex = materialData.meshIndex;
                 if (instanceCount == -1) {
                     //var error = gl.getError(); // Drop error flag
-                    gl.drawElements(gl.TRIANGLES, skinData.subMeshes[meshIndex].nTriangles, gl.UNSIGNED_SHORT, skinData.subMeshes[meshIndex].StartTriangle * 2);
+                    gl.drawElements(mode, skinData.subMeshes[meshIndex].nTriangles * lineScale, gl.UNSIGNED_SHORT, skinData.subMeshes[meshIndex].StartTriangle * 2 * lineScale);
                 } else {
-                    instExt!.drawElementsInstancedANGLE(gl.TRIANGLES, skinData.subMeshes[meshIndex].nTriangles, gl.UNSIGNED_SHORT, skinData.subMeshes[meshIndex].StartTriangle * 2, instanceCount);
+                    instExt!.drawElementsInstancedANGLE(mode, skinData.subMeshes[meshIndex].nTriangles * lineScale, gl.UNSIGNED_SHORT, skinData.subMeshes[meshIndex].StartTriangle * 2 * lineScale, instanceCount);
                 }
                 if (materialData.texUnit2Texture != null) {
                     gl.activeTexture(gl.TEXTURE1);
