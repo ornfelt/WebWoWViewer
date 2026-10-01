@@ -68,9 +68,10 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 - `cache.ts` `remove()`: `destroy()` is reached through an assertion to `T & Destroyable` (bug 6).
 - `fileLoader-worker.ts`: `messageId` is `!`-asserted (only `loadFile` requests carry one); the init params and
   file path are asserted out of the request union because the JS reads `message` before checking `opcode`.
-- Entry point (group 10): `compare-emit.mjs app_wow.ts=app_wowjs.js` DIFFERS - `app_wow.ts` adds
-  `if (!container) { console.error("Viewer container not found!"); return; }` in `window.onload`. Needs the
-  user's decision before `app_wowjs.js` is removed. Its `declare global` moved to `global.d.ts` in run 1.
+- Entry point (group 10): `app_wow.ts` was rebuilt from `app_wowjs.js` at the user's request (run 3) -
+  all comments kept, the extra `if (!container)` guard removed; `compare-emit.mjs app_wow.ts=app_wowjs.js`
+  is SAME. `document.getElementById('viewer-container')!` - the JS assumes the container exists.
+  `app_wowjs.js` is still in the tree (not bundled); remove it with `git rm` once the user confirms.
 
 ## Run log
 
@@ -79,3 +80,4 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 | setup | toolchain | - | clean | green | - |
 | 1 | groups 1-2: config, fileReadHelper, cache, quickSort, wowTextureRegions, mathHelper, global.d.ts, sceneApi.ts, fileLoaderStub, fileLoader-worker, fileLoader, dbcLoader, chunkedLoader, linedfileLoader | 2,430 | clean | green (dev + prod) | all SAME |
 | 2 | JS bug list + `JS-BUG` markers in groups 1-2 (no code change) | - | clean | green | all SAME |
+| 3 | app_wow.ts rebuilt from app_wowjs.js (entry point; app_wowjs.js not yet removed) | 360 | clean | green | SAME |
