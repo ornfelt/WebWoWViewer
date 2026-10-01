@@ -437,6 +437,12 @@ export default class AnimationManager {
         var globalSequence = animationBlock.global_sequence;
         var interpolType = animationBlock.interpolation_type;
 
+        // TBC / classic tracks other than the bones (ablock_tbc) hold every animation in one slot,
+        // and the time above is already absolute, so look the keys up in that slot
+        if (window.selectedExpansion !== Expansion.WOTLK && animationBlock.timestampsPerAnimation.length == 1) {
+            animation = 0;
+        }
+
         if (animation < 0
             || animation >= animationBlock.timestampsPerAnimation.length
             || animation >= animationBlock.valuesPerAnimation.length)
