@@ -270,6 +270,9 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 - Switch-over (run 10): `allowJs` / `checkJs` removed from `tsconfig.json`; `extensionAlias` removed from `webpack.config.js`
   (no `.js` specifier is left outside comments). The three remaining `any`s are commented and genuinely dynamic:
   `ChunkResultObj` (chunkedLoader), `ParsedObject` (linedfileLoader), `processPacket(packet)` (worldObjectManager).
+- After the port (user request): the unused AngularJS directives `wowJsRenderDirective.js` and `fileDownload.js` were deleted, and
+  `package.json` gained `check:ts-only` (fails if any `.js` file exists under `js/application`), run with `tsc --noEmit` by the
+  `prebuild` and `prebuild:prod` hooks.
 
 ## Run log
 
