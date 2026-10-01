@@ -112,7 +112,6 @@ class WmoM2Object extends MDXObject {
     setIsRendered (value: boolean) {
         this.isRendered = value;
     }
-    // JS-BUG: useLocalColor is never used, so the false that WmoObject passes (through loadWmoM2Obj) never reaches setUseLocalLighting - doodads keep useLocalLighting = true
     // @ts-expect-error overrides MDXObject.load with a different signature; startLoading() calls MDXObject.prototype.load directly
     load (doodad: WmoDoodad, wmoPlacementMatrix: mat4, useLocalColor: boolean){
         var self = this;
