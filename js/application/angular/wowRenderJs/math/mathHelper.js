@@ -494,8 +494,10 @@ class MathHelper {
                 if (normal_avg > 0) {
                     //Bottom
                     var distanceToCamera = cameraLocal[2] - z;
-                    if ((distanceToCamera > 0) && (distanceToCamera < minPositiveDistanceToCamera))
+                    if ((distanceToCamera > 0) && (distanceToCamera < minPositiveDistanceToCamera)) {
                         bottomZ = z;
+                        minPositiveDistanceToCamera = distanceToCamera;
+                    }
                 } else {
                     //Top
                     topZ = Math.max(z, topZ);
