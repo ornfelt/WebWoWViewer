@@ -1009,11 +1009,15 @@ class Scene {
                  1,  1
             ];
 
+            // initSky can run more than once: free the previous quad
+            if (this.skyQuadVbo) gl.deleteBuffer(this.skyQuadVbo);
+
             this.skyQuadVbo = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, this.skyQuadVbo);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(quad), gl.STATIC_DRAW);
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
         } else {
+            if (this.skies) this.skies.dispose();
             this.skies = new Skies(this.sceneApi, this.currentMapName, false);
         }
     }
