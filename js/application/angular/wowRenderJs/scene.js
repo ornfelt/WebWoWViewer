@@ -1516,6 +1516,7 @@ class Scene {
         //    }
         //}
 
+        if ((x < 0) || (x >= 64) || (y < 0) || (y >= 64)) return;
         if (this.currentWdt.tileTable[y][x]) {
             var adtFileName = "world/maps/"+this.currentMapName+"/"+this.currentMapName+"_"+x+"_"+y+".adt";
             this.graphManager.addADTObject(x, y, adtFileName);
