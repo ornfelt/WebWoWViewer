@@ -1212,9 +1212,9 @@ float hash(vec2 p) {
 
 void main()
 {
-    // tiny sine-wave in object space (optional)
+    // tiny sine-wave on the height axis (z is up), travelling over the surface (x, y)
     vec3 wPos = aPos;
-    wPos.y += sin((aPos.x + aPos.z) * 0.05 + uTime) * uWaveAmp;
+    wPos.z += sin((aPos.x + aPos.y) * 0.05 + uTime) * uWaveAmp;
 
     gl_Position = uVP * vec4(wPos, 1.0);
 
