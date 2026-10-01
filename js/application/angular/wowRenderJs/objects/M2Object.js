@@ -90,7 +90,7 @@ class MDXObject {
         }
     }
     calcDistance (position) {
-        if (this.loaded && this.getIs) {
+        if (this.loaded && this.getIsRendered()) {
             this.currentDistance = mathHelper.distanceFromAABBToPoint(this.aabb, position);
         }
     }
