@@ -141,7 +141,7 @@ class WmoObject {
         }
 
         var doodadsSet = self.currentDoodadSet;
-        if (index < doodadsSet.index || index > doodadsSet.index+doodadsSet.number) return null;
+        if (index < doodadsSet.index || index >= doodadsSet.index+doodadsSet.number) return null;
 
         var doodadIndex = index - doodadsSet.index;
 
