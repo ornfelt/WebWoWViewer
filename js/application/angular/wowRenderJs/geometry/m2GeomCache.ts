@@ -5,6 +5,7 @@ import type { mat4 } from 'gl-matrix';
 import type { SceneApi } from './../sceneApi';
 import type { SkinGeom } from './skinGeomCache';
 import type { Texture } from './../texture/textureCache';
+import type { M2LightDetails } from './../manager/animationManager';
 
 
 class M2Geom {
@@ -132,7 +133,7 @@ class M2Geom {
 
 
     setupUniforms(placementMatrix: mat4 | null, boneMatrix: Float32Array | null, diffuseColor: Float32Array | null, drawTransparent: boolean,
-                  lights: any[]) { // TS-PORT: parked until wowRenderJs/manager/animationManager.ts exports its light type
+                  lights: M2LightDetails[]) {
         var gl = this.gl;
         var uniforms = this.sceneApi.shaders.getShaderUniforms();
         var m2File = this.m2File;

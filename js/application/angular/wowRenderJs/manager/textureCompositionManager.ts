@@ -1,7 +1,22 @@
 import wowTextureRegions from './../math/wowTextureRegions';
+import type { SceneApi } from './../sceneApi';
+import type { Texture } from './../texture/textureCache';
+
+/* One texture drawn into a region; textureObj stays null until the texture has loaded */
+export interface OverrideTextureRecord {
+    fileName: string;
+    textureObj: Texture | null;
+}
 
 class TextureCompositionManager {
-    constructor (sceneApi) {
+    sceneApi: SceneApi;
+    needsUpdate: boolean;
+    /* indexed by texture region (wowTextureRegions); a slot stays empty until a texture is added */
+    textureArray: OverrideTextureRecord[][];
+    /* the composed 1024x1024 texture, in the shape M2Object.overrideModelTexture() reads */
+    texture: { texture: WebGLTexture };
+
+    constructor (sceneApi: SceneApi) {
         this.sceneApi = sceneApi;
         this.needsUpdate = false;
 
@@ -24,7 +39,7 @@ class TextureCompositionManager {
     clear() {
         this.textureArray = new Array(13);
     }
-    addTexture(slot, textureName, gender) {
+    addTexture(slot: number, textureName: string, gender: number | null) {
         var self = this;
         if (!textureName) return;
         if (!this.textureArray[slot]) {
@@ -32,7 +47,7 @@ class TextureCompositionManager {
         }
 
         var actualTextureName = textureName;
-        var recordForOverideTexture = {fileName: textureName, textureObj: null}
+        var recordForOverideTexture: OverrideTextureRecord = {fileName: textureName, textureObj: null}
         actualTextureName = textureName;
         if (gender != null) {
             actualTextureName = textureName +'.blp';
@@ -64,7 +79,7 @@ class TextureCompositionManager {
         //this.needsUpdate = true;
     }
 
-    drawTexturesFromArray(slot) {
+    drawTexturesFromArray(slot: number) {
         var gl = this.sceneApi.getGlContext();
         var shaderUniforms = this.sceneApi.shaders.getShaderUniforms();
         var textureArray = this.textureArray[slot];
@@ -72,10 +87,10 @@ class TextureCompositionManager {
 
         var region = wowTextureRegions.old[slot];
 
-        gl.uniform1f(shaderUniforms.x, region.x) ;
-        gl.uniform1f(shaderUniforms.y, region.y) ;
-        gl.uniform1f(shaderUniforms.width, region.w) ;
-        gl.uniform1f(shaderUniforms.height, region.h);
+        gl.uniform1f(shaderUniforms.x, region.x!) ;
+        gl.uniform1f(shaderUniforms.y, region.y!) ;
+        gl.uniform1f(shaderUniforms.width, region.w!) ;
+        gl.uniform1f(shaderUniforms.height, region.h!);
 
         for (var i = 0; i < textureArray.length; i++) {
             var textureObject = textureArray[i].textureObj;

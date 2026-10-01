@@ -1,10 +1,28 @@
-import mathHelper from './mathHelper.js'
+import mathHelper from './mathHelper'
 
 import {vec4,vec3} from 'gl-matrix';
+import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix';
+
+/* A group reached through a portal (portalIndex -1 for a starting group), with the frustums it was reached through */
+export interface TraversedPortal {
+    groupId: number;
+    portalIndex: number;
+    frustumPlanes: vec4[][];
+    level: number;
+}
 
 
 export default class PortalCullingAlgo {
-    startTraversingFromInteriorWMO (wmoObject, groupId, cameraVec4, lookat, frustumPlanes, m2RenderedThisFrame) {
+    transverseVisitedGroups!: boolean[];
+    transverseVisitedPortals!: boolean[];
+    /* allocated per interior traversal, never filled */
+    portalViewFrustums!: unknown[];
+    exteriorPortals!: TraversedPortal[];
+    interiorPortals!: TraversedPortal[];
+
+    startTraversingFromInteriorWMO (wmoObject: any, // TS-PORT: parked until wowRenderJs/objects/wmoObject.ts exports WmoObject
+                                    groupId: number, cameraVec4: ReadonlyVec4, lookat: ReadonlyMat4, frustumPlanes: vec4[],
+                                    m2RenderedThisFrame: Set<any>): boolean { // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
         //CurrentVisibleM2 and visibleWmo is array of global m2 objects, that are visible after frustum
         var cameraLocal = vec4.create();
         vec4.transformMat4(cameraLocal, cameraVec4, wmoObject.placementInvertMatrix);
@@ -32,7 +50,7 @@ export default class PortalCullingAlgo {
 
         //If there are portals leading to exterior, we need to go through all exterior wmos.
         //Because it's not guaranteed that exterior wmo, that portals lead to, have portal connections to all visible interior wmo
-        var wmoM2Candidates = new Set();
+        var wmoM2Candidates = new Set<any>(); // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
         if (this.exteriorPortals.length > 0) {
             for (var i = 0; i< wmoObject.wmoGroupArray.length; i++) {
                 if ((wmoObject.wmoObj.groupInfos[i].flags & 0x8) > 0) { //exterior
@@ -48,6 +66,7 @@ export default class PortalCullingAlgo {
             var m2Object = value;
             if (!m2Object) return;
 
+            // JS-BUG: checkFrustumCulling takes three arguments; the fourth (false) is ignored
             var result = m2Object.checkFrustumCulling(cameraVec4, frustumPlanes, 6, false);
             m2Object.setIsRendered(result);
             if (result) m2RenderedThisFrame.add(m2Object);
@@ -64,7 +83,9 @@ export default class PortalCullingAlgo {
 
         return atLeastOneIsDrawn;
     }
-    startTraversingFromExterior(wmoObject, cameraVec4, lookat, frustumPlanes, m2RenderedThisFrame) {
+    startTraversingFromExterior(wmoObject: any, // TS-PORT: parked until wowRenderJs/objects/wmoObject.ts exports WmoObject
+                                cameraVec4: ReadonlyVec4, lookat: ReadonlyMat4, frustumPlanes: vec4[],
+                                m2RenderedThisFrame: Set<any>): boolean { // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
         var cameraLocal = vec4.create();
         vec4.transformMat4(cameraLocal, cameraVec4, wmoObject.placementInvertMatrix);
 
@@ -84,7 +105,7 @@ export default class PortalCullingAlgo {
         this.exteriorPortals = new Array();
         this.interiorPortals = new Array();
 
-        var wmoM2Candidates = new Set();
+        var wmoM2Candidates = new Set<any>(); // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
         for (var i = 0; i< wmoObject.wmoGroupArray.length; i++) {
             if ((wmoObject.wmoObj.groupInfos[i].flags & 0x8) > 0) { //exterior
                 if (wmoObject.wmoGroupArray[i].checkGroupFrustum(cameraVec4,  frustumPlanes, null, wmoM2Candidates)) {
@@ -99,6 +120,7 @@ export default class PortalCullingAlgo {
             var m2Object = value;
             if (!m2Object) return;
 
+            // JS-BUG: checkFrustumCulling takes three arguments; the fourth (false) is ignored
             var result = m2Object.checkFrustumCulling(cameraVec4, frustumPlanes, 6, false);
             m2Object.setIsRendered(result);
             if (result) m2RenderedThisFrame.add(m2Object);
@@ -116,7 +138,9 @@ export default class PortalCullingAlgo {
 
         return atLeastOneIsDrawn;
     }
-    checkGroupDoodads(wmoObject, groupId, cameraVec4, frustumPlanes, level, m2ObjectSet){
+    checkGroupDoodads(wmoObject: any, // TS-PORT: parked until wowRenderJs/objects/wmoObject.ts exports WmoObject
+                      groupId: number, cameraVec4: ReadonlyVec4, frustumPlanes: vec4[][], level: number,
+                      m2ObjectSet: Set<any>){ // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
         var groupWmoObject = wmoObject.wmoGroupArray[groupId];
         if (groupWmoObject) {
             for (var j = 0; j < groupWmoObject.wmoDoodads.length; j++) {
@@ -140,7 +164,9 @@ export default class PortalCullingAlgo {
             }
         }
     }
-    transverseGroupWMO (wmoObject, groupId, fromInterior, cameraVec4, cameraLocal, lookat, frustumPlanes, level, m2ObjectSet) {
+    transverseGroupWMO (wmoObject: any, // TS-PORT: parked until wowRenderJs/objects/wmoObject.ts exports WmoObject
+                         groupId: number, fromInterior: boolean, cameraVec4: ReadonlyVec4, cameraLocal: ReadonlyVec4, lookat: ReadonlyMat4,
+                         frustumPlanes: vec4[][], level: number, m2ObjectSet: Set<any>) { // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
         this.transverseVisitedGroups[groupId] = true;
 
         if (level > 8) return;
@@ -178,7 +204,7 @@ export default class PortalCullingAlgo {
 
             //2.2 Check if Portal BB made from portal vertexes intersects frustum
             var thisPortalVertices = wmoObject.worldPortalVerticles[relation.portal_index];
-            var thisPortalVerticesCopy = thisPortalVertices.slice(0);
+            var thisPortalVerticesCopy: vec4[] = thisPortalVertices.slice(0);
             for (var i = 0; i < thisPortalVerticesCopy.length; i++)
                 thisPortalVerticesCopy[i] = vec4.clone(thisPortalVerticesCopy[i]);
 
@@ -194,7 +220,7 @@ export default class PortalCullingAlgo {
             var lastFrustumPlanesLen = frustumPlanes.length;
 
             //3. Construct frustum planes for this portal
-            var thisPortalPlanes = [];
+            var thisPortalPlanes: vec4[] = [];
             var flip = (relation.side < 0);
 
             for (var i = 0; i < thisPortalVerticesCopy.length; ++i) {

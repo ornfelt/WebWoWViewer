@@ -1,11 +1,16 @@
 import WowTextureRegions from '../math/wowTextureRegions'
+import type { ItemDisplayInfoRecord } from '../../services/dbc/itemDisplayInfoDBC';
+import type TextureCompositionManager from '../manager/textureCompositionManager';
+import type { SceneApi } from '../sceneApi';
 class CharacterComponents {
 
-    static generateGeosetFromItems(sceneApi, meshIds, helmItem, shoulderItem,
-        capeItem, chestItem, shirtItem, tabardItem, wristItem, glovesItem, beltItem, legsItem, bootsItem) {
+    static generateGeosetFromItems(sceneApi: SceneApi, meshIds: number[], helmItem: number, shoulderItem: number,
+        capeItem: number, chestItem: number, shirtItem: number, tabardItem: number, wristItem: number, glovesItem: number, beltItem: number, legsItem: number, bootsItem: number) {
 
 
-        var idid = this.sceneApi.dbc.getItemDisplayInfoDBC();
+        // JS-BUG: a static method reads this.sceneApi (the class has none) instead of the sceneApi parameter - TypeError if called
+        // @ts-expect-error CharacterComponents has no static sceneApi; the JavaScript reads it anyway (bug 45)
+        var idid: { [id: number]: ItemDisplayInfoRecord } = this.sceneApi.dbc.getItemDisplayInfoDBC();
 
         var glovesItemRec = idid[glovesItem];
         var chestItemRec = idid[chestItem];
@@ -26,6 +31,7 @@ class CharacterComponents {
 
             //this.addAllTextures(ItemDInfo, gender_prefix);
         } else if (chestItemRec && (chestItemRec.geosetGroup_1 > 0)){
+            // JS-BUG: reads glovesItemRec (undefined or without geosetGroup_1 here) instead of chestItemRec
             meshIds[8] = 1 + glovesItemRec.geosetGroup_1;
         }
         //Chest
@@ -55,6 +61,7 @@ class CharacterComponents {
             dressChestpiece = false;
 
             if (bootsItemRec && (bootsItemRec.geosetGroup_1 > 0)) {
+                // JS-BUG: reads legsItemRec (possibly undefined) instead of bootsItemRec
                 meshIds[5] = 1 + legsItemRec.geosetGroup_1;
             } else if (legsItemRec && legsItemRec.geosetGroup_2){
                 meshIds[9] = 1 + legsItemRec.geosetGroup_2;
@@ -66,13 +73,13 @@ class CharacterComponents {
 
 
     }
-    static generateTexturesFromItems(sceneApi, textureCompositionManager, meshIds, replaceTextures, helmItem, shoulderItem,
-         capeItem, chestItem, shirtItem, tabardItem, wristItem, glovesItem, beltItem, legsItem, bootsItem) {
+    static generateTexturesFromItems(sceneApi: SceneApi, textureCompositionManager: TextureCompositionManager, meshIds: number[], replaceTextures: string[], helmItem: number, shoulderItem: number,
+         capeItem: number, chestItem: number, shirtItem: number, tabardItem: number, wristItem: number, glovesItem: number, beltItem: number, legsItem: number, bootsItem: number) {
 
 
     }
 
-    static addAllTextures(textureCompositionManager, itemDisplayInfoRec, gender) {
+    static addAllTextures(textureCompositionManager: TextureCompositionManager, itemDisplayInfoRec: ItemDisplayInfoRecord, gender: number | null) {
         if (itemDisplayInfoRec.texture_1 != '')
             textureCompositionManager.addTexture(WowTextureRegions.ArmUpper,   'item/texturecomponents/armuppertexture/'+itemDisplayInfoRec.texture_1, gender);
         if (itemDisplayInfoRec.texture_2 != '')

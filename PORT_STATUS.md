@@ -5,8 +5,8 @@ the tree is. Re-derive with:
 `find js/application/angular -name '*.js'` (unported) and
 `grep -rn 'TS-PORT' js/application/angular` (partially typed / parked).
 
-**Last run:** run 6 - group 4 finished (mdxLoader) and group 5 (Caches)
-**Next:** group 6 - Math, camera, managers (portalCullingAlgo first)
+**Last run:** run 7 - group 6 (Math, camera, managers)
+**Next:** group 7 - Scene objects (M2Object first, then its subclasses)
 
 ## Porting order
 
@@ -15,7 +15,7 @@ the tree is. Re-derive with:
 - [x] 3. DBC tables - services/dbc/*
 - [x] 4. Format parsers - wdt, adt, blp, skin, wmo, mdx
 - [x] 5. Caches - adt/skin/m2/wmo geometry caches, wmoMainCache, textureCache
-- [ ] 6. Math, camera, managers - portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager
+- [x] 6. Math, camera, managers - portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager
 - [ ] 7. Scene objects - M2Object, adtM2Object, wmoM2Object, worldM2Object, adtObject, wmoObject
 - [ ] 8. World objects - worldObject, worldUnit, worldPlayer, worldGameObject, worldObjectManager
 - [ ] 9. Scene - sceneGraphManager, scene
@@ -26,10 +26,16 @@ the tree is. Re-derive with:
 - `services/config.ts` - `cameraM2` and `setCameraM2(value)`: waits for `wowRenderJs/objects/M2Object.ts` (M2Object).
 - `wowRenderJs/sceneApi.ts` - every `SceneApiObjects` member: `wowRenderJs/manager/sceneGraphManager.ts`.
 - `wowRenderJs/geometry/m2GeomCache.ts` - `drawMesh(materialData)`: waits for `wowRenderJs/objects/M2Object.ts`
-  (its material type); `setupUniforms(lights)`: waits for `wowRenderJs/manager/animationManager.ts` (its light type).
+  (its material type).
+- `wowRenderJs/math/portalCullingAlgo.ts` - every `wmoObject` parameter: waits for `wowRenderJs/objects/wmoObject.ts`
+  (WmoObject); the M2 object sets (`Set<any>`, `wmoM2Candidates`): wait for `wowRenderJs/objects/M2Object.ts`.
+- `wowRenderJs/manager/instanceManager.ts` - `mdxObjectList`, `sceneObjNumMap`, `previousObjectList`, `addMDXObject`,
+  `newList`, `lastDrawn`: wait for `wowRenderJs/objects/M2Object.ts` (M2Object; the subclasses add
+  `getDiffuseColor` / `drawInstanced*Meshes`).
 - Resolved in run 5: `mathHelper.ts` BSP types (`WmoBspNode`, `WmoGroupFile`), `SceneApi.getCurrentWdt()` (`WdtFile`),
   `SceneApi.resources.loadWmoMain()` (`WmoFile | undefined`), every `SceneApiDbc` getter (its `*Record` table).
 - Resolved in run 6: the `SceneApiResources` loaders (`Texture`, `WmoGeom`, `M2Geom`, `SkinGeom`, `ADTGeom`).
+- Resolved in run 7: `m2GeomCache.ts` `setupUniforms(lights)` (`M2LightDetails[]` from `animationManager.ts`).
 
 ## JavaScript bugs (ported as-is)
 
@@ -83,6 +89,17 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 41 | `wowRenderJs/geometry/wmoGeomCache.ts` `createVBO` | `colorOffset + (cond) ? a : 0` - the `?:` takes the whole sum as its condition | `colorOffset2` is `colorVerticles.length / 4` without the `colorOffset` base, so the second MOCV color attribute reads from the wrong offset (probably meant `colorOffset + (cond ? a : 0)`) |
 | 42 | `wowRenderJs/geometry/wmoGeomCache.ts` `draw` | calls `loadTextures()` without the `momt` it needs | TypeError on `momt[textIndex]`; unreachable today (WmoGroupObject calls `loadTextures(momt)` first) |
 | 43 | `wowRenderJs/geometry/wmoGeomCache.ts` `destroy` | copied from `Texture.destroy` - deletes `this.texture`, which `WmoGeom` never sets | nothing is freed; the group's VBOs leak when the cache unloads it |
+| 44 | `wowRenderJs/math/portalCullingAlgo.ts` `startTraversingFromInteriorWMO`, `startTraversingFromExterior` | `m2Object.checkFrustumCulling(cameraVec4, frustumPlanes, 6, false)` - the method takes three arguments | harmless, the `false` is ignored |
+| 45 | `wowRenderJs/algorithms/characterComponents.ts` `generateGeosetFromItems` | static method reads `this.sceneApi` (undefined on the class) instead of its `sceneApi` parameter | TypeError if called; nothing calls it |
+| 46 | `wowRenderJs/algorithms/characterComponents.ts` `generateGeosetFromItems` | chest branch sets `meshIds[8]` from `glovesItemRec` instead of `chestItemRec` | wrong / NaN geoset or TypeError; nothing calls it |
+| 47 | `wowRenderJs/algorithms/characterComponents.ts` `generateGeosetFromItems` | boots branch sets `meshIds[5]` from `legsItemRec` instead of `bootsItemRec` | wrong / NaN geoset or TypeError; nothing calls it |
+| 48 | `wowRenderJs/manager/instanceManager.ts` `updatePlacementVBO` | `if (this.previousObjectList) { newList }` - an expression statement with no effect | harmless leftover |
+| 49 | `wowRenderJs/manager/animationManager.ts` `updateCameraSimplified` | reads `m2File.animations[this.nextSubAnimationIndex]` (still -1 after the pick) instead of the local `nextSubAnimationIndex`; the pick is never stored back | for a model whose main animation has `next_animation > -1`, `animations[-1].blend_time` throws a TypeError on every `M2Object.updateCameras()` (scene, when viewing through an M2 camera) |
+| 50 | `wowRenderJs/manager/animationManager.ts` `getTimedValue` (non-WotLK) | wraps the time into `this.currentAnimationIndex`'s `timeStart..timeEnd` whatever the `animation` parameter is | TBC / classic closed-hand (and blend) animations are evaluated with the current animation's time range; NaN time when `timeEnd == timeStart` |
+| 51 | `wowRenderJs/manager/animationManager.ts` `getTimedValue` | `var maxTime = times[times_len-1]` overwrites the parameter (and the global sequence length) | the `animTime > last key && animTime <= maxTime` branch never runs, so past the last key the track holds the last value instead of the first |
+| 52 | `wowRenderJs/manager/animationManager.ts` `calcBones` / `calcChildBones` | `calcBones` passes 5 arguments to the 8-parameter `calcChildBones`, which passes 8 to the 5-parameter `calcBoneMatrix` | the camera position lands in `blendAnimationIndex` and is forwarded into `calcBoneMatrix`'s `cameraPosInLocal` - works by accident |
+| 53 | `wowRenderJs/manager/animationManager.ts` `calcSubMeshColors` | the blend branch evaluates the alpha track with `time` / `animationRecord` / `animationIndex` instead of the blend animation's | alpha is not blended between animations; unreachable today (sub-animation picking is disabled by `if (false)` in `update()`) |
+| 54 | `wowRenderJs/manager/animationManager.ts` `calcLights` | indexes (`[0]`) and scales the `getTimedValue` results without checking them | a light whose track has no keys for the current animation (`null` / `undefined`) throws a TypeError |
 
 ## Runtime notes
 
@@ -135,6 +152,22 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 - `wmoGeomCache.ts`: `@ts-expect-error` on bugs 41 and 42. `appendBuffer` takes a local `VertexBuffer` type
   (float arrays and the MOCV byte arrays).
 
+- `bsp.ts` and `BspTree.ts` stay scripts (no import or export, like the JS). `bsp.ts` names `AABB` through an
+  inline `import('./mathHelper').AABB` type - a top-level `import type` would make the emit gain `export {}`.
+- `characterComponents.ts`: `@ts-expect-error` on bug 45.
+- `textureCompositionManager.ts`: `region.x!` / `.y!` / `.w!` / `.h!` - region slots are `Partial` (Accessory and
+  Unused are `{}`), and `update()` only draws slots that have a region.
+- `animationManager.ts`: track values are the `M2TrackValue` union; `convertValueTypeToVec4` asserts the value per
+  `type` (`as Vector3f` / `as Vector4f` / `as number[]` / `as number`). `!` on `probability`, `timeStart` / `timeEnd`
+  (optional in `M2Animation`), `nAnimationLookup` / `animationLookup` / `keyBoneLookup` (bugs 28-29),
+  `subAnimRecord!` (a `var` assigned in a branch), `value1!` / `value2!` (convert returns `undefined` only for an
+  unknown type), `interpolateValues(...)!` in `calcSubMeshColors` (interpolation type 1 always returns), and the
+  `getTimedValue` results in `calcLights` (bug 54); `unk_ambient` is declared `vec4 | number | null | undefined` and
+  stored `as number | undefined`. `calcChildBones` is typed as it is really called (`blendAnimationIndex: ReadonlyVec4`,
+  the last three optional `unknown`), with `@ts-expect-error` on the 8-argument `calcBoneMatrix` call (bug 52).
+  `isAnimated`, `leftHandClosed`, `rightHandClosed`, `nextSubAnimationActive` are `| undefined` - not set by the
+  constructor.
+
 ## Run log
 
 | Run | Files | ~Lines | tsc | build | emit check |
@@ -146,3 +179,4 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 | 4 | removed app_wowjs.js (entry point now app_wow.ts only) | - | clean | green | SAME |
 | 5 | group 3: services/dbc/* (18); group 4: wdtLoader, adtLoader, blpLoader, skinLoader, wmoLoader; parked types resolved in sceneApi.ts, mathHelper.ts | 2,610 | clean | green | all SAME |
 | 6 | group 4: mdxLoader; group 5: adtGeomCache, skinGeomCache, m2GeomCache, wmoGeomCache, wmoMainCache, textureCache; parked loaders resolved in sceneApi.ts | 3,790 | clean | green | all SAME |
+| 7 | group 6: portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager; parked `lights` resolved in m2GeomCache.ts | 1,900 | clean | green | all SAME |

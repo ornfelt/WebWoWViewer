@@ -2,10 +2,12 @@ class BSPLeaf {
 
 }
 class BSPTree {
+    tree: {};
+
     constructor() {
         this.tree = {};
     }
-    add(aabb, object) {
+    add(aabb: import('./mathHelper').AABB, object: unknown) {
 
     }
 

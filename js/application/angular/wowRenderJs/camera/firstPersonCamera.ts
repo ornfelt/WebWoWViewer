@@ -1,12 +1,29 @@
 import {vec3} from 'gl-matrix';
 
-function  degToRad(degrees) {
+export interface CameraVecs {
+    lookAtVec3: vec3;
+    cameraVec3: vec3;
+}
+
+function  degToRad(degrees: number): number {
     return degrees * ( Math.PI / 180 );
 }
 
 const moveSpeed = 3;
 
 class Camera {
+    camera: vec3;
+    MDDepthPlus: number;
+    MDDepthMinus: number;
+    MDHorizontalPlus: number;
+    MDHorizontalMinus: number;
+    MDVerticalPlus: number;
+    MDVerticalMinus: number;
+    depthDiff: number;
+    staticCamera: boolean;
+    ah: number;
+    av: number;
+
     constructor () {
         this.camera = [0, 0, 0];
         this.MDDepthPlus = 0;
@@ -25,16 +42,16 @@ class Camera {
         this.av = 0;
     }
 
-    addDepthDiff(val) {
+    addDepthDiff(val: number) {
         this.depthDiff = this.depthDiff + val;
     }
-    addHorizontalViewDir(val) {
+    addHorizontalViewDir(val: number) {
         var ah = this.ah;
         ah += val;
 
         this.ah = ah;
     }
-    addVerticalViewDir(val) {
+    addVerticalViewDir(val: number) {
         var av = this.av;
         av += val;
 
@@ -86,8 +103,8 @@ class Camera {
     }
 
 
-    tick (timeDelta) {
-        var dir = [1, 0, 0];
+    tick (timeDelta: number): CameraVecs {
+        var dir: vec3 = [1, 0, 0];
         var moveSpeed = 0.02;
         var camera = this.camera;
 
@@ -104,11 +121,11 @@ class Camera {
         dir = vec3.rotateZ(dir, dir, [0, 0, 0], degToRad(-this.ah));
         vec3.normalize(dir,dir);
 
-        var lookat = [];
+        var lookat: vec3 = [];
 
         /* Calc camera position */
         if (horizontalDiff != 0) {
-            var right = [];
+            var right: vec3 = [];
             vec3.rotateZ(right, dir, [0, 0, 0], degToRad(-90));
             right[2] = 0;
 
@@ -119,7 +136,7 @@ class Camera {
         }
 
         if (depthDiff !== 0) {
-            var movDir = [];
+            var movDir: vec3 = [];
             vec3.copy(movDir, dir);
 
             vec3.scale(movDir, movDir, depthDiff);
@@ -136,7 +153,7 @@ class Camera {
             cameraVec3: camera
         }
     }
-    setCameraPos (x, y, z) {
+    setCameraPos (x: number, y: number, z: number) {
         this.camera = [x, y, z];
     }
 
