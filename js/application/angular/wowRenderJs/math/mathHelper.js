@@ -272,6 +272,23 @@ class MathHelper {
         var u = 1.0 - v - w;
         return vec3.fromValues(u, v, w)
     }
+    /* true if the bounding sphere of the box is within drawDistance of the camera */
+    static checkDrawDistance (camera, box, drawDistance) {
+        // Compute sphere center & radius
+        var dx = box[1][0] - box[0][0];
+        var dy = box[1][1] - box[0][1];
+        var dz = box[1][2] - box[0][2];
+        var radius = Math.sqrt(dx * dx + dy * dy + dz * dz) * 0.5;
+
+        var cx = (box[0][0] + box[1][0]) * 0.5 - camera[0];
+        var cy = (box[0][1] + box[1][1]) * 0.5 - camera[1];
+        var cz = (box[0][2] + box[1][2]) * 0.5 - camera[2];
+
+        // Compare squared distances to avoid a sqrt
+        var distSq = cx * cx + cy * cy + cz * cz;
+        var cutoff = drawDistance + radius;
+        return distSq <= cutoff * cutoff;
+    }
     static checkFrustum (planes, box, num_planes, points) {
       // check box outside/inside of frustum
         for(var i=0; i< num_planes; i++ )

@@ -50,6 +50,14 @@ function attachEvents(canvas, camera, keyBinds) {
       case 'O': toggle(keyBinds.chkDrawWMO, 'RenderWmo');         break;
       case 'I': toggle(keyBinds.chkDrawWmoBB, 'DrawWmoBB');       break;
       case 'K': toggle(keyBinds.chkDrawDepth, 'DrawDepthBuffer'); break;
+
+      // Experimental
+      // bind f: cycle draw distance, through the slider so it shows the new value
+      case 'F':
+        keyBinds.sliderDrawDistance.value = config.getDrawDistance() === 400 ? '850' : '400';
+        keyBinds.sliderDrawDistance.dispatchEvent(new Event('input'));
+        break;
+
       case 'Q': toggle(keyBinds.chkRenderLiquid, 'RenderLiquid'); break;
       case 'E': toggle(keyBinds.chkRenderSky, 'RenderSky');       break;
     }
@@ -145,6 +153,13 @@ function attachEvents(canvas, camera, keyBinds) {
   canvas.addEventListener('mouseup', mouseUp, false);
   canvas.addEventListener('mouseout', mouseOut, false);
 
+  // bind mouse wheel: zoom, one step per wheel event (scroll up -> zoom in)
+  function mouseWheel(event) {
+    event.preventDefault();
+    camera.zoom(-Math.sign(event.deltaY));
+  }
+  canvas.addEventListener('wheel', mouseWheel, {passive: false});
+
   // only move camera if lastDownTarget = canvas
   let lastDownTarget = null;
   document.addEventListener('mousedown', (e) => {
@@ -218,7 +233,8 @@ export async function initViewer(containerEl) {
           Controls: W - forward, S - backward, A - left, D - right,<br/>
           Space - up, Tab - down, Shift - faster, Mouse - move camera<br/>
           B - M2, Z - ADT, O - WMO, I - WMO BB, K - depth,<br/>
-          Q - liquid, E - sky, F6 - hide this panel
+          Q - liquid, E - sky, F - draw distance, F6 - hide this panel,<br/>
+          Wheel - zoom
         </p>
 
         <label><input type="checkbox" id="chkDrawAdt"> Draw ADT</label><br/>
@@ -233,7 +249,10 @@ export async function initViewer(containerEl) {
         <label><input type="checkbox" id="chkDrawDepth"> Draw Depth</label><br/>
         <label><input type="checkbox" id="chkUsePortalCulling"> Portal Culling</label><br/>
         <label><input type="checkbox" id="chkDoubleCamera"> Double Camera Debug</label><br/>
-        <label><input type="checkbox" id="chkUseSecondCamera" disabled> Use Debug Camera</label><br/><br/>
+        <label><input type="checkbox" id="chkUseSecondCamera" disabled> Use Debug Camera</label><br/>
+        <label><input type="checkbox" id="chkCycleAnimations"> Cycle Anims</label><br/>
+        <label>Draw Distance = <span id="draw-distance"></span><br/>
+          <input type="range" id="sliderDrawDistance" min="100" max="2000" step="1"></label><br/><br/>
 
         <button id="btnCopyDebug">Copy main camera -> debug camera</button><br/><br/>
         <button id="btnLoadPackets">Parse packets</button><br/>
@@ -262,6 +281,9 @@ export async function initViewer(containerEl) {
   const chkUsePortalCulling = containerEl.querySelector('#chkUsePortalCulling');
   const chkDoubleCamera     = containerEl.querySelector('#chkDoubleCamera');
   const chkUseSecondCamera  = containerEl.querySelector('#chkUseSecondCamera');
+  const chkCycleAnimations  = containerEl.querySelector('#chkCycleAnimations');
+  const sliderDrawDistance  = containerEl.querySelector('#sliderDrawDistance');
+  const drawDistanceEl      = containerEl.querySelector('#draw-distance');
 
   const btnCopyDebug      = containerEl.querySelector('#btnCopyDebug');
   const btnLoadPackets    = containerEl.querySelector('#btnLoadPackets');
@@ -670,6 +692,9 @@ export async function initViewer(containerEl) {
   chkDoubleCamera.checked     = config.getDoubleCameraDebug();
   chkUseSecondCamera.checked  = config.getUseSecondCamera();
   chkUseSecondCamera.disabled = !chkDoubleCamera.checked;
+  chkCycleAnimations.checked  = config.getCycleAnimations();
+  sliderDrawDistance.value    = String(config.getDrawDistance());
+  drawDistanceEl.textContent  = String(config.getDrawDistance());
 
   // Attach event handlers for camera
   attachEvents(canvas, sceneObj.camera, {
@@ -681,6 +706,7 @@ export async function initViewer(containerEl) {
     chkDrawDepth,
     chkRenderLiquid,
     chkRenderSky,
+    sliderDrawDistance,
   });
 
   // Link checkboxes => config
@@ -705,6 +731,11 @@ export async function initViewer(containerEl) {
       chkUseSecondCamera.disabled = false;
       config.setUseSecondCamera(chkUseSecondCamera.checked);
     }
+  });
+  chkCycleAnimations.addEventListener('change', () => { config.setCycleAnimations(chkCycleAnimations.checked); });
+  sliderDrawDistance.addEventListener('input', () => {
+    config.setDrawDistance(Number(sliderDrawDistance.value));
+    drawDistanceEl.textContent = sliderDrawDistance.value;
   });
   chkUseSecondCamera.addEventListener('change', () => {
     config.setUseSecondCamera(chkUseSecondCamera.checked);

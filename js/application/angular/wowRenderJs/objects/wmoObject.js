@@ -98,9 +98,10 @@ class WmoObject {
             cameraVec4[2] > aabb[0][2] && cameraVec4[2] < aabb[1][2]
         ) result = true;
 
-        //2. Check aabb is inside camera frustum
+        //2. Check the bounding sphere is within the draw distance and aabb is inside camera frustum
         if (!result) {
-            result = mathHelper.checkFrustum(frustumPlanes, aabb, num_planes);
+            result = mathHelper.checkDrawDistance(cameraVec4, aabb, config.getDrawDistance()) &&
+                mathHelper.checkFrustum(frustumPlanes, aabb, num_planes);
         }
         this.isRendered = result;
         if (result) {

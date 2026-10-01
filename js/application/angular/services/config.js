@@ -26,6 +26,9 @@ var doubleCameraDebug = false;
 
 var drawDepthBuffer = false;
 
+var drawDistance = 400;
+var cycleAnimations = false;
+
 var cameraM2 = null;
 
 var savedUrlForLoading;
@@ -163,6 +166,18 @@ export default {
     },
     setDrawDepthBuffer : function (value) {
         drawDepthBuffer = value;
+    },
+    getDrawDistance : function () {
+        return drawDistance;
+    },
+    setDrawDistance : function (value) {
+        drawDistance = value;
+    },
+    getCycleAnimations : function () {
+        return cycleAnimations;
+    },
+    setCycleAnimations : function (value) {
+        cycleAnimations = value;
     },
     getCameraM2 : function () {
         return cameraM2;
