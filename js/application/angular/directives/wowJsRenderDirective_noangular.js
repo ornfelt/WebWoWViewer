@@ -13,25 +13,41 @@ function attachEvents(canvas, camera) {
   let pointerIsLocked = false;
 
   function keyDown(event) {
+    if (event.key === 'Shift') {
+      camera.setShiftHeld(true);
+      return;
+    }
     const key = String.fromCharCode(event.keyCode || event.charCode);
+    // Space and Tab move the camera, so keep them from scrolling the page / moving the focus
+    if (key === ' ' || key === '\t') {
+      event.preventDefault();
+    }
     switch (key) {
       case 'W': camera.startMovingForward();   break;
       case 'S': camera.startMovingBackwards(); break;
       case 'A': camera.startStrafingLeft();    break;
       case 'D': camera.startStrafingRight();   break;
-      case 'Q': camera.startMovingUp();        break;
-      case 'E': camera.startMovingDown();      break;
+      case 'Q':
+      case ' ': camera.startMovingUp();        break;
+      case 'E':
+      case '\t': camera.startMovingDown();     break;
     }
   }
   function keyUp(event) {
+    if (event.key === 'Shift') {
+      camera.setShiftHeld(false);
+      return;
+    }
     const key = String.fromCharCode(event.keyCode || event.charCode);
     switch (key) {
       case 'W': camera.stopMovingForward();   break;
       case 'S': camera.stopMovingBackwards(); break;
       case 'A': camera.stopStrafingLeft();    break;
       case 'D': camera.stopStrafingRight();   break;
-      case 'Q': camera.stopMovingUp();        break;
-      case 'E': camera.stopMovingDown();      break;
+      case 'Q':
+      case ' ': camera.stopMovingUp();        break;
+      case 'E':
+      case '\t': camera.stopMovingDown();     break;
     }
   }
 

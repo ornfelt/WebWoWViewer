@@ -23,6 +23,15 @@ class Camera {
 
         this.ah = 0;
         this.av = 0;
+
+        // Speed boost
+        this.isShiftHeld = false;
+        this.movingForward = false;
+        this.movingBackward = false;
+    }
+
+    get currentSpeed() {
+        return this.isShiftHeld ? moveSpeed * 10 : moveSpeed;
     }
 
     addDepthDiff(val) {
@@ -47,16 +56,28 @@ class Camera {
     }
 
     startMovingForward(){
-        this.MDDepthPlus = 1*moveSpeed;
+        this.movingForward = true;
+        this.MDDepthPlus = this.currentSpeed;
     }
     stopMovingForward(){
+        this.movingForward = false;
         this.MDDepthPlus = 0;
     }
     startMovingBackwards(){
-        this.MDDepthMinus = 1*moveSpeed;
+        this.movingBackward = true;
+        this.MDDepthMinus = this.currentSpeed;
     }
     stopMovingBackwards(){
+        this.movingBackward = false;
         this.MDDepthMinus = 0;
+    }
+    setShiftHeld(held){
+        this.isShiftHeld = held;
+
+        if (this.movingForward)
+            this.MDDepthPlus = this.currentSpeed;
+        if (this.movingBackward)
+            this.MDDepthMinus = this.currentSpeed;
     }
 
     startStrafingLeft(){
