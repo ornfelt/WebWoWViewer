@@ -510,9 +510,10 @@ class MathHelper {
                 if (normal_avg > 0) {
                     //Bottom
                     var distanceToCamera = cameraLocal[2] - z;
-                    // JS-BUG: minPositiveDistanceToCamera is never updated, so bottomZ is the last triangle below the camera, not the closest one
-                    if ((distanceToCamera > 0) && (distanceToCamera < minPositiveDistanceToCamera))
+                    if ((distanceToCamera > 0) && (distanceToCamera < minPositiveDistanceToCamera)) {
                         bottomZ = z;
+                        minPositiveDistanceToCamera = distanceToCamera;
+                    }
                 } else {
                     //Top
                     topZ = Math.max(z, topZ);
