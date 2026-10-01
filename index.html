@@ -1107,6 +1107,92 @@ void main() {
 #endif //COMPILING_FS
     </script>
 
+    <script id="sky" type="text/plain">
+#ifdef COMPILING_VS
+attribute vec3 aPos;
+attribute float aRow;
+
+varying float vRow;
+
+uniform mat4 uProj;
+uniform mat4 uViewNoPos;   // view with translation removed
+
+void main()
+{
+    vRow = aRow;
+    gl_Position = uProj * uViewNoPos * vec4(aPos, 1.0);
+}
+#endif //COMPILING_VS
+#ifdef COMPILING_FS
+precision mediump float;
+
+varying float vRow;
+
+uniform vec3 uColors[7];   // 0 .. 6
+
+void main()
+{
+    // clamp just in case
+    float r  = clamp(vRow, 0.0, 6.0);
+    int   i  = int(floor(r));          // lower band
+    float f  = r - float(i);           // 0 - 1 between bands
+
+    // Alt 1.
+    // WebGL 1 only guarantees constant indices into uniform arrays in the fragment
+    // shader, so uColors[i] and uColors[min(i + 1, 6)] are picked in a loop
+    vec3 c0  = uColors[6];
+    vec3 c1  = uColors[6];
+    for (int j = 0; j < 6; j++) {
+        if (j == i) {
+            c0 = uColors[j];
+            c1 = uColors[j + 1];
+        }
+    }
+    vec3 rgb = mix(c0, c1, f);         // smooth blend
+    gl_FragColor = vec4(rgb, 1.0);
+
+    // Alt 2.
+    // cubic smoothing:  3f^2 - 2f^3
+    //float s  = f * f * (3.0 - 2.0 * f);
+    //vec3 rgb = mix(c0, c1, s);
+    //gl_FragColor = vec4(rgb, 1.0);
+}
+#endif //COMPILING_FS
+    </script>
+
+    <script id="SkyGradient" type="text/plain">
+#ifdef COMPILING_VS
+attribute vec2 aPosition;   // full-screen quad in NDC
+varying vec2 vPos;          // pass NDC to fragment
+
+void main()
+{
+    vPos = aPosition;                             // -1..+1 each axis
+    gl_Position = vec4(aPosition, 0.9999, 1.0);   // depth almost 1
+}
+#endif //COMPILING_VS
+#ifdef COMPILING_FS
+precision mediump float;
+
+varying vec2 vPos;
+
+// GLSL ES 1.00 has no uniform initializers; activateSkyShader() sets all three
+//uniform vec3 uZenithColor   = vec3(0.05, 0.10, 0.25); // dark blue
+//uniform vec3 uHorizonColor  = vec3(0.30, 0.45, 0.70); // pale blue
+uniform vec3 uZenithColor;    // = vec3(0.15, 0.45, 0.85) brighter blue at top
+uniform vec3 uHorizonColor;   // = vec3(0.40, 0.75, 1.00) almost sky-blue at horizon
+uniform float uExponent;      // = 1.4 curve tweak
+
+void main()
+{
+    float t = clamp( 0.5 * (vPos.y + 1.0), 0.0, 1.0 ); // 0 bottom -> 1 top
+    t = pow(t, uExponent);
+    vec3 col = mix(uHorizonColor, uZenithColor, t);
+    gl_FragColor = vec4(col, 1.0);                      // opaque
+}
+#endif //COMPILING_FS
+    </script>
+
     <!-- Our final Webpack bundle -->
     <script src="build/main.js"></script>
   </body>

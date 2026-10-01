@@ -30,6 +30,7 @@ import type WmoM2Object from './objects/wmoM2Object';
 import type WmoObject from './objects/wmoObject';
 import type { WmoPlacement } from './objects/wmoObject';
 import type WorldMDXObject from './objects/worldM2Object';
+import type { ShaderProgram } from './scene';
 
 export interface SceneApiExtensions {
     getInstancingExt(): ANGLE_instanced_arrays | undefined;
@@ -58,6 +59,8 @@ export interface SceneApiShaders {
     deactivateM2InstancingShader(): void;
     getShaderUniforms(): { [name: string]: WebGLUniformLocation | null };
     getShaderAttributes(): { [name: string]: number };
+    /* the lights.lit sky dome shader (sky), or the gradient debug sky shader (SkyGradient) when config.getUseDebugSky() */
+    getSkyShader(): ShaderProgram;
 }
 
 export interface SceneApiDbc {

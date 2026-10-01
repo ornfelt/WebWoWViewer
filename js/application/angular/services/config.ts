@@ -1,3 +1,4 @@
+import Expansion from '../Expansion';
 import type { M2Object } from '../wowRenderJs/objects/M2Object';
 
 //var urlToLoadWoWFile = '/get/';
@@ -13,6 +14,9 @@ var renderWmo: boolean = true;
 var renderBSP: boolean = false;
 var renderPortals: boolean = false;
 var usePortalCulling: boolean = true;
+
+var renderSky: boolean = true;
+var useDebugSky: boolean = false;
 
 var drawWmoBB: boolean = false;
 var drawM2BB: boolean = false;
@@ -101,6 +105,21 @@ export default {
     },
     setUsePortalCulling : function (value: boolean) {
         usePortalCulling = value;
+    },
+    getRenderSky : function () {
+        return renderSky;
+    },
+    setRenderSky : function (value: boolean) {
+        renderSky = value;
+    },
+    getUseDebugSky : function () {
+        // TODO: fix sky/lit files for WOTLK. Maybe only use debug_sky if sky
+        // file is missing?
+        if (window.selectedExpansion === Expansion.WOTLK) return true;
+        return useDebugSky;
+    },
+    setUseDebugSky : function (value: boolean) {
+        useDebugSky = value;
     },
     getSceneParams : function () {
         return sceneParams;
