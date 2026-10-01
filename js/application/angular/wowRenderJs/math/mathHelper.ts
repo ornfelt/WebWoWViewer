@@ -86,9 +86,7 @@ class MathHelper {
         for (var j = 0; j < thisPortalVertices.length; j++) {
             vec3.add(center, thisPortalVertices[j], center);
         }
-        // JS-BUG: vec3.scale gets two arguments, so center becomes NaN; the comparator below then sorts on NaN (should be vec3.scale(center, center, 1 / n))
-        // @ts-expect-error vec3.scale takes (out, a, b); the JavaScript passes only two arguments
-        vec3.scale(center, 1 / thisPortalVertices.length);
+        vec3.scale(center, center, 1 / thisPortalVertices.length);
         thisPortalVertices.sort(function (a, b) {
             var ac = vec3.create();
             vec3.subtract(ac, a, center);

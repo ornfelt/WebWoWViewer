@@ -43,7 +43,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 
 | # | Where | What | Effect |
 | --- | --- | --- | --- |
-| 1 | `wowRenderJs/math/mathHelper.ts` `sortVec3ArrayAgainstPlane` | `vec3.scale(center, 1 / n)` - two arguments to a three-argument function | `center` becomes NaN, so the portal-vertex sort compares NaN and the order is arbitrary |
 | 2 | `wowRenderJs/math/mathHelper.ts` `createPlaneFromVertexes` | uses undeclared `edgeDir` (local is `edgeDir1`); never returns the plane | ReferenceError if called; nothing calls it |
 | 3 | `wowRenderJs/math/mathHelper.ts` `calcZ` | degenerate-triangle fallback returns `Math.min` of the x coordinates (`[0]`) | wrong height for near-degenerate triangles (should probably be `[2]`) |
 | 4 | `wowRenderJs/math/mathHelper.ts` `getTopAndBottomTriangleFromBsp` | `minPositiveDistanceToCamera` is never updated | `bottomZ` is the last triangle below the camera, not the closest |
@@ -149,7 +148,7 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 Places where typing needed an assertion, a widened type, `@ts-expect-error` or a commented `any`
 (bugs are in the table above, not repeated here).
 
-- `mathHelper.ts`: `@ts-expect-error` on bug 1 and the three `edgeDir` lines of bug 2.
+- `mathHelper.ts`: `@ts-expect-error` on the three `edgeDir` lines of bug 2.
 - `linedfileLoader.ts`: `@ts-expect-error` on bugs 10 and 11; `result.ranges!.push` after bug 10 is
   unreachable in practice. `LinedFileObj` is a constructor function; `new` goes through
   `LinedFileObj as unknown as new () => LinedFile`. Parsed values are `SectionValue` / `ParsedObject`
