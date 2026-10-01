@@ -49,17 +49,41 @@ interface MapParams {
   useDebugSky?: boolean;
 }
 
+/* The settings panel and the checkboxes the render key binds toggle */
+interface KeyBindTargets {
+  settingsPanel: HTMLElement;
+  chkDrawM2: HTMLInputElement;
+  chkDrawAdt: HTMLInputElement;
+  chkDrawWMO: HTMLInputElement;
+  chkDrawWmoBB: HTMLInputElement;
+  chkDrawDepth: HTMLInputElement;
+  chkRenderLiquid: HTMLInputElement;
+  chkRenderSky: HTMLInputElement;
+}
+
 /**
  * Attach pointer-lock, mouse, keyboard, touch events to the canvas/camera.
  */
-function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera) {
+function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBinds: KeyBindTargets) {
   let mleftPressed = false;
   let lastMouseX = 0, lastMouseY = 0;
   let pointerIsLocked = false;
 
+  // toggle a settings checkbox as if it was clicked, so the config follows it through its change handler
+  function toggle(chk: HTMLInputElement, name: string) {
+    chk.click();
+    console.log(`${name} = ${chk.checked}`);
+  }
+
   function keyDown(event: KeyboardEvent) {
     if (event.key === 'Shift') {
       camera.setShiftHeld(true);
+      return;
+    }
+    // bind F6: toggle the settings panel (instead of the browser's own F6 action)
+    if (event.key === 'F6') {
+      event.preventDefault();
+      keyBinds.settingsPanel.style.display = keyBinds.settingsPanel.style.display === 'none' ? '' : 'none';
       return;
     }
     const key = String.fromCharCode(event.keyCode || event.charCode);
@@ -72,10 +96,19 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera) {
       case 'S': camera.startMovingBackwards(); break;
       case 'A': camera.startStrafingLeft();    break;
       case 'D': camera.startStrafingRight();   break;
-      case 'Q':
+      //case 'Q':
       case ' ': camera.startMovingUp();        break;
-      case 'E':
+      //case 'E':
       case '\t': camera.startMovingDown();     break;
+
+      // Rendering toggles
+      case 'B': toggle(keyBinds.chkDrawM2, 'RenderM2');           break;
+      case 'Z': toggle(keyBinds.chkDrawAdt, 'RenderAdt');         break;
+      case 'O': toggle(keyBinds.chkDrawWMO, 'RenderWmo');         break;
+      case 'I': toggle(keyBinds.chkDrawWmoBB, 'DrawWmoBB');       break;
+      case 'K': toggle(keyBinds.chkDrawDepth, 'DrawDepthBuffer'); break;
+      case 'Q': toggle(keyBinds.chkRenderLiquid, 'RenderLiquid'); break;
+      case 'E': toggle(keyBinds.chkRenderSky, 'RenderSky');       break;
     }
   }
   function keyUp(event: KeyboardEvent) {
@@ -89,9 +122,9 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera) {
       case 'S': camera.stopMovingBackwards(); break;
       case 'A': camera.stopStrafingLeft();    break;
       case 'D': camera.stopStrafingRight();   break;
-      case 'Q':
+      //case 'Q':
       case ' ': camera.stopMovingUp();        break;
-      case 'E':
+      //case 'E':
       case '\t': camera.stopMovingDown();     break;
     }
   }
@@ -233,14 +266,16 @@ export async function initViewer(containerEl: HTMLElement) {
     <div style="width: 100%; height: 100%; position: relative; overflow: hidden;">
       <canvas id="wow-canvas" style="float:left; display:block;"></canvas>
 
-      <div style="display:inline-block; float:left; width: 225px; margin-left:10px; color: white;">
+      <div id="settings-panel" style="display:inline-block; float:left; width: 225px; margin-left:10px; color: white;">
         <div>camera = (<span id="cam-pos"></span>)</div>
         <div>lookAt = (<span id="cam-look"></span>)</div>
         <div>Group # = <span id="group-num"></span></div>
         <div>BSP Node = <span id="bsp-node"></span></div>
         <p>
           Controls: W - forward, S - backward, A - left, D - right,<br/>
-          Q - up, E - down, Mouse - move camera
+          Space - up, Tab - down, Shift - faster, Mouse - move camera<br/>
+          B - M2, Z - ADT, O - WMO, I - WMO BB, K - depth,<br/>
+          Q - liquid, E - sky, F6 - hide this panel
         </p>
 
         <label><input type="checkbox" id="chkDrawAdt"> Draw ADT</label><br/>
@@ -696,7 +731,16 @@ export async function initViewer(containerEl: HTMLElement) {
   chkUseSecondCamera.disabled = !chkDoubleCamera.checked;
 
   // Attach event handlers for camera
-  attachEvents(canvas, sceneObj.camera);
+  attachEvents(canvas, sceneObj.camera, {
+    settingsPanel: containerEl.querySelector<HTMLDivElement>('#settings-panel')!,
+    chkDrawM2,
+    chkDrawAdt,
+    chkDrawWMO,
+    chkDrawWmoBB,
+    chkDrawDepth,
+    chkRenderLiquid,
+    chkRenderSky,
+  });
 
   // Link checkboxes => config
   chkDrawAdt.addEventListener('change', () => { config.setRenderAdt(chkDrawAdt.checked); });
