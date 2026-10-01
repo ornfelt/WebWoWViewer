@@ -123,9 +123,8 @@ class WmoGeom {
         this.textOffset = this.normalOffset + wmoGroupObject.normals.length;
         this.textOffset2 = this.textOffset + wmoGroupObject.textCoords.length;
         this.colorOffset = this.textOffset2 + wmoGroupObject.textCoords2.length;
-        // JS-BUG: precedence - the ?: applies to (colorOffset + condition), so colorOffset2 is colorVerticles.length/4 without the colorOffset base (probably meant colorOffset + (cond ? length/4 : 0))
-        // @ts-expect-error number + (Uint8Array | boolean | undefined); ported as-is
-        this.colorOffset2 = this.colorOffset  + (wmoGroupObject.colorVerticles && wmoGroupObject.colorVerticles.length > 0 )? (wmoGroupObject.colorVerticles.length/4) : 0;
+        // appendBuffer advances 4 bytes per element of colorVerticles (Uint8Array), so the second color set starts colorVerticles.length units after colorOffset
+        this.colorOffset2 = this.colorOffset  + ((wmoGroupObject.colorVerticles && wmoGroupObject.colorVerticles.length > 0 )? (wmoGroupObject.colorVerticles.length) : 0);
 
         this.indexVBO = gl.createBuffer();
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.indexVBO );

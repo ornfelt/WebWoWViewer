@@ -81,7 +81,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 38 | `wowRenderJs/geometry/skinGeomCache.ts` `fixShaderIdBasedOnLayer` | `renderFlag != 6` and `renderFlag != 1` compare the render flag object with a number | always true, so those branches ignore the second blend mode (probably meant `blend != 6` / `blend != 1`) |
 | 39 | `wowRenderJs/geometry/skinGeomCache.ts` `SkinGeomCache` | `skinLoader(fileName, true)` - skinLoader takes only the path (copied from wmoGroupLoader) | harmless, the argument is ignored |
 | 40 | `wowRenderJs/geometry/m2GeomCache.ts` `drawMesh` | `renderFlag.flags & 0x1 > 0` parses as `flags & (0x1 > 0)` | `flags & true` equals `flags & 1`, so it happens to work - harmless |
-| 41 | `wowRenderJs/geometry/wmoGeomCache.ts` `createVBO` | `colorOffset + (cond) ? a : 0` - the `?:` takes the whole sum as its condition | `colorOffset2` is `colorVerticles.length / 4` without the `colorOffset` base, so the second MOCV color attribute reads from the wrong offset (probably meant `colorOffset + (cond ? a : 0)`) |
 | 42 | `wowRenderJs/geometry/wmoGeomCache.ts` `draw` | calls `loadTextures()` without the `momt` it needs | TypeError on `momt[textIndex]`; unreachable today (WmoGroupObject calls `loadTextures(momt)` first) |
 | 43 | `wowRenderJs/geometry/wmoGeomCache.ts` `destroy` | copied from `Texture.destroy` - deletes `this.texture`, which `WmoGeom` never sets | nothing is freed; the group's VBOs leak when the cache unloads it |
 | 44 | `wowRenderJs/math/portalCullingAlgo.ts` `startTraversingFromInteriorWMO`, `startTraversingFromExterior` | `m2Object.checkFrustumCulling(cameraVec4, frustumPlanes, 6, false)` - the method takes three arguments | harmless, the `false` is ignored |
@@ -190,7 +189,7 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 - `m2GeomCache.ts`: `@ts-expect-error` on bug 40. Matrix parameters are gl-matrix `mat4` and go to
   `uniformMatrix4fv` as `Float32List` (gl-matrix's `mat4` includes a plain iterable). `instExt!` - only used when
   `instanceCount != -1`.
-- `wmoGeomCache.ts`: `@ts-expect-error` on bugs 41 and 42. `appendBuffer` takes a local `VertexBuffer` type
+- `wmoGeomCache.ts`: `@ts-expect-error` on bug 42. `appendBuffer` takes a local `VertexBuffer` type
   (float arrays and the MOCV byte arrays).
 
 - `bsp.ts` and `BspTree.ts` stay scripts (no import or export, like the JS). `bsp.ts` names `AABB` through an
