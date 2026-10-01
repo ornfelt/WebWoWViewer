@@ -1,6 +1,7 @@
 import {vec4, vec3, mat4} from 'gl-matrix';
 import type {ReadonlyMat4, ReadonlyVec3, ReadonlyVec4} from 'gl-matrix';
 import type {Vector3f} from '../../services/fileReadHelper';
+import type {WmoBspNode, WmoGroupFile} from '../../services/map/wmoLoader';
 
 /* Axis-aligned bounding box: [min, max] */
 export type AABB = readonly [ReadonlyVec3, ReadonlyVec3];
@@ -393,7 +394,7 @@ class MathHelper {
     /*
        WMO specific algorithms
     */
-    static queryBspTree(bbox: AABB, nodeId: number, nodes: any[], bspLeafIdList: number[]): void { // TS-PORT: parked until services/map/wmoLoader.ts exports the BSP node type
+    static queryBspTree(bbox: AABB, nodeId: number, nodes: WmoBspNode[], bspLeafIdList: number[]): void {
         if (nodeId == -1) return;
 
         if ((nodes[nodeId].planeType&0x4)){
@@ -431,7 +432,7 @@ class MathHelper {
         }
     }
 
-    static getTopAndBottomTriangleFromBsp(cameraLocal: ReadonlyVec3, groupFile: any, bspLeafList: number[]): TopAndBottomZ { // TS-PORT: parked until services/map/wmoLoader.ts exports WmoGroupFile
+    static getTopAndBottomTriangleFromBsp(cameraLocal: ReadonlyVec3, groupFile: WmoGroupFile, bspLeafList: number[]): TopAndBottomZ {
         var result = 0;
         var nodes = groupFile.nodes;
         var topZ = -999999;

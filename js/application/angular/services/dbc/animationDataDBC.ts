@@ -1,15 +1,26 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let animationDataDBCFile = null;
+export interface AnimationDataRecord {
+  id: number;
+  name: string;
+  weaponFlags: number;
+  bodyFlags: number;
+  flags: number;
+  fallbackID: number;
+  behaviorID: number;
+  behaviorTier: number;
+}
 
-export default function animationDataDBC() {
+let animationDataDBCFile: AnimationDataRecord[] | null = null;
+
+export default function animationDataDBC(): Promise<AnimationDataRecord[]> {
   return new Promise((resolve, reject) => {
     if (animationDataDBCFile === null) {
       animationDataDBCFile = [];
       loadDBC("DBFilesClient/AnimationData.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const record = {};
+            const record = {} as AnimationDataRecord;
 
             record.id             = dbcObject.readInt32(i, 0);
             record.name           = dbcObject.readText(i, 1);
@@ -20,9 +31,9 @@ export default function animationDataDBC() {
             record.behaviorID     = dbcObject.readInt32(i, 6);
             record.behaviorTier   = dbcObject.readInt32(i, 7);
 
-            animationDataDBCFile[record.id] = record;
+            animationDataDBCFile![record.id] = record;
           }
-          resolve(animationDataDBCFile);
+          resolve(animationDataDBCFile!);
         })
         .catch((error) => {
           reject(error);

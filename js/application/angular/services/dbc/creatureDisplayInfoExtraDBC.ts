@@ -1,15 +1,38 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let creatureDisplayInfoExtraDBCFile = null;
+export interface CreatureDisplayInfoExtraRecord {
+  race: number;
+  gender: number;
+  skin: number;
+  face: number;
+  hairType: number;
+  hairStyle: number;
+  faceHairStyle: number;
+  helmItem: number;
+  shoulderItem: number;
+  shirtItem: number;
+  cuirassItem: number;
+  beltItem: number;
+  legsItem: number;
+  bootsItem: number;
+  wristItem: number;
+  glovesItem: number;
+  tabardItem: number;
+  capeItem: number;
+  CanEquip: number;
+  skinTexture: string;
+}
 
-export default function creatureDisplayInfoExtraDBC() {
+let creatureDisplayInfoExtraDBCFile: { [id: number]: CreatureDisplayInfoExtraRecord } | null = null;
+
+export default function creatureDisplayInfoExtraDBC(): Promise<{ [id: number]: CreatureDisplayInfoExtraRecord }> {
   return new Promise((resolve, reject) => {
     if (creatureDisplayInfoExtraDBCFile === null) {
       creatureDisplayInfoExtraDBCFile = {};
       loadDBC("DBFilesClient/CreatureDisplayInfoExtra.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const record = {};
+            const record = {} as CreatureDisplayInfoExtraRecord;
             const id = dbcObject.readInt32(i, 0);
 
             record.race          = dbcObject.readInt32(i, 1);
@@ -33,9 +56,9 @@ export default function creatureDisplayInfoExtraDBC() {
             record.CanEquip      = dbcObject.readInt32(i, 19);
             record.skinTexture   = dbcObject.readText(i, 20);
 
-            creatureDisplayInfoExtraDBCFile[id] = record;
+            creatureDisplayInfoExtraDBCFile![id] = record;
           }
-          resolve(creatureDisplayInfoExtraDBCFile);
+          resolve(creatureDisplayInfoExtraDBCFile!);
         })
         .catch((error) => {
           reject(error);

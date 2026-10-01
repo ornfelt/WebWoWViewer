@@ -1,6 +1,41 @@
-import linedFileLoader from './../linedfileLoader.js';
+import linedFileLoader from './../linedfileLoader';
+import type { SectionDefinition } from './../linedfileLoader';
 
-const blpDefinition = {
+export type BlpTextureFormat =
+    | "S3TC_RGBA_DXT1"
+    | "S3TC_RGB_DXT1"
+    | "S3TC_RGBA_DXT3"
+    | "BGRA"
+    | "PalARGB1555DitherFloydSteinberg"
+    | "PalARGB4444DitherFloydSteinberg"
+    | "S3TC_RGBA_DXT5"
+    | "PalARGB2565DitherFloydSteinberg";
+
+export interface BlpMipmap {
+    texture: Uint8Array;
+    width: number;
+    height: number;
+}
+
+/* The "header" layout of blpDefinition, plus what the loader adds after parsing it */
+export interface BlpFile {
+    version: number;
+    colorEncoding: number;
+    alphaChannelBitDepth: number;
+    preferredFormat: number;
+    mipmap_level_and_flags: number;
+    width: number;
+    height: number;
+    offsets: number[];
+    lengths: number[];
+    palette: Uint8Array;
+    fileName: string;
+    /* unset for a preferredFormat the switch below does not know */
+    textureFormat?: BlpTextureFormat;
+    mipmaps: BlpMipmap[];
+}
+
+const blpDefinition: SectionDefinition = {
     name: "header",
     type: "layout",
     layout : [
@@ -17,7 +52,7 @@ const blpDefinition = {
     ]
 };
 
-export default function (filePath) {
+export default function (filePath: string): Promise<BlpFile> {
     var promise = linedFileLoader(filePath);
 
     var newPromise = promise.then(function success(fileObject) {
@@ -37,12 +72,13 @@ export default function (filePath) {
             }
 
             /* Parse the header */
-            var resultBLPObject = {
+            /* the second declaration replaces this object with the parsed header layout */
+            var resultBLPObject: BlpFile = {
                 header: {}
-            };
+            } as unknown as BlpFile;
 
-            var resultBLPObject = fileObject.parseSectionDefinition(resultBLPObject, blpDefinition, fileObject, offset);
-            resultBLPObject.fileName = fileObject.filePath;
+            var resultBLPObject: BlpFile = fileObject.parseSectionDefinition(resultBLPObject, blpDefinition, fileObject, offset) as BlpFile;
+            resultBLPObject.fileName = fileObject.filePath!;
 
             /* Post load for texture data. Can't define them through declarative definition */
             var width = resultBLPObject.width;
@@ -88,7 +124,7 @@ export default function (filePath) {
 
 
             /* Load texture by mipmaps */
-            var mipmaps = [];
+            var mipmaps: BlpMipmap[] = [];
             for (var i = 0; i < 15; i++) {
                 if ((resultBLPObject.lengths[i] == 0) || (resultBLPObject.offsets[i] == 0)) break;
 
@@ -103,6 +139,7 @@ export default function (filePath) {
                         var g = resultBLPObject.palette[colIndex*4 + 1];
                         var r = resultBLPObject.palette[colIndex*4 + 2];
 
+                        // JS-BUG: always reads 8-bit alpha after the indices, whatever alphaChannelBitDepth says; without alpha data this reads past the mip (undefined -> 0, fully transparent), 1- and 4-bit alpha are misread
                         var a = paleteData[width*height + j];
 
 
@@ -149,7 +186,7 @@ export default function (filePath) {
 
             return resultBLPObject;
         },
-        function error(errorObj) {
+        function error(errorObj: unknown): never {
             throw errorObj;
         });
 

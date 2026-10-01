@@ -1,19 +1,28 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let lightIntBandDBCFile = null;
+export interface LightIntBandRecord {
+  id: number;
+  noOfEntries: number;
+  times: number[];
+  values: number[];
+  floatValues: [number, number, number, number][];
+}
 
-export default function LightIntBandDBC() {
+let lightIntBandDBCFile: LightIntBandRecord[] | null = null;
+
+export default function LightIntBandDBC(): Promise<LightIntBandRecord[]> {
   return new Promise((resolve, reject) => {
     if (lightIntBandDBCFile === null) {
       lightIntBandDBCFile = [];
       loadDBC("DBFilesClient/LightIntBand.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const lightIntBandDBCRecord = {};
+            const lightIntBandDBCRecord = {} as LightIntBandRecord;
             lightIntBandDBCRecord.id = dbcObject.readInt32(i, 0);
             lightIntBandDBCRecord.noOfEntries = dbcObject.readInt32(i, 1);
             lightIntBandDBCRecord.times = [];
             for (let j = 0; j < lightIntBandDBCRecord.noOfEntries; j++) {
+              // JS-BUG: times start at column 1 (noOfEntries), so times[0] is the entry count and every time is shifted by one (probably should be 2 + j)
               lightIntBandDBCRecord.times.push(dbcObject.readInt32(i, 1 + j));
             }
             lightIntBandDBCRecord.values = [];
@@ -29,9 +38,9 @@ export default function LightIntBandDBC() {
                 ((lightIntBandDBCRecord.values[j] >> 24) & 0xff) / 255.0,
               ]);
             }
-            lightIntBandDBCFile[lightIntBandDBCRecord.id] = lightIntBandDBCRecord;
+            lightIntBandDBCFile![lightIntBandDBCRecord.id] = lightIntBandDBCRecord;
           }
-          resolve(lightIntBandDBCFile);
+          resolve(lightIntBandDBCFile!);
         })
         .catch((error) => {
           reject(error);

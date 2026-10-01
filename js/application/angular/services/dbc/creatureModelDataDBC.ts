@@ -1,15 +1,25 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let creatureModelDataDBCFile = null;
+export interface CreatureModelDataRecord {
+  unk: number;
+  modelName: string;
+  sizeClass: number;
+  modelScale: number;
+  minCorner: { x: number; y: number; z: number };
+  maxCorner: { x: number; y: number; z: number };
+}
 
-export default function creatureDisplayInfoExtraDBC() {
+let creatureModelDataDBCFile: { [id: number]: CreatureModelDataRecord } | null = null;
+
+// JS-BUG: default export is named creatureDisplayInfoExtraDBC (copy-paste from that module); harmless, importers pick their own name
+export default function creatureDisplayInfoExtraDBC(): Promise<{ [id: number]: CreatureModelDataRecord }> {
   return new Promise((resolve, reject) => {
     if (creatureModelDataDBCFile === null) {
       creatureModelDataDBCFile = {};
       loadDBC("DBFilesClient/CreatureModelData.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const record = {};
+            const record = {} as CreatureModelDataRecord;
 
             const id = dbcObject.readInt32(i, 0);
 
@@ -29,9 +39,9 @@ export default function creatureDisplayInfoExtraDBC() {
               z: dbcObject.readFloat32(i, 23)
             };
 
-            creatureModelDataDBCFile[id] = record;
+            creatureModelDataDBCFile![id] = record;
           }
-          resolve(creatureModelDataDBCFile);
+          resolve(creatureModelDataDBCFile!);
         })
         .catch((error) => {
           reject(error);

@@ -1,21 +1,27 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let mapDBCFile = null;
+export interface MapRecord {
+  id: number;
+  wdtName: string;
+  mapName: string;
+}
 
-export default function mapDBC() {
+let mapDBCFile: { [id: number]: MapRecord } | null = null;
+
+export default function mapDBC(): Promise<{ [id: number]: MapRecord }> {
   return new Promise((resolve, reject) => {
     if (mapDBCFile === null) {
       mapDBCFile = {};
       loadDBC("DBFilesClient/Map.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const mapDBCRecord = {};
+            const mapDBCRecord = {} as MapRecord;
             mapDBCRecord.id = dbcObject.readInt32(i, 0);
             mapDBCRecord.wdtName = dbcObject.readText(i, 1);
             mapDBCRecord.mapName = dbcObject.readText(i, 5);
-            mapDBCFile[mapDBCRecord.id] = mapDBCRecord;
+            mapDBCFile![mapDBCRecord.id] = mapDBCRecord;
           }
-          resolve(mapDBCFile);
+          resolve(mapDBCFile!);
         })
         .catch((error) => {
           reject(error);

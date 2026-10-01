@@ -1,15 +1,106 @@
-import chunkedLoader from './../chunkedLoader.js';
-import fileReadHelper from './../fileReadHelper.js';
+import chunkedLoader from './../chunkedLoader';
+import type { Chunk, ChunkedFile, ChunkHandlerTable } from './../chunkedLoader';
+import fileReadHelper from './../fileReadHelper';
+import type { Vector3f } from './../fileReadHelper';
 
-const handlerTable = {
-    "MVER" : function (adtObject, chunk) {
+/* MCIN record - read and used to find the MCNK, not kept */
+export interface AdtMcinEntry {
+    offsetMCNK: number;
+    size: number;
+    flags: number;
+    asyncId: number;
+}
+
+export interface AdtTextureLayer {
+    textureID: number;
+    flags: number;
+    alphaMap: number;
+    detailTex: number;
+    /* added by addTextureNames() after the file is processed */
+    textureName?: string;
+}
+
+export interface AdtMcnkObj {
+    flags: number;
+    ix: number;
+    iy: number;
+    nLayers: number;
+    nDoodadRefs: number;
+    m2Refs: number[];
+    sizeAlpha: number;
+    sizeShadow: number;
+    areaid: number;
+    nMapObjRefs: number;
+    wmoRefs: number[];
+    holes: number;
+    s1: number;
+    s2: number;
+    d1: number;
+    d2: number;
+    d3: number;
+    predTex: number;
+    pos: Vector3f;
+    textureId: number;
+    props: number;
+    effectId: number;
+    /* MCVT */
+    heights: number[];
+    /* MCNR */
+    normales: number[];
+    /* MCLY - unset when the chunk is empty */
+    textureLayers?: AdtTextureLayer[];
+    /* MCAL - unset when sizeAlpha is 0 */
+    alphaArray?: Uint8Array;
+}
+
+/* MDDF record */
+export interface AdtM2Placement {
+    nameID: number;
+    uniqueId: number;
+    pos: Vector3f;
+    rotation: Vector3f;
+    scale: number;
+    fileName: string;
+}
+
+/* MODF record */
+export interface AdtModfChunk {
+    nameId: number;
+    uniqueId: number;
+    pos: Vector3f;
+    rotation: Vector3f;
+    bb1: Vector3f;
+    bb2: Vector3f;
+    doodadSet: number;
+    nameSet: number;
+    flags: number;
+    fileName: string;
+}
+
+/* A chunk handler is not called for an empty chunk, so every chunk below MCIN may leave its field unset */
+export interface AdtFile {
+    filename: string;
+    mcnkObjs: AdtMcnkObj[];
+    mtex?: string[];
+    mmdx?: Uint8Array | null;
+    mmid?: number[] | null;
+    mwmo?: Uint8Array | null;
+    mwid?: number[] | null;
+    mddf?: AdtM2Placement[];
+    wmoObjs?: AdtModfChunk[];
+}
+
+const handlerTable: ChunkHandlerTable = {
+    "MVER" : function (adtObject: AdtFile, chunk: Chunk) {
         if (chunk.chunkIdent !== "MVER") {
+            // JS-BUG: filename is not defined in this scope (ReferenceError); unreachable, the handler is only called for MVER chunks
+            // @ts-expect-error filename is not in scope - see the JS-BUG above
             throw "Got bad group ADT file " + filename;
         }
         var version = chunk.readInt32({offs: 0});
         //$log.info("Loading ", filename, ", version ", version);
     },
-    "MHDR" : function (adtObject, chunk, chunkedFile) {
+    "MHDR" : function (adtObject: AdtFile, chunk: Chunk, chunkedFile: ChunkedFile) {
         var offs = {offs : 0};
 
         var flags = chunk.readUint32(offs);
@@ -49,25 +140,25 @@ const handlerTable = {
         //Stop loading
         chunk.nextChunkOffset = chunkedFile.getFileSize();
     },
-    "MCIN" : function (adtObject, chunk, chunkedFile) {
+    "MCIN" : function (adtObject: AdtFile, chunk: Chunk, chunkedFile: ChunkedFile) {
         var offs = {offs : 0};
         //16x16 records
-        var mcnkObjs = [];
+        var mcnkObjs: AdtMcnkObj[] = [];
         for (var i = 0; i < 256; i++) {
-            var MCINEntry = {};
+            var MCINEntry = {} as AdtMcinEntry;
             MCINEntry.offsetMCNK = chunk.readUint32(offs);
             MCINEntry.size = chunk.readUint32(offs);
             MCINEntry.flags = chunk.readUint32(offs);
             MCINEntry.asyncId = chunk.readUint32(offs);
 
             //Load and process MCNK for this block
-            var mcnkObj = {};
+            var mcnkObj = {} as AdtMcnkObj;
             chunkedFile.processChunkAtOffs(MCINEntry.offsetMCNK, mcnkObj);
             mcnkObjs.push(mcnkObj);
         }
         adtObject.mcnkObjs = mcnkObjs;
     },
-    "MCNK" : function (mcnkObj, chunk, chunkedFile) {
+    "MCNK" : function (mcnkObj: AdtMcnkObj, chunk: Chunk, chunkedFile: ChunkedFile) {
         var offs = {offs : 0};
         mcnkObj.flags             = chunk.readUint32(offs);
         mcnkObj.ix                = chunk.readUint32(offs);
@@ -115,15 +206,15 @@ const handlerTable = {
 
         chunkedFile.processChunkAtOffs(chunk.chunkOffset + ofsRefs, mcnkObj);
     },
-    "MCVT" : function (mcnkObj, chunk, chunkedFile) {
+    "MCVT" : function (mcnkObj: AdtMcnkObj, chunk: Chunk, chunkedFile: ChunkedFile) {
         var offs = {offs : 0};
 
         var heights = chunk.readFloat32Array(offs, 145);
         mcnkObj.heights = heights;
     },
-    "MCNR" : function (mcnkObj, chunk, chunkedFile) {
+    "MCNR" : function (mcnkObj: AdtMcnkObj, chunk: Chunk, chunkedFile: ChunkedFile) {
         var offs = {offs : 0};
-        var normales = [];
+        var normales: number[] = [];
 
         for (var i = 0; i < 9*9 + 8*8; i++) {
             var x = chunk.readInt8(offs) / 127;
@@ -136,13 +227,13 @@ const handlerTable = {
         }
         mcnkObj.normales = normales;
     },
-    "MCLY" : function (mcnkObj, chunk, chunkedFile) {
+    "MCLY" : function (mcnkObj: AdtMcnkObj, chunk: Chunk, chunkedFile: ChunkedFile) {
         var offs = {offs : 0};
         var recCount = chunk.chunkLen >> 4;
-        var textureLayers = [];
+        var textureLayers: AdtTextureLayer[] = [];
 
         for (var i = 0; i < recCount; i++) {
-            var textureLayer = {};
+            var textureLayer = {} as AdtTextureLayer;
             textureLayer.textureID  = chunk.readInt32(offs); //offset into MTEX list
 
             textureLayer.flags      = chunk.readInt32(offs);
@@ -153,13 +244,13 @@ const handlerTable = {
 
         mcnkObj.textureLayers = textureLayers;
     },
-    "MCAL" : function (mcnkObj, chunk, chunkedFile) {
+    "MCAL" : function (mcnkObj: AdtMcnkObj, chunk: Chunk, chunkedFile: ChunkedFile) {
         var offset = {offs: 0};
         var alphaArray = chunk.readUint8Array(offset, chunk.chunkLen);
 
         mcnkObj.alphaArray = alphaArray;
     },
-    "MCRF": function (mcnkObj, chunk, chunkedFile) {
+    "MCRF": function (mcnkObj: AdtMcnkObj, chunk: Chunk, chunkedFile: ChunkedFile) {
         var offset = {offs: 0};
         var m2Refs = chunk.readInt32Array(offset, mcnkObj.nDoodadRefs);
         var wmoRefs = chunk.readInt32Array(offset, mcnkObj.nMapObjRefs);
@@ -167,9 +258,9 @@ const handlerTable = {
         mcnkObj.m2Refs = m2Refs;
         mcnkObj.wmoRefs = wmoRefs;
     },
-    "MTEX" : function (adtObject, chunk) {
+    "MTEX" : function (adtObject: AdtFile, chunk: Chunk) {
         var offset = {offs: 0};
-        var textureNames = [];
+        var textureNames: string[] = [];
 
         while (offset.offs < chunk.chunkLen) {
             var textStr = chunk.readString(offset, chunk.chunkLen - offset.offs); offset.offs += 1;
@@ -178,9 +269,9 @@ const handlerTable = {
 
         adtObject.mtex = textureNames;
     },
-    "MMDX" : function (adtObject, chunk) {
+    "MMDX" : function (adtObject: AdtFile, chunk: Chunk) {
         var offset = {offs: 0};
-        var m2Names = null;
+        var m2Names: Uint8Array | null = null;
 
         if (chunk.chunkLen > 0) {
             m2Names = chunk.readUint8Array(offset, chunk.chunkLen);
@@ -188,9 +279,9 @@ const handlerTable = {
 
         adtObject.mmdx = m2Names;
     },
-    "MMID" : function (adtObject, chunk) {
+    "MMID" : function (adtObject: AdtFile, chunk: Chunk) {
         var offset = {offs: 0};
-        var mmid = null;
+        var mmid: number[] | null = null;
 
         if (chunk.chunkLen > 0) {
             mmid = chunk.readInt32Array(offset, chunk.chunkLen >> 2);
@@ -198,9 +289,9 @@ const handlerTable = {
 
         adtObject.mmid = mmid;
     },
-    "MWMO" : function (adtObject, chunk) {
+    "MWMO" : function (adtObject: AdtFile, chunk: Chunk) {
         var offset = {offs: 0};
-        var wmoNames = null;
+        var wmoNames: Uint8Array | null = null;
 
         if (chunk.chunkLen > 0) {
             wmoNames = chunk.readUint8Array(offset, chunk.chunkLen);
@@ -208,10 +299,10 @@ const handlerTable = {
 
         adtObject.mwmo = wmoNames;
     },
-    "MWID" : function (adtObject, chunk) {
+    "MWID" : function (adtObject: AdtFile, chunk: Chunk) {
         var offset = {offs: 0};
 
-        var mwid = null;
+        var mwid: number[] | null = null;
 
         if (chunk.chunkLen > 0) {
             mwid = chunk.readInt32Array(offset, chunk.chunkLen >> 2);
@@ -219,42 +310,43 @@ const handlerTable = {
 
         adtObject.mwid = mwid;
     },
-    "MDDF" : function (adtObject, chunk) {
-        var m2Objs = [];
+    "MDDF" : function (adtObject: AdtFile, chunk: Chunk) {
+        var m2Objs: AdtM2Placement[] = [];
         var offset = {offs : 0};
 
         var mddfCount = (chunk.chunkLen / (4 + 4 + 4*3 + 4*3 + 4));
         if (mddfCount > 0) {
-            var mmdxBuff = fileReadHelper(adtObject.mmdx.buffer);
+            var mmdxBuff = fileReadHelper(adtObject.mmdx!.buffer as ArrayBuffer);
         }
         for (var i = 0; i < mddfCount; i++){
-            var m2Placement = {};
+            var m2Placement = {} as AdtM2Placement;
 
             m2Placement.nameID    = chunk.readInt32(offset);
             m2Placement.uniqueId  = chunk.readInt32(offset);
             m2Placement.pos       = chunk.readVector3f(offset);
             m2Placement.rotation  = chunk.readVector3f(offset);
             //flags               : WORD;
+            // JS-BUG: MDDF scale is a uint16 followed by uint16 flags; readInt32 folds the flags into the scale, so a doodad with any flag set gets a huge scale (probably readUint16 for scale, then skip/read the flags)
             m2Placement.scale     = chunk.readInt32(offset);
 
-            var nameOffset = adtObject.mmid[m2Placement.nameID];
-            m2Placement.fileName  = mmdxBuff.readString({offs : nameOffset}, mmdxBuff.getLength() - nameOffset);
+            var nameOffset = adtObject.mmid![m2Placement.nameID];
+            m2Placement.fileName  = mmdxBuff!.readString({offs : nameOffset}, mmdxBuff!.getLength() - nameOffset);
             m2Objs.push(m2Placement);
         }
 
         adtObject.mddf = m2Objs;
     },
-    "MODF" : function (adtObject, chunk) {
+    "MODF" : function (adtObject: AdtFile, chunk: Chunk) {
         var offset = { offs : 0 };
-        var wmoObjs = [];
+        var wmoObjs: AdtModfChunk[] = [];
         var modfCount = (chunk.chunkLen / (4 + 4 + 4*3 + 4*3 +4*3 + 4*3 + 2 + 2 + 4));
 
         if (modfCount > 0)  {
-            var mwmoBuff = fileReadHelper(adtObject.mwmo.buffer);
+            var mwmoBuff = fileReadHelper(adtObject.mwmo!.buffer as ArrayBuffer);
         }
 
         for (var i = 0; i < modfCount; i++) {
-            var modfChunk = {};
+            var modfChunk = {} as AdtModfChunk;
 
             modfChunk.nameId = chunk.readInt32(offset);
             modfChunk.uniqueId = chunk.readInt32(offset);
@@ -268,8 +360,8 @@ const handlerTable = {
             modfChunk.nameSet   = chunk.readUint16(offset);
             modfChunk.flags     = chunk.readInt32(offset);
 
-            var nameOffset = adtObject.mwid[modfChunk.nameId];
-            modfChunk.fileName  = mwmoBuff.readString({offs : nameOffset}, mwmoBuff.getLength() - nameOffset);
+            var nameOffset = adtObject.mwid![modfChunk.nameId];
+            modfChunk.fileName  = mwmoBuff!.readString({offs : nameOffset}, mwmoBuff!.getLength() - nameOffset);
 
             wmoObjs.push(modfChunk);
         }
@@ -279,15 +371,15 @@ const handlerTable = {
 };
 
 class ADTLoader {
-    getHandler(sectionName) {
+    getHandler(sectionName: string) {
         return handlerTable[sectionName];
     }
 }
 
 const defaultAdtLoader = new ADTLoader();
 
-export default function(filename) {
-  function addTextureNames(adtObj) {
+export default function(filename: string): Promise<AdtFile> {
+  function addTextureNames(adtObj: AdtFile): void {
     // Add texture names
     for (let i = 0; i < adtObj.mcnkObjs.length; i++) {
       const mcnkObj = adtObj.mcnkObjs[i];
@@ -295,7 +387,7 @@ export default function(filename) {
       if (!mcnkObj.textureLayers) continue;
       for (let j = 0; j < mcnkObj.textureLayers.length; j++) {
         const textIndex = mcnkObj.textureLayers[j].textureID;
-        const textureName = mtex[textIndex];
+        const textureName = mtex![textIndex];
         mcnkObj.textureLayers[j].textureName = textureName;
       }
     }
@@ -305,7 +397,7 @@ export default function(filename) {
     chunkedLoader(filename)
       .then((chunkedFile) => {
         /* First chunk in file has to be MVER */
-        const adtObj = {};
+        const adtObj = {} as AdtFile;
         adtObj.filename = filename;
         chunkedFile.setSectionReaders(defaultAdtLoader);
         chunkedFile.processFile(adtObj);

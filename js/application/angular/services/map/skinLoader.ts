@@ -1,7 +1,142 @@
-import linedFileLoader from './../linedfileLoader.js';
+import linedFileLoader from './../linedfileLoader';
+import type { SectionDefinition } from './../linedfileLoader';
+import type { Vector3f } from './../fileReadHelper';
 import Expansion from '../../Expansion';
 
-const skinDefinition = {
+export interface SkinSubMesh {
+    meshID: number;
+    vStart: number;
+    vCount: number;
+    StartTriangle: number;
+    nTriangles: number;
+    nBones: number;
+    OfsBoneList: number;
+    boneInfluences: number;
+    rootBone: number;
+    pos: Vector3f;
+    /* not in the classic layout */
+    centerBoundingBox?: Vector3f;
+    /* not in the classic layout */
+    radius?: number;
+}
+
+export interface SkinTex {
+    flags: number;
+    shaderId: number;
+    submeshIndex: number;
+    submesh_index2: number;
+    colorIndex: number;
+    renderFlagIndex: number;
+    layer: number;
+    op_count: number;
+    textureIndex: number;
+    textureUnitNum: number;
+    transpIndex: number;
+    textureAnim: number;
+}
+
+/* skinDefinition / skinDefinitionClassic */
+export interface SkinHeader {
+    nIndex: number;
+    ofsIndex: number;
+    nTris: number;
+    ofsTris: number;
+    nProps: number;
+    ofsProps: number;
+    nSub: number;
+    ofsSub: number;
+    nTex: number;
+    ofsTex: number;
+    LOD: number;
+    indexes: number[];
+    triangles: number[];
+    subMeshes: SkinSubMesh[];
+    texs: SkinTex[];
+}
+
+/* mdx_ver262 - the M2 header, read before the embedded skin of a pre-WotLK model */
+export interface SkinModelHeader {
+    MNameLen: number;
+    MNameOffs: number;
+    ModelType: number;
+    nGlobalSequences: number;
+    ofsGlobalSequences: number;
+    nAnimations: number;
+    ofsAnimations: number;
+    nC: number;
+    ofsC: number;
+    nD: number;
+    ofsD: number;
+    nBones: number;
+    ofsBones: number;
+    nF: number;
+    ofsF: number;
+    nVertexes: number;
+    ofsVertexes: number;
+    nViews: number;
+    ofsViews: number;
+    nColors: number;
+    ofsColors: number;
+    nTextures: number;
+    ofsTextures: number;
+    nTransparency: number;
+    ofsTransparency: number;
+    nI: number;
+    ofsI: number;
+    nTexAnims: number;
+    ofsTexAnims: number;
+    nTexReplace: number;
+    ofsTexReplace: number;
+    nRenderFlags: number;
+    ofsRenderFlags: number;
+    nGroupBoneIDs: number;
+    ofsGroupBoneIDs: number;
+    nTexLookup: number;
+    ofsTexLookup: number;
+    nTexUnits: number;
+    ofsTexUnits: number;
+    nTransLookup: number;
+    ofsTransLookup: number;
+    nTexAnimLookup: number;
+    ofsTexAnimLookup: number;
+    BoundingCorner1: Vector3f;
+    BoundingCorner2: Vector3f;
+    BoundingRadius: number;
+    Corner1: Vector3f;
+    Corner2: Vector3f;
+    Radius: number;
+    nBoundingTriangles: number;
+    ofsBoundingTriangles: number;
+    nBoundingVertices: number;
+    ofsBoundingVertices: number;
+    nBoundingNormals: number;
+    ofsBoundingNormals: number;
+    nAttachments: number;
+    ofsAttachments: number;
+    nP: number;
+    ofsP: number;
+    nNumEvents: number;
+    ofsNumEvents: number;
+    nLights: number;
+    ofsLights: number;
+    nCameras: number;
+    ofsCameras: number;
+    nCameraLookup: number;
+    ofsCameraLookup: number;
+    nRibbonEmitters: number;
+    ofsRibbonEmitters: number;
+    nParticleEmitters: number;
+    ofsParticleEmitters: number;
+}
+
+export interface SkinFile {
+    header: SkinHeader;
+    /* empty for WotLK, the parsed mdx_ver262 header otherwise */
+    modelHeader: Partial<SkinModelHeader>;
+    fileName: string;
+}
+
+const skinDefinition: SectionDefinition = {
     name: "header",
     type: "layout",
     layout: [
@@ -72,7 +207,7 @@ const skinDefinition = {
     ]
 };
 
-const skinDefinitionClassic = {
+const skinDefinitionClassic: SectionDefinition = {
     name: "header",
     type: "layout",
     layout: [
@@ -143,7 +278,7 @@ const skinDefinitionClassic = {
     ]
 };
 
-const mdx_ver262 = {
+const mdx_ver262: SectionDefinition = {
     name : "modelHeader",
     type : "layout",
     layout : [
@@ -221,7 +356,7 @@ const mdx_ver262 = {
   ]
 };
 
-export default function(filePath) {
+export default function(filePath: string): Promise<SkinFile> {
     var promise = linedFileLoader(filePath);
 
     // HEHE: to test without models (for tbc and classic debugging)
@@ -234,16 +369,16 @@ export default function(filePath) {
             var resultSkinObject = {
                 header : {},
                 modelHeader: {}
-            };
+            } as SkinFile;
 
             /* Read the header */
             var offset = {offs : 0};
 
             if (window.selectedExpansion !== Expansion.WOTLK) {
               offset.offs += 8;
-              resultSkinObject.modelHeader = fileObject.parseSectionDefinition(resultSkinObject, mdx_ver262, fileObject, offset);
+              resultSkinObject.modelHeader = fileObject.parseSectionDefinition(resultSkinObject, mdx_ver262, fileObject, offset) as SkinModelHeader;
               //console.log("SKIN resultSkinObject:", resultSkinObject);
-              offset.offs = resultSkinObject.modelHeader.ofsViews;
+              offset.offs = resultSkinObject.modelHeader.ofsViews!;
               //console.log("SKIN TBC views offset:", offset);
             }
             else {
@@ -262,9 +397,9 @@ export default function(filePath) {
             /* Parse the header */
 
             if (window.selectedExpansion === Expansion.CLASSIC) {
-              resultSkinObject.header = fileObject.parseSectionDefinition(resultSkinObject, skinDefinitionClassic, fileObject, offset);
+              resultSkinObject.header = fileObject.parseSectionDefinition(resultSkinObject, skinDefinitionClassic, fileObject, offset) as SkinHeader;
             } else {
-              resultSkinObject.header = fileObject.parseSectionDefinition(resultSkinObject, skinDefinition, fileObject, offset);
+              resultSkinObject.header = fileObject.parseSectionDefinition(resultSkinObject, skinDefinition, fileObject, offset) as SkinHeader;
             }
 
             // Debug
@@ -273,8 +408,9 @@ export default function(filePath) {
             resultSkinObject.fileName = filePath;
             return resultSkinObject;
         },
-        function error(errorObj){
-            return errorObj;
+        // JS-BUG: the rejection handler returns errorObj, so a failed load resolves with the error as if it were the SkinFile
+        function error(errorObj: unknown): SkinFile {
+            return errorObj as SkinFile;
         });
 
     return newPromise;

@@ -1,15 +1,27 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let creatureDisplayInfoDBCFile = null;
+export interface CreatureDisplayInfoRecord {
+  model1: number;
+  sound: number;
+  displayExtra: number;
+  modelScale: number;
+  opacity: number;
+  skin1: string;
+  skin2: string;
+  skin3: string;
+  creatureGeosetData: number;
+}
 
-export default function creatureDisplayInfoDBC() {
+let creatureDisplayInfoDBCFile: { [id: number]: CreatureDisplayInfoRecord } | null = null;
+
+export default function creatureDisplayInfoDBC(): Promise<{ [id: number]: CreatureDisplayInfoRecord }> {
   return new Promise((resolve, reject) => {
     if (creatureDisplayInfoDBCFile === null) {
       creatureDisplayInfoDBCFile = {};
       loadDBC("DBFilesClient/CreatureDisplayInfo.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const record = {};
+            const record = {} as CreatureDisplayInfoRecord;
             const id = dbcObject.readInt32(i, 0);
             record.model1 = dbcObject.readInt32(i, 1);
             record.sound = dbcObject.readInt32(i, 2);
@@ -20,9 +32,9 @@ export default function creatureDisplayInfoDBC() {
             record.skin2 = dbcObject.readText(i, 7);
             record.skin3 = dbcObject.readText(i, 8);
             record.creatureGeosetData = dbcObject.readUInt32(i, 14);
-            creatureDisplayInfoDBCFile[id] = record;
+            creatureDisplayInfoDBCFile![id] = record;
           }
-          resolve(creatureDisplayInfoDBCFile);
+          resolve(creatureDisplayInfoDBCFile!);
         })
         .catch((error) => {
           reject(error);

@@ -1,15 +1,27 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let charSectionsDBCFile = null;
+export interface CharSectionsRecord {
+  race: number;
+  gender: number;
+  section: number;
+  texture1: string;
+  texture2: string;
+  texture3: string;
+  unk: number;
+  type: number;
+  color: number;
+}
 
-export default function charSectionsDBC() {
+let charSectionsDBCFile: CharSectionsRecord[] | null = null;
+
+export default function charSectionsDBC(): Promise<CharSectionsRecord[]> {
   return new Promise((resolve, reject) => {
     if (charSectionsDBCFile === null) {
       charSectionsDBCFile = [];
       loadDBC("DBFilesClient/CharSections.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const record = {};
+            const record = {} as CharSectionsRecord;
 
             const id = dbcObject.readInt32(i, 0);
             record.race     = dbcObject.readInt32(i, 1);
@@ -22,9 +34,9 @@ export default function charSectionsDBC() {
             record.type     = dbcObject.readInt32(i, 8);
             record.color    = dbcObject.readInt32(i, 9);
 
-            charSectionsDBCFile[i] = record;
+            charSectionsDBCFile![i] = record;
           }
-          resolve(charSectionsDBCFile);
+          resolve(charSectionsDBCFile!);
         })
         .catch((error) => {
           reject(error);

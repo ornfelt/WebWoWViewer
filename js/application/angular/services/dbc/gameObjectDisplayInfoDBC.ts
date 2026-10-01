@@ -1,20 +1,24 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let gameObjectDisplayInfoDBCFile = null;
+export interface GameObjectDisplayInfoRecord {
+  modelName: string;
+}
 
-export default function gameObjectDisplayInfoDBC() {
+let gameObjectDisplayInfoDBCFile: { [id: number]: GameObjectDisplayInfoRecord } | null = null;
+
+export default function gameObjectDisplayInfoDBC(): Promise<{ [id: number]: GameObjectDisplayInfoRecord }> {
   return new Promise((resolve, reject) => {
     if (gameObjectDisplayInfoDBCFile === null) {
       gameObjectDisplayInfoDBCFile = {};
       loadDBC("DBFilesClient/GameObjectDisplayInfo.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const record = {};
+            const record = {} as GameObjectDisplayInfoRecord;
             const id = dbcObject.readInt32(i, 0);
             record.modelName = dbcObject.readText(i, 1);
-            gameObjectDisplayInfoDBCFile[id] = record;
+            gameObjectDisplayInfoDBCFile![id] = record;
           }
-          resolve(gameObjectDisplayInfoDBCFile);
+          resolve(gameObjectDisplayInfoDBCFile!);
         })
         .catch((error) => {
           reject(error);

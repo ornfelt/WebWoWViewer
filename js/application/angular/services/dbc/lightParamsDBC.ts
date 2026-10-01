@@ -1,18 +1,31 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let lightParamsDBCFile = null;
+export interface LightParamsRecord {
+  id: number;
+  highlightSky: number;
+  lightSkyboxID: number;
+  cloudTypeID: number;
+  glow: number;
+  waterShallowAlpha: number;
+  waterDeepAlpha: number;
+  oceanShallowAlpha: number;
+  oceanDeepAlpha: number;
+}
 
-export default function lightParamsDBC() {
+let lightParamsDBCFile: LightParamsRecord[] | null = null;
+
+export default function lightParamsDBC(): Promise<LightParamsRecord[]> {
   return new Promise((resolve, reject) => {
     if (lightParamsDBCFile === null) {
       lightParamsDBCFile = [];
       loadDBC("DBFilesClient/LightParams.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const lightParamsDBCRecord = {};
+            const lightParamsDBCRecord = {} as LightParamsRecord;
             try {
               lightParamsDBCRecord.id = dbcObject.readInt32(i, 0);
               lightParamsDBCRecord.highlightSky = dbcObject.readInt32(i, 1);
+              // JS-BUG: lightSkyboxID (an integer id) and cloudTypeID are read with readFloat32; the 3.3.5 layout probably has no cloudTypeID column either, which would shift glow and the alpha fields by one
               lightParamsDBCRecord.lightSkyboxID = dbcObject.readFloat32(i, 2);
               lightParamsDBCRecord.cloudTypeID = dbcObject.readFloat32(i, 3);
               lightParamsDBCRecord.glow = dbcObject.readFloat32(i, 4);
@@ -21,12 +34,12 @@ export default function lightParamsDBC() {
               lightParamsDBCRecord.oceanShallowAlpha = dbcObject.readFloat32(i, 7);
               lightParamsDBCRecord.oceanDeepAlpha = dbcObject.readFloat32(i, 8);
               // Optionally: lightParamsDBCRecord.flags = dbcObject.readInt32(i, 9);
-              lightParamsDBCFile[lightParamsDBCRecord.id] = lightParamsDBCRecord;
+              lightParamsDBCFile![lightParamsDBCRecord.id] = lightParamsDBCRecord;
             } catch (e) {
               console.log(e);
             }
           }
-          resolve(lightParamsDBCFile);
+          resolve(lightParamsDBCFile!);
         })
         .catch((error) => {
           reject(error);

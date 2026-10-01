@@ -1,7 +1,35 @@
-import chunkedLoader from './../chunkedLoader.js';
-import fileReadHelper from './../fileReadHelper.js';
+import chunkedLoader from './../chunkedLoader';
+import fileReadHelper from './../fileReadHelper';
+import type { Vector3f } from './../fileReadHelper';
 
-export default function(wdtFilePath) {
+/* MAIN: tileTable[y][x], non-zero when the ADT tile exists */
+export interface WdtTileTable {
+  [i: number]: { [j: number]: number };
+}
+
+export interface WdtModfChunk {
+  nameId: number;
+  uniqueId: number;
+  pos: Vector3f;
+  rotation: Vector3f;
+  unkVector1: Vector3f;
+  unkVector2: Vector3f;
+  doodadSet: number;
+  nameSet: number;
+  flags: number;
+  fileName: string;
+}
+
+export interface WdtFile {
+  tileTable: WdtTileTable;
+  flags: number;
+  isWMOMap: boolean;
+  mwmo: Uint8Array | null;
+  /* only WMO-only maps have a MODF chunk */
+  modfChunk?: WdtModfChunk;
+}
+
+export default function(wdtFilePath: string): Promise<WdtFile> {
   return new Promise((resolve, reject) => {
     chunkedLoader(wdtFilePath)
       .then(function(chunkedFile) {
@@ -13,15 +41,15 @@ export default function(wdtFilePath) {
         }
 
         chunk = chunkedFile.loadChunkAtOffset(chunk.nextChunkOffset);
-        const wdtObj = {};
+        const wdtObj = {} as WdtFile;
         while (chunk.chunkIdent !== "") {
           switch (chunk.chunkIdent) {
             case "MAIN": {
               const chunkOffs = { offs: 0 };
-              const tileTable = {};
+              const tileTable: WdtTileTable = {};
 
               for (let i = 0; i < 64; i++) {
-                const tile = {};
+                const tile: { [j: number]: number } = {};
                 for (let j = 0; j < 64; j++) {
                   tile[j] = chunk.readInt32(chunkOffs);
                   chunkOffs.offs += 4; // skip next 4 bytes. They are plain zeros
@@ -39,7 +67,7 @@ export default function(wdtFilePath) {
             }
             case "MWMO": {
               const offset = { offs: 0 };
-              let wmoNames = null;
+              let wmoNames: Uint8Array | null = null;
               if (chunk.chunkLen > 0) {
                 wmoNames = chunk.readUint8Array(offset, chunk.chunkLen);
               }
@@ -48,8 +76,8 @@ export default function(wdtFilePath) {
             }
             case "MODF": {
               const offset = { offs: 0 };
-              const modfChunk = {};
-              const mwmoBuff = fileReadHelper(wdtObj.mwmo.buffer);
+              const modfChunk = {} as WdtModfChunk;
+              const mwmoBuff = fileReadHelper(wdtObj.mwmo!.buffer as ArrayBuffer);
 
               modfChunk.nameId = chunk.readInt32(offset);
               modfChunk.uniqueId = chunk.readInt32(offset);

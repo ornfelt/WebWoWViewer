@@ -1,15 +1,26 @@
-import loadDBC from './../dbcLoader.js';
+import loadDBC from './../dbcLoader';
 
-let helmetGeosetVisDataDBCFile = null;
+export interface HelmetGeosetVisDataRecord {
+  geoset0: number;
+  geoset1: number;
+  geoset2: number;
+  geoset3: number;
+  geoset4: number;
+  geoset5: number;
+  geoset6: number;
+}
 
-export default function helmetGeosetVisDataDBC() {
+let helmetGeosetVisDataDBCFile: { [id: number]: HelmetGeosetVisDataRecord } | null = null;
+
+export default function helmetGeosetVisDataDBC(): Promise<{ [id: number]: HelmetGeosetVisDataRecord }> {
   return new Promise((resolve, reject) => {
     if (helmetGeosetVisDataDBCFile === null) {
       helmetGeosetVisDataDBCFile = {};
+      // JS-BUG: file name starts with a lower-case "h" (the client file is HelmetGeosetVisData.dbc); fails on a case-sensitive file server
       loadDBC("DBFilesClient/helmetGeosetVisData.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
-            const record = {};
+            const record = {} as HelmetGeosetVisDataRecord;
             const id = dbcObject.readInt32(i, 0);
 
             // 0, 100, 200, 300, 700, 1600, 1700, Legion: +2400, 2500
@@ -21,9 +32,9 @@ export default function helmetGeosetVisDataDBC() {
             record.geoset5 = dbcObject.readUInt32(i, 6);
             record.geoset6 = dbcObject.readUInt32(i, 7);
 
-            helmetGeosetVisDataDBCFile[id] = record;
+            helmetGeosetVisDataDBCFile![id] = record;
           }
-          resolve(helmetGeosetVisDataDBCFile);
+          resolve(helmetGeosetVisDataDBCFile!);
         })
         .catch((error) => {
           reject(error);

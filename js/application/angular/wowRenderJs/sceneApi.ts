@@ -1,6 +1,24 @@
 // The object Scene.initSceneApi() (wowRenderJs/scene) builds and hands to the caches, managers and
 // scene objects. Type-only: this module emits no JavaScript.
 
+import type { CharacterFacialHairStylesRecord } from '../services/dbc/characterFacialHairStylesDBC';
+import type { CharHairGeosetsRecord } from '../services/dbc/charHairGeosetsDBC';
+import type { CharSectionsRecord } from '../services/dbc/charSectionsDBC';
+import type { CreatureDisplayInfoRecord } from '../services/dbc/creatureDisplayInfoDBC';
+import type { CreatureDisplayInfoExtraRecord } from '../services/dbc/creatureDisplayInfoExtraDBC';
+import type { CreatureModelDataRecord } from '../services/dbc/creatureModelDataDBC';
+import type { GameObjectDisplayInfoRecord } from '../services/dbc/gameObjectDisplayInfoDBC';
+import type { HelmetGeosetVisDataRecord } from '../services/dbc/helmetGeosetVisDataDBC';
+import type { ItemDisplayInfoRecord } from '../services/dbc/itemDisplayInfoDBC';
+import type { ItemRecord } from '../services/dbc/itemDBC';
+import type { MapRecord } from '../services/dbc/mapDBC';
+import type { LightRecord } from '../services/dbc/lightDBC';
+import type { LightFloatBandRecord } from '../services/dbc/lightFloatBandDBC';
+import type { LightIntBandRecord } from '../services/dbc/lightIntBandDBC';
+import type { LightParamsRecord } from '../services/dbc/lightParamsDBC';
+import type { WdtFile } from '../services/map/wdtLoader';
+import type { WmoFile } from '../services/map/wmoLoader';
+
 export interface SceneApiExtensions {
     getInstancingExt(): ANGLE_instanced_arrays | undefined;
     getAnisotropicExt(): EXT_texture_filter_anisotropic | undefined;
@@ -31,25 +49,25 @@ export interface SceneApiShaders {
 }
 
 export interface SceneApiDbc {
-    getCharacterFacialHairStylesDBC(): any; // TS-PORT: parked until services/dbc/characterFacialHairStylesDBC.ts
-    getCharHairGeosetsDBC(): any; // TS-PORT: parked until services/dbc/charHairGeosetsDBC.ts
-    getCharSectionsDBC(): any; // TS-PORT: parked until services/dbc/charSectionsDBC.ts
-    getCreatureDisplayInfoDBC(): any; // TS-PORT: parked until services/dbc/creatureDisplayInfoDBC.ts
-    getCreatureDisplayInfoExtraDBC(): any; // TS-PORT: parked until services/dbc/creatureDisplayInfoExtraDBC.ts
-    getCreatureModelDataDBC(): any; // TS-PORT: parked until services/dbc/creatureModelDataDBC.ts
-    getGameObjectDisplayInfoDBC(): any; // TS-PORT: parked until services/dbc/gameObjectDisplayInfoDBC.ts
-    getHelmetGeosetVisDataDBC(): any; // TS-PORT: parked until services/dbc/helmetGeosetVisDataDBC.ts
-    getItemDisplayInfoDBC(): any; // TS-PORT: parked until services/dbc/itemDisplayInfoDBC.ts
-    getItemDBC(): any; // TS-PORT: parked until services/dbc/itemDBC.ts
+    getCharacterFacialHairStylesDBC(): CharacterFacialHairStylesRecord[];
+    getCharHairGeosetsDBC(): CharHairGeosetsRecord[];
+    getCharSectionsDBC(): CharSectionsRecord[];
+    getCreatureDisplayInfoDBC(): { [id: number]: CreatureDisplayInfoRecord };
+    getCreatureDisplayInfoExtraDBC(): { [id: number]: CreatureDisplayInfoExtraRecord };
+    getCreatureModelDataDBC(): { [id: number]: CreatureModelDataRecord };
+    getGameObjectDisplayInfoDBC(): { [id: number]: GameObjectDisplayInfoRecord };
+    getHelmetGeosetVisDataDBC(): { [id: number]: HelmetGeosetVisDataRecord };
+    getItemDisplayInfoDBC(): { [id: number]: ItemDisplayInfoRecord };
+    getItemDBC(): { [id: number]: ItemRecord };
 
     /* Map and area data */
-    getMapDBC(): any; // TS-PORT: parked until services/dbc/mapDBC.ts
+    getMapDBC(): { [id: number]: MapRecord };
 
     /* Lights information */
-    getLightDBC(): any; // TS-PORT: parked until services/dbc/lightDBC.ts
-    getLightFloatBandDBC(): any; // TS-PORT: parked until services/dbc/lightFloatBandDBC.ts
-    getLightIntBandDBC(): any; // TS-PORT: parked until services/dbc/lightIntBandDBC.ts
-    getLightParamsDBC(): any; // TS-PORT: parked until services/dbc/lightParamsDBC.ts
+    getLightDBC(): LightRecord[];
+    getLightFloatBandDBC(): LightFloatBandRecord[];
+    getLightIntBandDBC(): LightIntBandRecord[];
+    getLightParamsDBC(): LightParamsRecord[];
 }
 
 export interface SceneApiObjects {
@@ -63,7 +81,8 @@ export interface SceneApiObjects {
 export interface SceneApiResources {
     loadTexture(fileName: string): Promise<any>; // TS-PORT: parked until wowRenderJs/texture/textureCache.ts exports Texture
     unLoadTexture(fileName: string): void;
-    loadWmoMain(fileName: string): Promise<any>; // TS-PORT: parked until services/map/wmoLoader.ts exports WmoFile
+    /* wmoLoader resolves with undefined when the load fails */
+    loadWmoMain(fileName: string): Promise<WmoFile | undefined>;
     unloadWmoMain(fileName: string): void;
     loadWmoGeom(fileName: string): Promise<any>; // TS-PORT: parked until wowRenderJs/geometry/wmoGeomCache.ts exports WmoGeom
     unloadWmoGeom(fileName: string): void;
@@ -78,7 +97,7 @@ export interface SceneApiResources {
 export interface SceneApi {
     drawCamera(): void;
     getGlContext(): WebGLRenderingContext;
-    getCurrentWdt(): any; // TS-PORT: parked until services/map/wdtLoader.ts exports WdtFile
+    getCurrentWdt(): WdtFile;
     getBlackPixelTexture(): WebGLTexture;
     setFogColor(color: number[]): void;
     getFogColor(): number[];
