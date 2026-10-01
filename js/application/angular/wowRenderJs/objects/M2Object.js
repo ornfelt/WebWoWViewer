@@ -700,7 +700,7 @@ class MDXObject {
             this.startRightHandClosed = undefined;
         }
         if (typeof this.startLeftHandClosed != 'undefined') {
-            this.animationManager.setRightHandClosed(this.startLeftHandClosed);
+            this.animationManager.setLeftHandClosed(this.startLeftHandClosed);
             this.startLeftHandClosed = undefined;
         }
     }
