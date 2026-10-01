@@ -628,7 +628,7 @@ class MDXObject {
         var skinGeom = this.skinGeom;
 
         var modelViewMat = mat4.create();
-        mat4.multiply(modelViewMat, this.placementMatrix, lookAtMat4);
+        mat4.multiply(modelViewMat, lookAtMat4, this.placementMatrix);
 
         var zeroVect = vec3.create();
 
