@@ -1696,9 +1696,6 @@ export default function(filePath) {
 
         resultMDXObject.fileName = filePath;
         return resultMDXObject;
-    },
-    function error(errorObj){
-        return errorObj;
     });
 
     return newPromise;
