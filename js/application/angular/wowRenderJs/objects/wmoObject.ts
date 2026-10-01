@@ -215,8 +215,7 @@ class WmoObject {
         }
 
         var doodadsSet = self.currentDoodadSet;
-        // JS-BUG: > instead of >= - index == doodadsSet.index + doodadsSet.number (the first doodad of the next set) is treated as part of this set
-        if (index < doodadsSet.index || index > doodadsSet.index+doodadsSet.number) return null;
+        if (index < doodadsSet.index || index >= doodadsSet.index+doodadsSet.number) return null;
 
         var doodadIndex = index - doodadsSet.index;
 
