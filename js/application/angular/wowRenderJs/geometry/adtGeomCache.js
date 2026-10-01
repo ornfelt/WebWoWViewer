@@ -1,5 +1,7 @@
 import {mat4} from 'gl-matrix';
 import cacheTemplate from './../cache.js';
+import config from './../../services/config.js';
+import { triangleStripsToLines } from './wireframe.js';
 import { waterTint } from './../liquid/liquid.js';
 import adtLoader from './../../services/map/adtLoader.js';
 
@@ -258,6 +260,13 @@ class ADTGeom {
         this.stripVBO = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stripVBO);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(this.triangleStrip.strips), gl.STATIC_DRAW);
+
+        /* 3. Triangle edges of the strips, for the wireframe view */
+        var stripLines = triangleStripsToLines(this.triangleStrip.strips, this.triangleStrip.stripOffsets);
+        this.stripLineOffsets = stripLines.lineOffsets;
+        this.stripLinesVBO = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stripLinesVBO);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, stripLines.lines, gl.STATIC_DRAW);
     }
     draw(drawChunks) {
         var gl = this.gl;
@@ -266,7 +275,10 @@ class ADTGeom {
         var shaderAttributes = this.sceneApi.shaders.getShaderAttributes();
         var blackPixelTexture = this.sceneApi.getBlackPixelTexture();
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stripVBO);
+        // Wireframe view (F1): the triangle edges, for my_web_wow's PolygonMode(Line)
+        var wireframe = config.getRenderAdtPolygons();
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, wireframe ? this.stripLinesVBO : this.stripVBO);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.combinedVbo);
 
         gl.vertexAttribPointer(shaderAttributes.aIndex, 1, gl.FLOAT, false, 0, this.indexOffset * 4);
@@ -302,8 +314,13 @@ class ADTGeom {
                     gl.bindTexture(gl.TEXTURE_2D, blackPixelTexture);
                 }
 
-                var stripLength = stripOffsets[i + 1] - stripOffsets[i];
-                gl.drawElements(gl.TRIANGLE_STRIP, stripLength, gl.UNSIGNED_SHORT, stripOffsets[i] * 2);
+                if (wireframe) {
+                    var lineLength = this.stripLineOffsets[i + 1] - this.stripLineOffsets[i];
+                    gl.drawElements(gl.LINES, lineLength, gl.UNSIGNED_SHORT, this.stripLineOffsets[i] * 2);
+                } else {
+                    var stripLength = stripOffsets[i + 1] - stripOffsets[i];
+                    gl.drawElements(gl.TRIANGLE_STRIP, stripLength, gl.UNSIGNED_SHORT, stripOffsets[i] * 2);
+                }
             }
         }
     }

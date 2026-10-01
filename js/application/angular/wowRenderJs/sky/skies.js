@@ -2,6 +2,8 @@ import {vec3, mat4} from 'gl-matrix'
 import fileLoader from './../../services/fileLoader.js';
 import fileReadHelper from './../../services/fileReadHelper.js';
 import Sky from './sky.js';
+import config from './../../services/config.js';
+import { triangleListToLines } from '../geometry/wireframe.js';
 
 const rad = 400.0;
 
@@ -91,6 +93,7 @@ class Skies {
         var gl = this.sceneApi.getGlContext();
         gl.deleteBuffer(this.skyVbo);
         gl.deleteBuffer(this.skyEbo);
+        gl.deleteBuffer(this.skyLineEbo);
     }
 
     findSkyWeights(pos) {
@@ -192,6 +195,10 @@ class Skies {
         this.skyEbo = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.skyEbo);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+
+        this.skyLineEbo = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.skyLineEbo);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, triangleListToLines(idx), gl.STATIC_DRAW);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     }
 
@@ -234,7 +241,13 @@ class Skies {
 
         gl.uniform3fv(skyShader.shaderUniforms.uColors, cols);
 
-        gl.drawElements(gl.TRIANGLES, this.skyIndexCnt, gl.UNSIGNED_SHORT, 0);
+        // Wireframe view (F5): the triangle edges, for my_web_wow's PolygonMode(Line)
+        if (config.getRenderSkyPolygons()) {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.skyLineEbo);
+            gl.drawElements(gl.LINES, this.skyIndexCnt * 2, gl.UNSIGNED_SHORT, 0);
+        } else {
+            gl.drawElements(gl.TRIANGLES, this.skyIndexCnt, gl.UNSIGNED_SHORT, 0);
+        }
 
         gl.disableVertexAttribArray(aPos);
         gl.disableVertexAttribArray(aRow);

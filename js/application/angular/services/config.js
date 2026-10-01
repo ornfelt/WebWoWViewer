@@ -21,6 +21,13 @@ var renderLiquid = true;
 
 var renderLowresTerrain = true;
 
+/* the wireframe views (F1 - F5) */
+var renderAdtPolygons = false;
+var renderLiquidPolygons = false;
+var renderMd2Polygons = false;
+var renderWmoPolygons = false;
+var renderSkyPolygons = false;
+
 var drawWmoBB = false;
 var drawM2BB = false;
 var secondCamera = false;
@@ -138,6 +145,36 @@ export default {
     },
     setRenderLowresTerrain : function (value) {
         renderLowresTerrain = value;
+    },
+    getRenderAdtPolygons : function () {
+        return renderAdtPolygons;
+    },
+    setRenderAdtPolygons : function (value) {
+        renderAdtPolygons = value;
+    },
+    getRenderLiquidPolygons : function () {
+        return renderLiquidPolygons;
+    },
+    setRenderLiquidPolygons : function (value) {
+        renderLiquidPolygons = value;
+    },
+    getRenderMd2Polygons : function () {
+        return renderMd2Polygons;
+    },
+    setRenderMd2Polygons : function (value) {
+        renderMd2Polygons = value;
+    },
+    getRenderWmoPolygons : function () {
+        return renderWmoPolygons;
+    },
+    setRenderWmoPolygons : function (value) {
+        renderWmoPolygons = value;
+    },
+    getRenderSkyPolygons : function () {
+        return renderSkyPolygons;
+    },
+    setRenderSkyPolygons : function (value) {
+        renderSkyPolygons = value;
     },
     getSceneParams : function () {
         return sceneParams;

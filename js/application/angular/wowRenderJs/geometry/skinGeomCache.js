@@ -1,4 +1,5 @@
 import cacheTemplate from './../cache.js';
+import { triangleListToLines } from './wireframe.js';
 import skinLoader from './../../services/map/skinLoader.js'
 import Expansion from '../../Expansion';
 
@@ -7,6 +8,7 @@ class SkinGeom {
         this.gl = sceneApi.getGlContext();
 
         this.indexVBO = null;
+        this.indexLinesVBO = null;
         this.fixedAlready = false;
     }
 
@@ -241,6 +243,10 @@ class SkinGeom {
         this.indexVBO = gl.createBuffer();
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexVBO);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(indicies), gl.STATIC_DRAW);
+
+        this.indexLinesVBO = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexLinesVBO);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, triangleListToLines(indicies), gl.STATIC_DRAW);
     };
 }
 
