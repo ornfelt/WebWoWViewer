@@ -392,9 +392,6 @@ function wmoGroupLoader(wmoFilePath: string, loadPlainVertexes: boolean): Promis
         chunkedFile.processFile(wmoObj);
 
         return wmoObj;
-    // JS-BUG: the rejection handler returns errorObj, so a failed load resolves with the error as if it were the WmoGroupFile
-    }, function error(errorObj: unknown): WmoGroupFile {
-        return errorObj as WmoGroupFile;
     });
 
     return newPromise;
