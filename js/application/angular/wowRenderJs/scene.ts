@@ -1675,7 +1675,7 @@ class Scene {
         //    }
         //}
 
-        // JS-BUG: draw() calls this for the tiles around the camera's tile without a range check, so at the map edge (tile 0 or 63) tileTable[-1] / [64] is undefined and the [x] lookup throws
+        if ((x < 0) || (x >= 64) || (y < 0) || (y >= 64)) return;
         if (this.currentWdt.tileTable[y][x]) {
             var adtFileName = "world/maps/"+this.currentMapName+"/"+this.currentMapName+"_"+x+"_"+y+".adt";
             this.graphManager.addADTObject(x, y, adtFileName);
