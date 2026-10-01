@@ -319,7 +319,7 @@ class ADTGeom {
 
             var mcnkObj = mcnkObjs[i];
 
-            if (mcnkObj.liquidInfo && mcnkObj.hasWater) {
+            if (mcnkObj.liquids && mcnkObj.hasWater) {
                 // Hard coded variations...
                 // Should use something like this in future:
                 // col = skies.colorSet[WATER_COLOR_LIGHT];
@@ -328,7 +328,9 @@ class ADTGeom {
                 //var tint = [0.12069716, 0.17167756, 0.23921569];
                 var tint = [0.10915033, 0.21372549, 0.34509805];
 
-                mcnkObj.liquidInfo.draw(this.sceneApi, vp, time, tint);
+                for (var j = 0; j < mcnkObj.liquids.length; j++) {
+                    mcnkObj.liquids[j].draw(this.sceneApi, vp, time, tint);
+                }
             }
         }
     }
