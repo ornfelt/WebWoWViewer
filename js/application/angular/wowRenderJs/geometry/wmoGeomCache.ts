@@ -25,8 +25,6 @@ class WmoGeom {
     colorOffset!: number;
     colorOffset2!: number;
     mobrVBO!: WebGLBuffer;
-    /* never assigned - only destroy() reads it (see the JS-BUG there) */
-    texture?: WebGLTexture | null;
 
     constructor (wmoGroupFile: WmoGroupFile, sceneApi: SceneApi) {
         this.gl = sceneApi.getGlContext();
@@ -307,12 +305,18 @@ class WmoGeom {
 
     destroy() {
         var gl = this.gl;
-        // JS-BUG: copied from Texture.destroy - WmoGeom never sets texture, so this deletes nothing and the VBOs (combinedVBO, indexVBO, mobrVBO) are never freed
-        if (this.texture) {
-            gl.deleteTexture(this.texture);
+        if (this.combinedVBO) {
+            gl.deleteBuffer(this.combinedVBO);
+        }
+        if (this.indexVBO) {
+            gl.deleteBuffer(this.indexVBO);
+        }
+        if (this.mobrVBO) {
+            gl.deleteBuffer(this.mobrVBO);
         }
 
-        this.texture = null;
+        this.combinedVBO = null;
+        this.indexVBO = null;
     }
 }
 

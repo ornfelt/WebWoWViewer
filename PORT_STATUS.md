@@ -79,7 +79,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 39 | `wowRenderJs/geometry/skinGeomCache.ts` `SkinGeomCache` | `skinLoader(fileName, true)` - skinLoader takes only the path (copied from wmoGroupLoader) | harmless, the argument is ignored |
 | 40 | `wowRenderJs/geometry/m2GeomCache.ts` `drawMesh` | `renderFlag.flags & 0x1 > 0` parses as `flags & (0x1 > 0)` | `flags & true` equals `flags & 1`, so it happens to work - harmless |
 | 42 | `wowRenderJs/geometry/wmoGeomCache.ts` `draw` | calls `loadTextures()` without the `momt` it needs | TypeError on `momt[textIndex]`; unreachable today (WmoGroupObject calls `loadTextures(momt)` first) |
-| 43 | `wowRenderJs/geometry/wmoGeomCache.ts` `destroy` | copied from `Texture.destroy` - deletes `this.texture`, which `WmoGeom` never sets | nothing is freed; the group's VBOs leak when the cache unloads it |
 | 44 | `wowRenderJs/math/portalCullingAlgo.ts` `startTraversingFromInteriorWMO`, `startTraversingFromExterior` | `m2Object.checkFrustumCulling(cameraVec4, frustumPlanes, 6, false)` - the method takes three arguments | harmless, the `false` is ignored |
 | 45 | `wowRenderJs/algorithms/characterComponents.ts` `generateGeosetFromItems` | static method reads `this.sceneApi` (undefined on the class) instead of its `sceneApi` parameter | TypeError if called; nothing calls it |
 | 46 | `wowRenderJs/algorithms/characterComponents.ts` `generateGeosetFromItems` | chest branch sets `meshIds[8]` from `glovesItemRec` instead of `chestItemRec` | wrong / NaN geoset or TypeError; nothing calls it |
