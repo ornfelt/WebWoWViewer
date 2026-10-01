@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export default function (configService) {
     function fileLoader(filePath) {
-        filePath = "http://127.0.0.1:3002/files/" + filePath.toLowerCase();
+        filePath = configService.getUrlToLoadWoWFile() + filePath.toLowerCase();
         //console.log("fileLoaderStub filePath: "+filePath);
         //// Adjust the filePath if it ends with a null character
         //if (filePath[filePath.length - 1] === String.fromCharCode(0)) {
