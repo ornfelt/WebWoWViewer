@@ -55,7 +55,8 @@ export interface AdtMcnkObj {
     /* MCLQ - unset when sizeLiquid is 0 */
     hasWater?: boolean;
     waterLevel?: number;
-    liquidInfo?: Liquid | null;
+    /* one per liquid layer, in the order of the MCNK liquid flags (river, ocean, magma, slime) */
+    liquids?: Liquid[] | null;
 }
 
 /* MDDF record */
@@ -97,6 +98,10 @@ export interface AdtFile {
 }
 
 const TILESIZE = 533.33333;
+/* MCLQ layer: min / max height, 9x9 vertices (colour + height), 8x8 tile flags, flow data */
+const MCLQ_LAYER_SIZE = 2 * 4 + 9 * 9 * 8 + 8 * 8 + 84;
+/* MCNK flags of the liquid layers, in the order the layers are stored */
+const MCNK_LIQUID_FLAGS = [4, 8, 16, 32];
 
 const handlerTable: ChunkHandlerTable = {
     "MVER" : function (adtObject: AdtFile, chunk: Chunk) {
@@ -280,7 +285,7 @@ const handlerTable: ChunkHandlerTable = {
 
         if (subId == "MCSE") {      // no liquid for this chunk
             mcnkObj.hasWater = false;
-            mcnkObj.liquidInfo = null;
+            mcnkObj.liquids = null;
             return;
         }
 
@@ -288,13 +293,26 @@ const handlerTable: ChunkHandlerTable = {
         mcnkObj.hasWater = true;
         mcnkObj.waterLevel = waterLevel;
 
-        off.offs += 4;
-
         // From wow coords:
         var normCoords = [TILESIZE * 32 - mcnkObj.pos.y, mcnkObj.pos.z, TILESIZE * 32 - mcnkObj.pos.x];
 
-        mcnkObj.liquidInfo = new Liquid(8, 8, [normCoords[0], mcnkObj.waterLevel, normCoords[2]]);
-        mcnkObj.liquidInfo.initFromTerrain(chunk, off, mcnkObj.flags);
+        // one layer per liquid flag set in the MCNK flags, stored in flag order
+        mcnkObj.liquids = [];
+        var layerStart = 0;
+        for (var i = 0; i < MCNK_LIQUID_FLAGS.length; i++) {
+            var liquidFlag = MCNK_LIQUID_FLAGS[i];
+            if ((mcnkObj.flags & liquidFlag) == 0) continue;
+
+            var layerOff = {offs: layerStart};
+            var minHeight = chunk.readFloat32(layerOff);
+            layerOff.offs += 4;     // max height
+
+            var liquid = new Liquid(8, 8, [normCoords[0], minHeight, normCoords[2]]);
+            liquid.initFromTerrain(chunk, layerOff, liquidFlag);
+            mcnkObj.liquids.push(liquid);
+
+            layerStart += MCLQ_LAYER_SIZE;
+        }
     },
     "MTEX" : function (adtObject: AdtFile, chunk: Chunk) {
         var offset = {offs: 0};
