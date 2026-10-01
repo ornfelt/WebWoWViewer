@@ -255,15 +255,11 @@ class GraphManager {
                 return
             }
 
-            if (wmoObject.wmoObj.nPortals != 0 && config.getUsePortalCulling()) {
-                if(self.portalCullingAlgo.startTraversingFromExterior(wmoObject, self.position,
-                        lookAtMat4, frustumPlanes, m2RenderedThisFrame)){
-                    wmoRenderedThisFrame.add(wmoObject);
-                }
-            } else {
-                if (wmoObject.checkFrustumCulling(self.position, frustumPlanes, num_planes, m2RenderedThisFrame)) {
-                    wmoRenderedThisFrame.add(wmoObject);
-                }
+            // Portal culling only runs from inside a WMO (checkCulling); from outside, the groups are
+            // checked against the frustum. Traversing from the exterior groups hid WMOs whose open-air
+            // parts are interior groups, such as Orgrimmar (2 of its 144 groups are exterior) from above
+            if (wmoObject.checkFrustumCulling(self.position, frustumPlanes, num_planes, m2RenderedThisFrame)) {
+                wmoRenderedThisFrame.add(wmoObject);
             }
         });
 
@@ -402,7 +398,8 @@ class GraphManager {
         if (config.getRenderWMO()) {
           this.sceneApi.shaders.activateWMOShader();
           for (var i = 0; i < this.wmoRenderedThisFrame.length; i++) {
-              if (config.getUsePortalCulling()) {
+              // only the WMO the camera is inside has been portal traversed (see checkExterior)
+              if (config.getUsePortalCulling() && this.wmoRenderedThisFrame[i] === this.currentWMO) {
                   this.wmoRenderedThisFrame[i].drawPortalBased(false)
               } else {
                   this.wmoRenderedThisFrame[i].draw();
