@@ -55,6 +55,9 @@ export interface AdtMcnkObj {
     /* MCLQ - unset when sizeLiquid is 0 */
     hasWater?: boolean;
     waterLevel?: number;
+    /* lowest / highest liquid height of all layers, for the chunk's bounding box */
+    waterMinHeight?: number;
+    waterMaxHeight?: number;
     /* one per liquid layer, in the order of the MCNK liquid flags (river, ocean, magma, slime) */
     liquids?: Liquid[] | null;
 }
@@ -298,6 +301,8 @@ const handlerTable: ChunkHandlerTable = {
 
         // one layer per liquid flag set in the MCNK flags, stored in flag order
         mcnkObj.liquids = [];
+        mcnkObj.waterMinHeight = waterLevel;
+        mcnkObj.waterMaxHeight = waterLevel;
         var layerStart = 0;
         for (var i = 0; i < MCNK_LIQUID_FLAGS.length; i++) {
             var liquidFlag = MCNK_LIQUID_FLAGS[i];
@@ -305,7 +310,9 @@ const handlerTable: ChunkHandlerTable = {
 
             var layerOff = {offs: layerStart};
             var minHeight = chunk.readFloat32(layerOff);
-            layerOff.offs += 4;     // max height
+            var maxHeight = chunk.readFloat32(layerOff);
+            mcnkObj.waterMinHeight = Math.min(mcnkObj.waterMinHeight, minHeight);
+            mcnkObj.waterMaxHeight = Math.max(mcnkObj.waterMaxHeight, maxHeight);
 
             var liquid = new Liquid(8, 8, [normCoords[0], minHeight, normCoords[2]]);
             liquid.initFromTerrain(chunk, layerOff, liquidFlag);
