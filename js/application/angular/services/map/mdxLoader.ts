@@ -1902,13 +1902,11 @@ function parseOldFile(fileObject: LinedFile): M2File {
                     anim.hasOwnProperty("timeEnd")
                 ) {
                     // Create length property
-                    // TODO: is this correct?
                     if (anim.timeStart! > anim.timeEnd!)
                     {
                         var timeStartTemp = anim.timeStart!;
                         anim.timeStart = anim.timeEnd;
-                        // JS-BUG: a swap would assign timeStartTemp; subtracting makes timeEnd (old end - old start) negative and length -(old start) (the TODO above doubts it too)
-                        anim.timeEnd! -= timeStartTemp;
+                        anim.timeEnd = timeStartTemp;
                     }
                     anim.length = anim.timeEnd! - anim.timeStart!;
                 }
