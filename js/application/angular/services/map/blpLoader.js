@@ -103,7 +103,17 @@ export default function (filePath) {
                         var g = resultBLPObject.palette[colIndex*4 + 1];
                         var r = resultBLPObject.palette[colIndex*4 + 2];
 
-                        var a = paleteData[width*height + j];
+                        /* the alpha data follows the indices: 1, 4 or 8 bits per pixel, lowest bits first */
+                        var a;
+                        if (resultBLPObject.alphaChannelBitDepth == 1) {
+                            a = ((paleteData[width*height + (j >> 3)] >> (j & 7)) & 1) * 255;
+                        } else if (resultBLPObject.alphaChannelBitDepth == 4) {
+                            a = ((paleteData[width*height + (j >> 1)] >> ((j & 1) * 4)) & 0xF) * 17;
+                        } else if (resultBLPObject.alphaChannelBitDepth == 8) {
+                            a = paleteData[width*height + j];
+                        } else {
+                            a = 255;
+                        }
 
 
                         data[j*4 + 0] = r;
