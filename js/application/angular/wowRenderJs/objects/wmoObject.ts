@@ -1,5 +1,5 @@
 import {vec4, mat4, vec3, glMatrix} from 'gl-matrix';
-import type {ReadonlyVec4} from 'gl-matrix';
+import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix';
 
 import mathHelper from './../math/mathHelper';
 import type { TopAndBottomZ } from './../math/mathHelper';
@@ -8,6 +8,7 @@ import config from './../../services/config';
 import type { Vector3f } from '../../services/fileReadHelper';
 import type { WmoBspNode, WmoDoodad, WmoDoodadSet, WmoFile, WmoGroupInfo } from '../../services/map/wmoLoader';
 import type { WmoGeom } from '../geometry/wmoGeomCache';
+import Liquid, { waterTint } from '../liquid/liquid';
 import type { SceneApi } from '../sceneApi';
 import type { M2Object } from './M2Object';
 import type WmoM2Object from './wmoM2Object';
@@ -532,6 +533,24 @@ class WmoObject {
         }
     }
 
+    /* Draws the liquids of the groups drawn this frame; called after the opaque geometry, as indoor water is transparent */
+    drawLiquids(view: ReadonlyMat4, proj: ReadonlyMat4, time: number) {
+        if (!this.placementMatrix) return;
+
+        // the liquid vertices are in the WMO's local coordinates
+        var vp = mat4.create();
+        mat4.multiply(vp, proj, view);
+        mat4.multiply(vp, vp, this.placementMatrix);
+
+        for (var i = 0; i < this.wmoGroupArray.length; i++) {
+            var group = this.wmoGroupArray[i];
+            if (!group || !group.liquidDue) continue;
+
+            group.liquidDue = false;
+            group.liquid!.draw(this.sceneApi, vp, time, waterTint);
+        }
+    }
+
     drawBB() {
         const gl       = this.sceneApi.getGlContext();
         const uniforms = this.sceneApi.shaders.getShaderUniforms();
@@ -708,6 +727,10 @@ class WmoGroupObject {
     dontUseLocalLightingForM2: boolean | undefined;
     /* set once the group file has loaded */
     wmoGeom!: WmoGeom;
+    /* the group's MLIQ liquid, set by createLiquid() once the group has loaded */
+    liquid: Liquid | undefined;
+    /* set when the group is drawn, cleared when WmoObject.drawLiquids() draws its liquid */
+    liquidDue: boolean | undefined;
 
     constructor (sceneApi: SceneApi, parentWmo: WmoObject, fileName: string, groupInfo: WmoGroupInfo, groupId: number) {
 
@@ -734,10 +757,26 @@ class WmoGroupObject {
                 self.dontUseLocalLightingForM2 = ((mogp.Flags & 0x40) > 0) || ((mogp.Flags & 0x8) > 0);
 
                 self.createWorldGroupBB(false);
+                self.createLiquid();
                 self.loaded = true;
             }, function error(){
             }
         );
+    }
+    createLiquid() {
+        var liquidData = this.wmoGeom.wmoGroupFile.liquid;
+        if (!liquidData) return;
+
+        var wmoObj = this.parentWmo.wmoObj;
+        var mogp = this.wmoGeom.wmoGroupFile.mogp;
+        var material = wmoObj.momt ? wmoObj.momt[liquidData.materialId] : undefined;
+        var indoor = (mogp.Flags & 0x2000) != 0;
+        // WotLK WMOs flag (MOHD 0x4) that groupLiquid is a LiquidType.dbc id; otherwise the tile flags decide
+        var liquidTypeId = (wmoObj.flags & 0x4) != 0 ? mogp.groupLiquid : 0;
+
+        this.liquid = new Liquid(liquidData.xtiles, liquidData.ytiles,
+            [liquidData.corner.x, liquidData.corner.y, liquidData.corner.z]);
+        this.liquid.initFromWmo(liquidData.heights, liquidData.tileFlags, material ? material.color2 : 0, indoor, liquidTypeId);
     }
     loadDoodads() {
         var self = this;
@@ -773,6 +812,8 @@ class WmoGroupObject {
             this.wmoGeom.loadTextures(this.parentWmo.wmoObj.momt);
             this.texturesLoadingTriggered = true;
         }
+
+        if (this.liquid && config.getRenderLiquid()) this.liquidDue = true;
 
         this.wmoGeom.draw()
     }

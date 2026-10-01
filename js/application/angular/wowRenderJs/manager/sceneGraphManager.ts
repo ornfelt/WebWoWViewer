@@ -579,6 +579,17 @@ class GraphManager {
             }
         }
     }
+    /* the liquids of the WMO groups drawn this frame, after the opaque geometry: indoor water is transparent */
+    drawWmoLiquids(view: ReadonlyMat4, proj: ReadonlyMat4, time: number) {
+        if (!config.getRenderLiquid()) return;
+
+        for (var i = 0; i < this.wmoRenderedThisFrame.length; i++) {
+            this.wmoRenderedThisFrame[i].drawLiquids(view, proj, time);
+        }
+        if (this.currentWMO) {
+            this.currentWMO.drawLiquids(view, proj, time);
+        }
+    }
     /* view / proj and the liquid clock (seconds) are only used by the liquids */
     draw(view: ReadonlyMat4, proj: ReadonlyMat4, liquidTime: number) {
         this.m2OpaqueRenderedThisFrame = {};
@@ -600,6 +611,7 @@ class GraphManager {
                 }
             }
             this.drawM2s();
+            this.drawWmoLiquids(view, proj, liquidTime);
 
             this.sceneApi.shaders.activateFrustumBoxShader();
             //Draw Wmo portal frustums
@@ -609,6 +621,7 @@ class GraphManager {
         } else {
             this.drawExterior(view, proj, liquidTime);
             this.drawM2s();
+            this.drawWmoLiquids(view, proj, liquidTime);
 
             //6. Draw WMO portals
             if (config.getRenderPortals()) {

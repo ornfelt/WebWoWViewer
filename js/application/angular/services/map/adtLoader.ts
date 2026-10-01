@@ -3,6 +3,7 @@ import type { Chunk, ChunkedFile, ChunkHandlerTable } from './../chunkedLoader';
 import fileReadHelper from './../fileReadHelper';
 import type { Vector3f } from './../fileReadHelper';
 import Liquid from './../../wowRenderJs/liquid/liquid';
+import type { Mh2oInstance } from './../../wowRenderJs/liquid/liquid';
 
 /* MCIN record - read and used to find the MCNK, not kept */
 export interface AdtMcinEntry {
@@ -58,7 +59,8 @@ export interface AdtMcnkObj {
     /* lowest / highest liquid height of all layers, for the chunk's bounding box */
     waterMinHeight?: number;
     waterMaxHeight?: number;
-    /* one per liquid layer, in the order of the MCNK liquid flags (river, ocean, magma, slime) */
+    /* one per MCLQ liquid layer, in the order of the MCNK liquid flags (river, ocean, magma, slime),
+     * then one per MH2O instance */
     liquids?: Liquid[] | null;
 }
 
@@ -101,6 +103,7 @@ export interface AdtFile {
 }
 
 const TILESIZE = 533.33333;
+const UNITSIZE = TILESIZE / 16.0 / 8.0;
 /* MCLQ layer: min / max height, 9x9 vertices (colour + height), 8x8 tile flags, flow data */
 const MCLQ_LAYER_SIZE = 2 * 4 + 9 * 9 * 8 + 8 * 8 + 84;
 /* MCNK flags of the liquid layers, in the order the layers are stored */
@@ -152,6 +155,10 @@ const handlerTable: ChunkHandlerTable = {
         chunkedFile.processChunkAtOffs(chunk.chunkDataOffset + mddfOffs, adtObject);
         //8. Load MODF
         chunkedFile.processChunkAtOffs(chunk.chunkDataOffset + modfOffs, adtObject);
+        //9. Load MH2O (WotLK liquids; needs the MCNKs from MCIN)
+        if (mh2oOffs != 0) {
+            chunkedFile.processChunkAtOffs(chunk.chunkDataOffset + mh2oOffs, adtObject);
+        }
 
         //Stop loading
         chunk.nextChunkOffset = chunkedFile.getFileSize();
@@ -319,6 +326,51 @@ const handlerTable: ChunkHandlerTable = {
             mcnkObj.liquids.push(liquid);
 
             layerStart += MCLQ_LAYER_SIZE;
+        }
+    },
+    "MH2O": function (adtObject: AdtFile, chunk: Chunk) {
+        // 256 headers (one per MCNK): offset of the instances, instance count, offset of the attributes
+        for (var i = 0; i < 256; i++) {
+            var mcnkObj = adtObject.mcnkObjs[i];
+            var headerOff = {offs: i * 12};
+            var ofsInstances = chunk.readUint32(headerOff);
+            var layerCount = chunk.readUint32(headerOff);
+            // the attributes (fishable / deep masks) are not used
+            if (layerCount == 0) continue;
+
+            // From wow coords:
+            var normCoords = [TILESIZE * 32 - mcnkObj.pos.y, mcnkObj.pos.z, TILESIZE * 32 - mcnkObj.pos.x];
+
+            if (!mcnkObj.liquids) mcnkObj.liquids = [];
+            for (var k = 0; k < layerCount; k++) {
+                var instOff = {offs: ofsInstances + k * 24};
+                var inst = {} as Mh2oInstance;
+                inst.liquidType      = chunk.readUint16(instOff);
+                inst.vertexFormat    = chunk.readUint16(instOff);
+                inst.minHeight       = chunk.readFloat32(instOff);
+                inst.maxHeight       = chunk.readFloat32(instOff);
+                inst.xOffset         = chunk.readUint8(instOff);
+                inst.yOffset         = chunk.readUint8(instOff);
+                inst.width           = chunk.readUint8(instOff);
+                inst.height          = chunk.readUint8(instOff);
+                inst.ofsExistsBitmap = chunk.readUint32(instOff);
+                inst.ofsVertexData   = chunk.readUint32(instOff);
+
+                // the instance starts xOffset tiles into the MCNK's columns and yOffset tiles into its rows
+                var liquid = new Liquid(inst.width, inst.height,
+                    [normCoords[0] + inst.xOffset * UNITSIZE, inst.minHeight, normCoords[2] + inst.yOffset * UNITSIZE]);
+                liquid.initFromMH2O(chunk, inst);
+                mcnkObj.liquids.push(liquid);
+
+                if (!mcnkObj.hasWater) {
+                    mcnkObj.hasWater = true;
+                    mcnkObj.waterLevel = inst.minHeight;
+                    mcnkObj.waterMinHeight = inst.minHeight;
+                    mcnkObj.waterMaxHeight = inst.maxHeight;
+                }
+                mcnkObj.waterMinHeight = Math.min(mcnkObj.waterMinHeight!, inst.minHeight);
+                mcnkObj.waterMaxHeight = Math.max(mcnkObj.waterMaxHeight!, inst.maxHeight);
+            }
         }
     },
     "MTEX" : function (adtObject: AdtFile, chunk: Chunk) {

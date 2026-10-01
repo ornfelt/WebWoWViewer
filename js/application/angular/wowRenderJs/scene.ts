@@ -47,6 +47,7 @@ import helmetGeosetVisDataDBC       from './../services/dbc/helmetGeosetVisDataD
 import itemDisplayInfoDBC           from './../services/dbc/itemDisplayInfoDBC'
 import itemDBC                      from './../services/dbc/itemDBC'
 import mapDBC                       from './../services/dbc/mapDBC'
+import liquidTypeDBC                from './../services/dbc/liquidTypeDBC'
 
 import Expansion from '../Expansion';
 
@@ -71,6 +72,7 @@ import type { HelmetGeosetVisDataRecord } from './../services/dbc/helmetGeosetVi
 import type { ItemDisplayInfoRecord } from './../services/dbc/itemDisplayInfoDBC';
 import type { ItemRecord } from './../services/dbc/itemDBC';
 import type { MapRecord } from './../services/dbc/mapDBC';
+import type { LiquidTypeRecord } from './../services/dbc/liquidTypeDBC';
 
 /* The Khronos helper from js/lib/webgl-debug.js - neither index.html nor any module loads it (see initGlContext) */
 declare const WebGLDebugUtils: {
@@ -254,6 +256,8 @@ class Scene {
     lightFloatBandDBC!: LightFloatBandRecord[];
     lightIntBandDBC!: LightIntBandRecord[];
     lightParamsDBC!: LightParamsRecord[];
+    /* WotLK only: undefined on Classic / TBC */
+    liquidTypeDBC: { [id: number]: LiquidTypeRecord } | undefined;
 
     /* set by draw() */
     depthBuffer: Uint8Array | undefined;
@@ -393,6 +397,13 @@ class Scene {
         lightParamsDBC().then(function success(a) {
             self.lightParamsDBC = a;
         });
+
+        /* Liquids: the MH2O and WMO liquid type ids of WotLK */
+        if (window.selectedExpansion === Expansion.WOTLK) {
+          liquidTypeDBC().then(function success(a) {
+              self.liquidTypeDBC = a;
+          });
+        }
 
     }
 
@@ -907,6 +918,11 @@ class Scene {
                 },
                 getLightParamsDBC : function () {
                     return self.lightParamsDBC;
+                },
+
+                /* Liquids */
+                getLiquidTypeDBC : function () {
+                    return self.liquidTypeDBC;
                 }
             },
             objects : {

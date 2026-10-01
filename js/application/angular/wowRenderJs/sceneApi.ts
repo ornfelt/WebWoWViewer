@@ -13,6 +13,7 @@ import type { ItemDisplayInfoRecord } from '../services/dbc/itemDisplayInfoDBC';
 import type { ItemRecord } from '../services/dbc/itemDBC';
 import type { MapRecord } from '../services/dbc/mapDBC';
 import type { LightRecord } from '../services/dbc/lightDBC';
+import type { LiquidTypeRecord } from '../services/dbc/liquidTypeDBC';
 import type { LightFloatBandRecord } from '../services/dbc/lightFloatBandDBC';
 import type { LightIntBandRecord } from '../services/dbc/lightIntBandDBC';
 import type { LightParamsRecord } from '../services/dbc/lightParamsDBC';
@@ -85,6 +86,9 @@ export interface SceneApiDbc {
     getLightFloatBandDBC(): LightFloatBandRecord[];
     getLightIntBandDBC(): LightIntBandRecord[];
     getLightParamsDBC(): LightParamsRecord[];
+
+    /* Liquids: WotLK only, undefined until loaded (and on Classic / TBC) */
+    getLiquidTypeDBC(): { [id: number]: LiquidTypeRecord } | undefined;
 }
 
 export interface SceneApiObjects {
