@@ -116,7 +116,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 79 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `update` | `if (this.isMoving \|\| 1)` - always true | a mount never plays the stand animation; it always plays the movement animation (77) |
 | 80 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `update` | three `setAnimationId(id, false)` calls - `M2Object.setAnimationId` takes one argument | harmless, the `false` is ignored |
 | 81 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `update` | the interpolated position `result` starts as `pointsTotalPath[0]` (a path length) instead of a point (probably `pointsArray[0]`) | `setPosition(number)` if no path segment matches; unreachable in practice - the time check before it guarantees a match |
-| 82 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `update` | `this.objectModel.objectUpdate(...)` is not guarded like the calls around it | TypeError every frame for a unit whose model was never created (no display id in its packet); scene's `try` around `worldObjectManager.update` logs it and the objects after it in `objectMap` are not updated that frame |
 | 83 | `wowRenderJs/objects/worldObjects/worldUnit.ts` `setDisplayId` | `this.modelChanged = value` - stores the display id, the sibling setters store `true` | harmless: any non-zero id is truthy, and `complete()` loads `nativeDisplayId` either way |
 | 84 | `wowRenderJs/objects/worldObjects/worldGameObject.ts` `update` | takes and forwards only `(deltaTime, cameraPos)`; `objectUpdate` needs `viewMat` | `M2Object.update` transforms the lights by `undefined` - TypeError for a game object model with lights (caught and logged like 82) |
 | 85 | `wowRenderJs/manager/worldObjectManager.ts` `processPacket` | the "Main hand" block reads `PLAYER_VISIBLE_ITEM_15_0`, the back slot again (probably `16_0`) | `mainHandItemId` gets the back item; nothing reads it today |
@@ -233,8 +232,8 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   `worldUnit.ts` / `worldGameObject.ts` rely on `undefined > x` being false. `pos` / `f` are declared with `!`.
 - `worldUnit.ts`: `createMaterialFromOwnItem` has an overload signature `(replaceTextures?, meshIds?): boolean | void` above the
   empty implementation (erased), so WorldPlayer's two-parameter override and the call in `createModelFromDisplayId` type-check.
-  `this.objectModel!` where the JS guards it through the `objectModelIsLoaded` `var` (TS does not narrow through it) and on
-  bug 82. `result: number | vec3` on both declarations and `setPosition(result as vec3)` (bug 81). `@ts-expect-error` on the
+  `this.objectModel!` where the JS guards it through the `objectModelIsLoaded` `var` (TS does not narrow through it).
+  `result: number | vec3` on both declarations and `setPosition(result as vec3)` (bug 81). `@ts-expect-error` on the
   three calls of bug 80. Fields set after construction (movement, packet data) are declared with `!`.
 - `worldGameObject.ts`: `@ts-expect-error` on bug 84.
 - `worldObjectManager.ts`: `processPacket(packet: any)` - the mock packet JSON is walked field by field. Local `ItemToWear`

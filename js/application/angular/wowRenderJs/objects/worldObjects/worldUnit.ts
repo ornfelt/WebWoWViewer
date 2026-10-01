@@ -694,8 +694,9 @@ class WorldUnit extends WorldObject {
         //this.mountModel.setAnimationId(5);
 
         /* Update bone matrices */
-        // JS-BUG: not guarded like the calls around it - TypeError every frame for a unit whose model was never created (no display id in its update packet)
-        this.objectModel!.objectUpdate(deltaTime, cameraPos, viewMat);
+        if (this.objectModel) {
+            this.objectModel.objectUpdate(deltaTime, cameraPos, viewMat);
+        }
 
         if (objectModelIsLoaded && objectModelHasBones && this.helmet) {
             /* Update helm model */
