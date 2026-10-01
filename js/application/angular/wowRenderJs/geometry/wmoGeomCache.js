@@ -279,11 +279,18 @@ class WmoGeom {
 
     destroy() {
         var gl = this.gl;
-        if (this.texture) {
-            gl.deleteTexture(this.texture);
+        if (this.combinedVBO) {
+            gl.deleteBuffer(this.combinedVBO);
+        }
+        if (this.indexVBO) {
+            gl.deleteBuffer(this.indexVBO);
+        }
+        if (this.mobrVBO) {
+            gl.deleteBuffer(this.mobrVBO);
         }
 
-        this.texture = null;
+        this.combinedVBO = null;
+        this.indexVBO = null;
     }
 }
 
