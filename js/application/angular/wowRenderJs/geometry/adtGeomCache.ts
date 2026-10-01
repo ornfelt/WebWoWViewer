@@ -117,6 +117,8 @@ function parseAlphaTextures(adtObj: AdtFile, wdtObj: WdtFile): number[][] {
     return megaTexture;
 }
 
+const noTint = [0, 0, 0];
+
 class ADTGeom {
     sceneApi: SceneApi;
     gl: WebGLRenderingContext;
@@ -356,7 +358,9 @@ class ADTGeom {
                 var tint = [0.10915033, 0.21372549, 0.34509805];
 
                 for (var j = 0; j < mcnkObj.liquids.length; j++) {
-                    mcnkObj.liquids[j].draw(this.sceneApi, vp, time, tint);
+                    var liquid = mcnkObj.liquids[j];
+                    // type 0 (magma, slime) is not coloured: nothing is added to its texture
+                    liquid.draw(this.sceneApi, vp, time, liquid.type == 0 ? noTint : tint);
                 }
             }
         }
