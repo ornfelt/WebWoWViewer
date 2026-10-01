@@ -769,8 +769,7 @@ abstract class MDXObject {
         var skinGeom = this.skinGeom;
 
         var modelViewMat = mat4.create();
-        // JS-BUG: placement * lookAt - the view-space transform is lookAt * placement (probably swapped), so the sort keys are not view-space boxes
-        mat4.multiply(modelViewMat, this.placementMatrix, lookAtMat4);
+        mat4.multiply(modelViewMat, lookAtMat4, this.placementMatrix);
 
         var zeroVect = vec3.create();
 
