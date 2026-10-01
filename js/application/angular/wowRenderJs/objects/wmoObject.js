@@ -837,8 +837,8 @@ class WmoGroupObject {
                     nodeId = nodes[nodeId].children2;
                 }
             }
-            candidateGroups.push({'topBottom' : topBottom, groupId : this.groupId, bspList : bspLeafList, nodeId: nodeId});
         }
+        candidateGroups.push({'topBottom' : topBottom, groupId : this.groupId, bspList : bspLeafList, nodeId: nodeId});
     }
 }
 
