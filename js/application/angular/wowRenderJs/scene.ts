@@ -11,51 +11,96 @@
 //import drawFrustumShader        from 'drawFrustum.glsl';
 //import textureCompositionShader from 'textureCompositionShader.glsl';
 
-import GraphManager from './manager/sceneGraphManager.js'
-import WorldObjectManager from './manager/worldObjectManager.js'
-import config from './../services/config.js'
+import GraphManager from './manager/sceneGraphManager'
+import WorldObjectManager from './manager/worldObjectManager'
+import config from './../services/config'
 
-import wdtLoader from './../services/map/wdtLoader.js';
+import wdtLoader from './../services/map/wdtLoader';
 
-import AdtGeomCache    from './geometry/adtGeomCache.js';
-import M2GeomCache     from './geometry/m2GeomCache.js';
-import SkinGeomCache   from './geometry/skinGeomCache.js';
-import WmoGeomCache    from './geometry/wmoGeomCache.js';
-import WmoMainCache    from './geometry/wmoMainCache.js';
-import TextureWoWCache from './texture/textureCache.js';
+import AdtGeomCache    from './geometry/adtGeomCache';
+import M2GeomCache     from './geometry/m2GeomCache';
+import SkinGeomCache   from './geometry/skinGeomCache';
+import WmoGeomCache    from './geometry/wmoGeomCache';
+import WmoMainCache    from './geometry/wmoMainCache';
+import TextureWoWCache from './texture/textureCache';
 
-import firstPersonCamera from './camera/firstPersonCamera.js'
+import firstPersonCamera from './camera/firstPersonCamera'
 
 import {mat4, vec4, vec3, glMatrix} from 'gl-matrix'
 
 /* DBC stuff */
-import animationDataDBC             from './../services/dbc/animationDataDBC.js'
-import characterFacialHairStylesDBC from './../services/dbc/characterFacialHairStylesDBC.js'
-import charHairGeosetsDBC           from './../services/dbc/charHairGeosetsDBC.js'
-import charSectionsDBC              from './../services/dbc/charSectionsDBC.js'
-import creatureDisplayInfoDBC       from './../services/dbc/creatureDisplayInfoDBC.js'
-import lightDBC                     from './../services/dbc/lightDBC.js'
-import lightParamsDBC               from './../services/dbc/lightParamsDBC.js'
-import lightFloatBandDBC            from './../services/dbc/lightFloatBandDBC.js'
-import lightIntBandDBC              from './../services/dbc/lightIntBandDBC.js'
-import creatureDisplayInfoExtraDBC  from './../services/dbc/creatureDisplayInfoExtraDBC.js'
-import creatureModelDataDBC         from './../services/dbc/creatureModelDataDBC.js'
-import gameObjectDisplayInfoDBC     from './../services/dbc/gameObjectDisplayInfoDBC.js'
-import helmetGeosetVisDataDBC       from './../services/dbc/helmetGeosetVisDataDBC.js'
-import itemDisplayInfoDBC           from './../services/dbc/itemDisplayInfoDBC.js'
-import itemDBC                      from './../services/dbc/itemDBC.js'
-import mapDBC                       from './../services/dbc/mapDBC.js'
+import animationDataDBC             from './../services/dbc/animationDataDBC'
+import characterFacialHairStylesDBC from './../services/dbc/characterFacialHairStylesDBC'
+import charHairGeosetsDBC           from './../services/dbc/charHairGeosetsDBC'
+import charSectionsDBC              from './../services/dbc/charSectionsDBC'
+import creatureDisplayInfoDBC       from './../services/dbc/creatureDisplayInfoDBC'
+import lightDBC                     from './../services/dbc/lightDBC'
+import lightParamsDBC               from './../services/dbc/lightParamsDBC'
+import lightFloatBandDBC            from './../services/dbc/lightFloatBandDBC'
+import lightIntBandDBC              from './../services/dbc/lightIntBandDBC'
+import creatureDisplayInfoExtraDBC  from './../services/dbc/creatureDisplayInfoExtraDBC'
+import creatureModelDataDBC         from './../services/dbc/creatureModelDataDBC'
+import gameObjectDisplayInfoDBC     from './../services/dbc/gameObjectDisplayInfoDBC'
+import helmetGeosetVisDataDBC       from './../services/dbc/helmetGeosetVisDataDBC'
+import itemDisplayInfoDBC           from './../services/dbc/itemDisplayInfoDBC'
+import itemDBC                      from './../services/dbc/itemDBC'
+import mapDBC                       from './../services/dbc/mapDBC'
 
 import Expansion from '../Expansion';
 
-function getShaderSourceById(id) {
+import type { CameraVecs } from './camera/firstPersonCamera';
+import type { SceneApi } from './sceneApi';
+import type { WmoPlacement } from './objects/wmoObject';
+import type { AdtM2Placement } from './../services/map/adtLoader';
+import type { WdtFile } from './../services/map/wdtLoader';
+import type { AnimationDataRecord } from './../services/dbc/animationDataDBC';
+import type { CharacterFacialHairStylesRecord } from './../services/dbc/characterFacialHairStylesDBC';
+import type { CharHairGeosetsRecord } from './../services/dbc/charHairGeosetsDBC';
+import type { CharSectionsRecord } from './../services/dbc/charSectionsDBC';
+import type { CreatureDisplayInfoRecord } from './../services/dbc/creatureDisplayInfoDBC';
+import type { LightRecord } from './../services/dbc/lightDBC';
+import type { LightParamsRecord } from './../services/dbc/lightParamsDBC';
+import type { LightFloatBandRecord } from './../services/dbc/lightFloatBandDBC';
+import type { LightIntBandRecord } from './../services/dbc/lightIntBandDBC';
+import type { CreatureDisplayInfoExtraRecord } from './../services/dbc/creatureDisplayInfoExtraDBC';
+import type { CreatureModelDataRecord } from './../services/dbc/creatureModelDataDBC';
+import type { GameObjectDisplayInfoRecord } from './../services/dbc/gameObjectDisplayInfoDBC';
+import type { HelmetGeosetVisDataRecord } from './../services/dbc/helmetGeosetVisDataDBC';
+import type { ItemDisplayInfoRecord } from './../services/dbc/itemDisplayInfoDBC';
+import type { ItemRecord } from './../services/dbc/itemDBC';
+import type { MapRecord } from './../services/dbc/mapDBC';
+
+/* The Khronos helper from js/lib/webgl-debug.js - neither index.html nor any module loads it (see initGlContext) */
+declare const WebGLDebugUtils: {
+    glEnumToString(value: number): string;
+    glFunctionArgsToString(functionName: string, args: ArrayLike<unknown>): string;
+    makeDebugContext(ctx: WebGLRenderingContext,
+                     opt_onErrorFunc?: (err: number, funcName: string, args: ArrayLike<unknown>) => void,
+                     opt_onFunc?: (functionName: string, args: ArrayLike<unknown>) => void): WebGLRenderingContext;
+};
+
+/* A linked program with its active attributes and uniforms, built by Scene.compileShader() */
+export interface ShaderProgram {
+    program: WebGLProgram;
+    shaderAttributes: { [name: string]: number };
+    shaderUniforms: { [name: string]: WebGLUniformLocation | null };
+}
+
+/* The camera vectors draw() reports while an M2 camera (config.getCameraM2()) drives the view */
+export interface M2CameraVecs {
+    lookAtVec3: vec3 | vec4;
+    cameraVec3: vec3 | vec4;
+    staticCamera: boolean;
+}
+
+function getShaderSourceById(id: string): string {
   const el = document.getElementById(id);
   if (!el) {
     console.error(`Shader script with id="${id}" not found`);
     return '';
   }
   // textContent or innerHTML should contain the shader source
-  return el.textContent;
+  return el.textContent!;
 }
 
 const drawDepthShader          = getShaderSourceById('drawDepthShader');
@@ -77,7 +122,114 @@ glMatrix.setMatrixArrayType(Array);
 
 
 class Scene {
-    constructor(canvas) {
+    /* fields assigned through self in the constructor are declared with ! */
+    enableDeferred!: boolean;
+    /* assigned in the constructor and never read */
+    sceneObjectList!: unknown[];
+    sceneAdts!: unknown[];
+    secondCamera: vec3;
+    secondCameraLookAt: vec3;
+    /* the M2 camera branch of draw() stores 4-component positions here */
+    mainCamera: vec3 | vec4;
+    mainCameraLookAt: vec3 | vec4;
+    fogColor: number[];
+    uFogStart: number;
+    uFogEnd: number;
+    isShadersLoaded!: boolean;
+
+    /* set by initGlContext() - null when WebGL is unavailable, which the rest of the code does not check */
+    gl!: WebGLRenderingContext;
+    canvas!: HTMLCanvasElement;
+
+    /* extensions: the init*Ext() methods leave these unset when getExtension() fails */
+    instancing_ext: ANGLE_instanced_arrays | undefined;
+    anisotropic_ext: EXT_texture_filter_anisotropic | undefined;
+    vao_ext: OES_vertex_array_object | undefined;
+    glext_ft: { frameTerminator?(): void } | undefined;
+    /* ... and these to null */
+    comp_tex_ext!: WEBGL_compressed_texture_s3tc | null;
+    depth_texture_ext!: WEBGL_depth_texture | null;
+    /* read by initDrawBuffers() only while enableDeferred is still true, i.e. when the extension exists */
+    wdb_ext!: WEBGL_draw_buffers;
+    texture_floatExt!: OES_texture_float | null;
+    texture_floatLinExt!: OES_texture_float_linear | null;
+
+    /* compiled by initShaders() */
+    textureCompositionShader!: ShaderProgram;
+    renderFrameShader!: ShaderProgram;
+    drawDepthBuffer!: ShaderProgram;
+    readDepthBuffer!: ShaderProgram;
+    wmoShader!: ShaderProgram;
+    wmoInstancingShader!: ShaderProgram;
+    m2Shader!: ShaderProgram;
+    m2InstancingShader!: ShaderProgram;
+    bbShader!: ShaderProgram;
+    adtShader!: ShaderProgram;
+    drawPortalShader!: ShaderProgram;
+    drawFrustumShader!: ShaderProgram;
+    /* set by the activate*Shader() methods */
+    currentShaderProgram!: ShaderProgram;
+
+    sceneApi!: SceneApi;
+    graphManager!: GraphManager;
+    worldObjectManager!: WorldObjectManager;
+    blackPixelTexture!: WebGLTexture;
+    bbBoxVars!: { vbo_vertices: WebGLBuffer; ibo_elements: WebGLBuffer };
+    textureCompVars!: {
+        textureCoords: WebGLBuffer;
+        elements: WebGLBuffer;
+        framebuffer: WebGLFramebuffer;
+        depthTexture: WebGLTexture | null;
+    };
+    wmoGeomCache!: WmoGeomCache;
+    wmoMainCache!: WmoMainCache;
+    textureCache!: TextureWoWCache;
+    m2GeomCache!: M2GeomCache;
+    skinGeomCache!: SkinGeomCache;
+    adtGeomCache!: AdtGeomCache;
+    camera!: firstPersonCamera;
+
+    /* set by initDrawBuffers() - deferred rendering only */
+    depthRGBTexture!: WebGLTexture;
+    normalTexture!: WebGLTexture;
+    positionTexture!: WebGLTexture;
+    colorTexture!: WebGLTexture;
+    /* set by initRenderBuffers() */
+    frameBuffer!: WebGLFramebuffer;
+    frameBufferColorTexture!: WebGLTexture;
+    frameBufferDepthTexture!: WebGLTexture | null;
+    vertBuffer!: WebGLBuffer;
+
+    /* DBC tables: set when their promise (constructor) resolves, undefined until then */
+    animationDataDBC!: AnimationDataRecord[];
+    characterFacialHairStylesDBC!: CharacterFacialHairStylesRecord[];
+    charHairGeosetsDBC!: CharHairGeosetsRecord[];
+    charSectionsDBC!: CharSectionsRecord[];
+    creatureDisplayInfoDBC!: { [id: number]: CreatureDisplayInfoRecord };
+    creatureDisplayInfoExtraDBC!: { [id: number]: CreatureDisplayInfoExtraRecord };
+    creatureModelDataDBC!: { [id: number]: CreatureModelDataRecord };
+    gameObjectDisplayInfoDBC!: { [id: number]: GameObjectDisplayInfoRecord };
+    itemDisplayInfoDBC!: { [id: number]: ItemDisplayInfoRecord };
+    itemDBC!: { [id: number]: ItemRecord };
+    helmetGeosetVisDataDBC!: { [id: number]: HelmetGeosetVisDataRecord };
+    mapDBC!: { [id: number]: MapRecord };
+    lightDBC!: LightRecord[];
+    lightFloatBandDBC!: LightFloatBandRecord[];
+    lightIntBandDBC!: LightIntBandRecord[];
+    lightParamsDBC!: LightParamsRecord[];
+
+    /* set by draw() */
+    depthBuffer: Uint8Array | undefined;
+    perspectiveMatrix!: mat4;
+    viewCameraForRender!: mat4;
+    lookAtMat4!: mat4;
+    /* true only while draw() renders the debug camera's view */
+    isDebugCamera: boolean | undefined;
+    /* set by loadMap() */
+    currentWdt: WdtFile | undefined;
+    currentMapName!: string;
+
+    constructor(canvas: HTMLCanvasElement) {
         //var stats = new Stats();
         //stats.setMode(1); // 0: fps, 1: ms, 2: mb
         //
@@ -192,7 +344,7 @@ class Scene {
 
     }
 
-    compileShader (vertShaderString, fragmentShaderString) {
+    compileShader (vertShaderString: string, fragmentShaderString: string): ShaderProgram {
         var gl = this.gl;
 
         if (this.enableDeferred) {
@@ -203,7 +355,7 @@ class Scene {
         /* 1.1 Compile vertex shader */
         var maxMatrixUniforms = (gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS) / 4) - 6;
 
-        var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        var vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
         gl.shaderSource(vertexShader, "#define MAX_MATRIX_NUM "+maxMatrixUniforms+"\r\n"+"#define COMPILING_VS 1\r\n "+vertShaderString);
         gl.compileShader(vertexShader);
 
@@ -215,7 +367,7 @@ class Scene {
         }
 
         /* 1.2 Compile fragment shader */
-        var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!;
         gl.shaderSource(fragmentShader, "#define COMPILING_FS 1\r\n "+fragmentShaderString);
         gl.compileShader(fragmentShader);
 
@@ -242,13 +394,13 @@ class Scene {
             throw ("program filed to link:" + gl.getProgramInfoLog (program));
         }
 
-        var shader = {};
+        var shader = {} as ShaderProgram;
         shader['program'] = program;
 
         //From https://github.com/greggman/webgl-fundamentals/blob/master/webgl/resources/webgl-utils.js
 
         //Get attributes
-        var shaderAttribs = {};
+        var shaderAttribs: { [name: string]: number } = {};
         var attribNum = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
         for (var ii = 0; ii < attribNum; ++ii) {
             var attribInfo = gl.getActiveAttrib(program, ii);
@@ -262,7 +414,7 @@ class Scene {
 
 
         //Get uniforms
-        var shaderUniforms = {};
+        var shaderUniforms: { [name: string]: WebGLUniformLocation | null } = {};
         var uniformsNumber = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
         for (var ii = 0; ii < uniformsNumber; ++ii) {
             var uniformInfo = gl.getActiveUniform(program, ii);
@@ -299,11 +451,11 @@ class Scene {
 
         this.blackPixelTexture = blackPixelTexture;
     }
-    initGlContext (canvas){
-        function throwOnGLError(err, funcName, args) {
+    initGlContext (canvas: HTMLCanvasElement){
+        function throwOnGLError(err: number, funcName: string, args: ArrayLike<unknown>) {
             throw WebGLDebugUtils.glEnumToString(err) + " was caused by call to: " + funcName;
         }
-        function validateNoneOfTheArgsAreUndefined(functionName, args) {
+        function validateNoneOfTheArgsAreUndefined(functionName: string, args: ArrayLike<unknown>) {
             for (var ii = 0; ii < args.length; ++ii) {
                 if (args[ii] === undefined) {
                     console.error("undefined passed to gl." + functionName + "(" +
@@ -313,8 +465,9 @@ class Scene {
         }
 
         try {
-            var gl = canvas.getContext("webgl", {premultipliedAlpha: false, alpha: false }) || canvas.getContext("experimental-webgl", {premultipliedAlpha: false});
-            gl = WebGLDebugUtils.makeDebugContext(gl, throwOnGLError, validateNoneOfTheArgsAreUndefined);
+            var gl: WebGLRenderingContext | null | undefined = canvas.getContext("webgl", {premultipliedAlpha: false, alpha: false }) || (canvas.getContext("experimental-webgl", {premultipliedAlpha: false}) as WebGLRenderingContext | null);
+            // JS-BUG: WebGLDebugUtils (js/lib/webgl-debug.js) is never loaded, so this throws a ReferenceError that the empty catch swallows - the debug context and its two callbacks are never used
+            gl = WebGLDebugUtils.makeDebugContext(gl!, throwOnGLError, validateNoneOfTheArgsAreUndefined);
         }
         catch(e) {}
 
@@ -323,7 +476,7 @@ class Scene {
             gl = null;
         }
 
-        this.gl = gl;
+        this.gl = gl!;
         this.canvas = canvas;
     }
     initArrayInstancedExt(){
@@ -421,7 +574,7 @@ class Scene {
         this.skinGeomCache = new SkinGeomCache(this.sceneApi);
         this.adtGeomCache = new AdtGeomCache(this.sceneApi);
     }
-    initDrawBuffers (frameBuffer) {
+    initDrawBuffers (frameBuffer: WebGLFramebuffer) {
         var gl = this.gl;
         var wdb_ext = this.wdb_ext;
         // Taken from https://hacks.mozilla.org/2014/01/webgl-deferred-shading/
@@ -468,7 +621,7 @@ class Scene {
 
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-        var bufs = [];
+        var bufs: number[] = [];
         bufs[0] = wdb_ext.COLOR_ATTACHMENT0_WEBGL;
         bufs[1] = wdb_ext.COLOR_ATTACHMENT1_WEBGL;
         bufs[2] = wdb_ext.COLOR_ATTACHMENT2_WEBGL;
@@ -505,7 +658,7 @@ class Scene {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.canvas.width, this.canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
         // Create the depth texture
-        var depthTexture = null;
+        var depthTexture: WebGLTexture | null = null;
         if (this.depth_texture_ext) {
             depthTexture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, depthTexture);
@@ -554,7 +707,7 @@ class Scene {
                 return self.gl;
             },
             getCurrentWdt : function (){
-                return self.currentWdt;
+                return self.currentWdt!;
             },
             getBlackPixelTexture : function () {
                 return self.blackPixelTexture;
@@ -587,6 +740,8 @@ class Scene {
                     self.activateBoundingBoxShader();
                 },
                 deativateBoundingBoxShader : function() {
+                    // JS-BUG: Scene has no deactivateBoundingBoxShader method, so calling this throws a TypeError
+                    // @ts-expect-error Scene has no deactivateBoundingBoxShader; ported as-is
                     self.deactivateBoundingBoxShader();
                 },
                 activateFrustumBoxShader : function () {
@@ -716,6 +871,8 @@ class Scene {
                     return self.wmoMainCache.loadWmoMain(fileName);
                 },
                 unloadWmoMain: function (fileName) {
+                    // JS-BUG: the WmoMainCache method is unLoadWmoMain (capital L), so this throws a TypeError
+                    // @ts-expect-error WmoMainCache has unLoadWmoMain, not unloadWmoMain; ported as-is
                     self.wmoMainCache.unloadWmoMain(fileName);
                 },
                 loadWmoGeom: function (fileName) {
@@ -792,9 +949,9 @@ class Scene {
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
         // Create the depth texture
-        var depthTexture = null;
+        var depthTexture: WebGLTexture | null = null;
         if (this.depth_texture_ext) {
-            var depthTexture = gl.createTexture();
+            var depthTexture: WebGLTexture | null = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, depthTexture);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -836,7 +993,7 @@ class Scene {
         }
     }
 
-    glClearScreen (gl, fogColor){
+    glClearScreen (gl: WebGLRenderingContext, fogColor: number[]){
         gl.clearDepth(1.0);
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LESS);
@@ -868,7 +1025,7 @@ class Scene {
             }
         }
     }
-    activateTextureCompositionShader(texture) {
+    activateTextureCompositionShader(texture: WebGLTexture) {
         this.currentShaderProgram = this.textureCompositionShader;
         if (this.currentShaderProgram) {
             var gl = this.gl;
@@ -1199,7 +1356,8 @@ class Scene {
             gl.uniformMatrix4fv(this.currentShaderProgram.shaderUniforms.uPMatrix, false, this.perspectiveMatrix);
         }
     }
-    drawTexturedQuad(gl, texture, x, y, width, height, canv_width, canv_height, drawDepth) {
+    drawTexturedQuad(gl: WebGLRenderingContext, texture: WebGLTexture | null, x: number, y: number, width: number, height: number,
+                     canv_width: number, canv_height: number, drawDepth?: boolean) {
         gl.disable(gl.DEPTH_TEST);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuffer);
@@ -1260,7 +1418,7 @@ class Scene {
         gl.drawElements(gl.LINES, 48, gl.UNSIGNED_SHORT, 0);
         gl.enable(gl.DEPTH_TEST);
     }
-    draw (deltaTime) {
+    draw (deltaTime: number) {
         var gl = this.gl;
         if (!this.depthBuffer) {
             var depthBuffer = new Uint8Array(this.canvas.width*this.canvas.height*4);
@@ -1268,7 +1426,7 @@ class Scene {
         }
 
         //this.stats.begin();
-        var cameraVector;
+        var cameraVector: vec3 | vec4;
 
         if (config.getUseSecondCamera()) {
             cameraVector = this.secondCamera;
@@ -1293,6 +1451,7 @@ class Scene {
             fov = cameraSettings.fov * 32 * Math.PI / 180;
 
             this.mainCamera = cameraSettings.currentPosition;
+            // JS-BUG: an unanimated M2 camera track gives a 3-component position (calcCameras), so transformMat4 reads w = undefined and the camera becomes NaN - probably needs w = 1
             vec4.transformMat4(this.mainCamera, this.mainCamera, m2Object.placementMatrix);
             this.mainCameraLookAt = cameraSettings.currentTarget;
             vec4.transformMat4(this.mainCameraLookAt, this.mainCameraLookAt, m2Object.placementMatrix);
@@ -1312,7 +1471,7 @@ class Scene {
 
         if (!(m2Object && m2Object.loaded) || config.getUseSecondCamera()){
             this.camera.setCameraPos(cameraVector[0], cameraVector[1], cameraVector[2]);
-            var cameraVecs = this.camera.tick(deltaTime);
+            var cameraVecs: CameraVecs | M2CameraVecs = this.camera.tick(deltaTime);
 
 
             if (config.getUseSecondCamera()) {
@@ -1337,12 +1496,12 @@ class Scene {
             }
         }
 
-        var lookAtMat4 = [];
+        var lookAtMat4: mat4 = [];
 
         mat4.lookAt(lookAtMat4, this.mainCamera, this.mainCameraLookAt, [0,0,1]);
 
         //Second camera for debug
-        var secondLookAtMat = [];
+        var secondLookAtMat: mat4 = [];
         mat4.lookAt(secondLookAtMat, this.secondCamera, this.secondCameraLookAt, [0,0,1]);
 
         var perspectiveMatrix = mat4.create();
@@ -1472,15 +1631,15 @@ class Scene {
             this.glext_ft.frameTerminator();
         }
 
-        return {cameraVecs : cameraVecs, updateResult : updateRes};
+        return {cameraVecs : cameraVecs!, updateResult : updateRes};
     }
-    loadM2File (mddf) {
+    loadM2File (mddf: AdtM2Placement) {
         return this.sceneApi.objects.loadAdtM2Obj(mddf);
     }
-    loadWMOFile(modf){
+    loadWMOFile(modf: WmoPlacement){
         this.graphManager.loadWmoMap(modf);
     }
-    loadMap (mapName, x, y){
+    loadMap (mapName: string, x: number, y: number){
         var self = this;
         var wdtFileName = "world/maps/"+mapName+"/"+mapName+".wdt";
 
@@ -1489,7 +1648,7 @@ class Scene {
             self.currentWdt = wdtFile;
             self.currentMapName = mapName;
             if (wdtFile.isWMOMap) {
-                self.graphManager.loadWmoMap(wdtFile.modfChunk);
+                self.graphManager.loadWmoMap(wdtFile.modfChunk!);
             } else {
                 var adtFileName = "world/maps/"+mapName+"/"+mapName+"_"+x+"_"+y+".adt";
                 self.graphManager.addADTObject(x, y, adtFileName);
@@ -1498,7 +1657,7 @@ class Scene {
         }, function error(){
         })
     }
-    addAdtChunkToCurrentMap(x,y) {
+    addAdtChunkToCurrentMap(x: number,y: number) {
         if (!this.currentWdt) return;
         if (this.currentWdt.isWMOMap) return;
 
@@ -1516,22 +1675,23 @@ class Scene {
         //    }
         //}
 
+        // JS-BUG: draw() calls this for the tiles around the camera's tile without a range check, so at the map edge (tile 0 or 63) tileTable[-1] / [64] is undefined and the [x] lookup throws
         if (this.currentWdt.tileTable[y][x]) {
             var adtFileName = "world/maps/"+this.currentMapName+"/"+this.currentMapName+"_"+x+"_"+y+".adt";
             this.graphManager.addADTObject(x, y, adtFileName);
         }
     }
-    setCameraPos (x, y, z) {
+    setCameraPos (x: number, y: number, z: number) {
         this.mainCamera = [x,y,z];
         //this.camera.setCameraPos(x,y,z);
     }
-    setFogStart(value) {
+    setFogStart(value: number) {
         this.uFogStart  = value;
     }
-    setFogEnd(value) {
+    setFogEnd(value: number) {
         this.uFogEnd = value;
     }
-    setFogColor(value) {
+    setFogColor(value: number[]) {
         this.fogColor = value;
     }
     loadPackets() {

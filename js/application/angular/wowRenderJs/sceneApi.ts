@@ -114,7 +114,8 @@ export interface SceneApi {
     getBlackPixelTexture(): WebGLTexture;
     setFogColor(color: number[]): void;
     getFogColor(): number[];
-    getIsDebugCamera(): boolean;
+    /* undefined until draw() has rendered with the double camera debug on */
+    getIsDebugCamera(): boolean | undefined;
     extensions: SceneApiExtensions;
     shaders: SceneApiShaders;
     dbc: SceneApiDbc;

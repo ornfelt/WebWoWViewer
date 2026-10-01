@@ -5,8 +5,8 @@ the tree is. Re-derive with:
 `find js/application/angular -name '*.js'` (unported) and
 `grep -rn 'TS-PORT' js/application/angular` (partially typed / parked).
 
-**Last run:** run 9 - group 8 (World objects) and sceneGraphManager (group 9)
-**Next:** group 9 - Scene (wowRenderJs/scene.js; check `SceneApi` against `initSceneApi()`)
+**Last run:** run 10 - scene (group 9), wowJsRenderDirective_noangular (group 10), last sweep, switch-over
+**Next:** nothing left to port - the port is complete; `review js/application/angular` next, then the bug table below
 
 ## Porting order
 
@@ -18,9 +18,8 @@ the tree is. Re-derive with:
 - [x] 6. Math, camera, managers - portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager
 - [x] 7. Scene objects - M2Object, adtM2Object, wmoM2Object, worldM2Object, adtObject, wmoObject
 - [x] 8. World objects - worldObject, worldUnit, worldPlayer, worldGameObject, worldObjectManager
-- [ ] 9. Scene - sceneGraphManager, scene
-  - sceneGraphManager done (run 9); scene.js not started
-- [ ] 10. Entry and UI - wowJsRenderDirective_noangular, app_wowjs -> app_wow; last sweep; switch-over
+- [x] 9. Scene - sceneGraphManager, scene
+- [x] 10. Entry and UI - wowJsRenderDirective_noangular, app_wowjs -> app_wow; last sweep; switch-over
 
 ## Parked types
 
@@ -138,6 +137,12 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 92 | `wowRenderJs/manager/sceneGraphManager.ts` `update` | `wmoObject.update(deltaTime)` - `WmoObject.update` takes no arguments | harmless, ignored |
 | 93 | `wowRenderJs/manager/sceneGraphManager.ts` `update` | reads `.groupId` / `.nodeId` from `isInsideInterior()`, which returns `-1` (a number) when the camera is outside the WMO's box | works by accident (`undefined >= 0` is false), but the returned `interiorGroupNum` is `undefined` rather than -1 when the last WMO's box does not contain the camera; the UI shows `\|\| 0` |
 | 94 | `wowRenderJs/manager/sceneGraphManager.ts` `drawM2s` | `drawBB()` without a color - `WorldMDXObject` does not override `MDXObject.drawBB(color)` like the ADT / WMO doodads do | world M2 boxes call `uniform3fv(uColor, new Float32Array(undefined))` - probably a GL INVALID_VALUE, the box keeps the previous color (debug drawing only) |
+| 95 | `wowRenderJs/scene.ts` `initGlContext` | `WebGLDebugUtils.makeDebugContext(...)` - `js/lib/webgl-debug.js` is neither loaded by `index.html` nor imported | the ReferenceError is swallowed by the empty `catch`, so `gl` stays the plain context and `throwOnGLError` / `validateNoneOfTheArgsAreUndefined` are dead code - harmless |
+| 96 | `wowRenderJs/scene.ts` `initSceneApi` | `shaders.deativateBoundingBoxShader` calls `self.deactivateBoundingBoxShader()`, which Scene does not have | would throw a TypeError; nothing calls it - harmless today |
+| 97 | `wowRenderJs/scene.ts` `initSceneApi` | `resources.unloadWmoMain` calls `self.wmoMainCache.unloadWmoMain()` - the method is `unLoadWmoMain` | would throw a TypeError; nothing calls it - harmless today |
+| 98 | `wowRenderJs/scene.ts` `draw` | the M2-camera branch runs `vec4.transformMat4` on `currentPosition` / `currentTarget`, which `calcCameras` builds with 3 components for an unanimated track | `w` is `undefined`, so the camera position becomes NaN (probably needs `w = 1`); the branch is unreachable today because nothing sets `config.setCameraM2` (bug 100) |
+| 99 | `wowRenderJs/scene.ts` `addAdtChunkToCurrentMap` | `draw()` calls it for the tiles around the camera's tile with no range check, and `tileTable[y][x]` is read unguarded | at the map edge (tile 0 or 63) `tileTable[-1]` / `[64]` is undefined and the `[x]` lookup throws inside `draw()`, stopping the render loop - only near the edge of the world |
+| 100 | `directives/wowJsRenderDirective_noangular.ts` `initViewer` | `config.setCameraM2(m2Object)` - `m2Object` is not declared (its `loadM2File` block is commented out) | an M2 preset with `cameraIndex` (the commented-out "Vanilla Opening screen") throws a ReferenceError there, before the fog settings and the UI wiring; the active AV preset never reaches it |
 
 ## Runtime notes
 
@@ -249,6 +254,23 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   the bare `var i;` in `update()`; `new Set<T>()` type arguments (erased). `m2Objects` is `(AdtM2Object | WmoM2Object)[]`,
   `m2RenderedThisFrame` the `M2Object` union.
 
+- `scene.ts`: `WebGLDebugUtils` is a file-local `declare const` (bug 95). `gl` in `initGlContext` is `WebGLRenderingContext | null |
+  undefined` (declared inside the `try`), the `experimental-webgl` context is asserted `as WebGLRenderingContext | null`, and
+  `this.gl = gl!` - the JS stores `null` when WebGL is unavailable and nothing checks it. `createShader(...)!`, `el.textContent!`,
+  `{} as ShaderProgram` in `compileShader`. `@ts-expect-error` on bugs 96 and 97. `getCurrentWdt` returns `self.currentWdt!` - ADTs
+  load only after `loadMap()` has set the WDT; `wdtFile.modfChunk!` in `loadMap` (present whenever `isWMOMap`). `cameraVecs` is
+  `CameraVecs | M2CameraVecs` and returned as `cameraVecs!` (one of the two branches always assigns it). Fields assigned through
+  `self` and the lazily set ones (shaders, caches, GL objects, DBC tables) are declared with `!`. `SceneApi.getIsDebugCamera()`
+  now returns `boolean | undefined` to match the literal; every other `SceneApi` member matched `initSceneApi()`.
+- `wowJsRenderDirective_noangular.ts`: local `PrefixedMouseEvent` / `PrefixedCanvas` / `PrefixedDocument` interfaces for the
+  vendor-prefixed pointer-lock members, `MapParams` with every preset field optional (so `mapParams.x!` etc.), and
+  `NumberTextElement` for the two spans the render loop assigns numbers to. `querySelector<T>(...)!` for the UI elements,
+  `sceneObj.draw(timeDelta)!` (`draw()` returns nothing only before the shaders are loaded, which the constructor does),
+  `(cameraVecs.cameraVec3 as number[])` (plain arrays at runtime). `@ts-expect-error` on bug 100.
+- Switch-over (run 10): `allowJs` / `checkJs` removed from `tsconfig.json`; `extensionAlias` removed from `webpack.config.js`
+  (no `.js` specifier is left outside comments). The three remaining `any`s are commented and genuinely dynamic:
+  `ChunkResultObj` (chunkedLoader), `ParsedObject` (linedfileLoader), `processPacket(packet)` (worldObjectManager).
+
 ## Run log
 
 | Run | Files | ~Lines | tsc | build | emit check |
@@ -263,3 +285,4 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 | 7 | group 6: portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager; parked `lights` resolved in m2GeomCache.ts | 1,900 | clean | green | all SAME |
 | 8 | group 7: M2Object, adtM2Object, wmoM2Object, worldM2Object, adtObject, wmoObject; every parked type resolved (config, instanceManager, m2GeomCache, portalCullingAlgo, sceneApi) | 2,620 | clean | green | all SAME |
 | 9 | group 8: worldObject, worldUnit, worldPlayer, worldGameObject, worldObjectManager; group 9: sceneGraphManager | 2,270 | clean | green | all SAME |
+| 10 | group 9: scene; group 10: wowJsRenderDirective_noangular; last sweep; switch-over (tsconfig, webpack) | 2,410 | clean | green (dev + prod) | all SAME (--all) |
