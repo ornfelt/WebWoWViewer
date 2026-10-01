@@ -98,7 +98,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 57 | `wowRenderJs/objects/M2Object.ts` `getShaderNames` | the retry calls the three-parameter `getTabledShaderNames` with four arguments | `0x11` becomes `tex_unit_number2` and `textureUnitNum` is dropped; harmless - the `return 0` paths do not depend on that argument, so the retry always returns 0 again |
 | 58 | `wowRenderJs/objects/M2Object.ts` `getShaderNames` | cases 1-3 of the `0x8000` branch store the `Combiners_*` name in `vertexShader` and `Diffuse_T1_Env` in `pixelShader` - probably swapped | `pixelShaderTable["Diffuse_T1_Env"]` is undefined, so those batches draw with pixel shader 0 (Combiners_Opaque) |
 | 59 | `wowRenderJs/objects/M2Object.ts` `makeTextureArray` | `textureUnitNum <= textUnitLookup.length` instead of `<` | reads one past the end (undefined); harmless |
-| 60 | `wowRenderJs/objects/M2Object.ts` `makeTextureArray` | `flags & 2 > 0` parses as `flags & (2 > 0)`, i.e. `flags & 1` (the same on every `yWrapTex*` line; the `& 1 > 0` lines happen to work, like 40) | the Y wrap mode follows the X wrap bit - textures that wrap in only one direction are clamped / repeated wrongly in Y |
 | 61 | `wowRenderJs/objects/M2Object.ts` `makeTextureArray` | the wrap flags of texture units 2 and 3 are read from `mdxTextureDefinition` (unit 1) instead of `mdxTextureDefinition1` / `mdxTextureDefinition2` | the second / third texture gets the first texture's wrap mode |
 | 62 | `wowRenderJs/objects/M2Object.ts` `sortMaterials` | `mat4.multiply(modelViewMat, this.placementMatrix, lookAtMat4)` - placement * lookAt; view space is lookAt * placement (probably swapped) | the transparent-mesh sort keys and the "camera inside the sub-mesh box" test use a wrong transform, so the sort order is off |
 | 63 | `wowRenderJs/objects/M2Object.ts` `sortMaterials` | `isInsideAABB1 && isInsideAABB1` (and `!(...)`) - probably meant `isInsideAABB2` | harmless: after the returns above both flags are equal there |
@@ -212,7 +211,7 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   and WmoM2Object override `load()` and `checkAgainstDepthBuffer()` with other signatures - `@ts-expect-error` on those
   four declarations - so they are not assignable to `MDXObject`; "any M2 in the scene" is the exported union
   `M2Object = AdtM2Object | WmoM2Object | WorldMDXObject` (config, instanceManager, portalCullingAlgo, wmoObject).
-  `@ts-expect-error` on bugs 56, 57, the six wrap-flag lines (60, 61) and the boolean XOR
+  `@ts-expect-error` on bugs 56, 57 and the boolean XOR
   (`isTransparent ^ !drawTransparent`) in `drawMeshes`. Assertions: `{...} as M2MaterialData`, `{} as M2CameraDetails` /
   `M2LightDetails`, `color as Float32List` (subMeshColors are plain arrays), `aabb as unknown as AABB` (`SubMeshBB` is
   `number[][]`), `placementMatrix as Float32List` for `uniformMatrix4fv`. `!` on `localBB`, `aabb`, `subMeshColors`

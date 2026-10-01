@@ -47,20 +47,19 @@ export interface M2MaterialData {
     /* op_count > 0 */
     texUnit1TexIndex: number;
     mdxTextureIndex1: number;
-    /* the result of flags & (n > 0), a number - see makeTextureArray() */
-    xWrapTex1: number;
-    yWrapTex1: number;
+    xWrapTex1: boolean;
+    yWrapTex1: boolean;
     textureUnit1TexName: string | undefined;
     /* op_count > 1 */
     mdxTextureIndex2?: number;
-    xWrapTex2?: number;
-    yWrapTex2?: number;
+    xWrapTex2?: boolean;
+    yWrapTex2?: boolean;
     texUnit2TexIndex?: number;
     textureUnit2TexName?: string;
     /* op_count > 2 */
     mdxTextureIndex3?: number;
-    xWrapTex3?: number;
-    yWrapTex3?: number;
+    xWrapTex3?: boolean;
+    yWrapTex3?: boolean;
     texUnit3TexIndex?: number;
     textureUnit3TexName?: string;
 
@@ -568,11 +567,8 @@ abstract class MDXObject {
                    var mdxTextureDefinition = mdxObject.m2File.textureDefinition[mdxTextureIndex];
                    materialData.texUnit1TexIndex = i;
                    materialData.mdxTextureIndex1 = mdxTextureIndex;
-                   // @ts-expect-error a boolean (1 > 0) as the right operand of &; ported as-is
-                   materialData.xWrapTex1 = mdxTextureDefinition.flags & 1 > 0;
-                   // JS-BUG: precedence - flags & (2 > 0) is flags & 1, so the Y wrap follows the X wrap bit (probably meant (flags & 2) > 0); the same on the tex2 / tex3 lines below
-                   // @ts-expect-error a boolean (2 > 0) as the right operand of &; ported as-is
-                   materialData.yWrapTex1 = mdxTextureDefinition.flags & 2 > 0;
+                   materialData.xWrapTex1 = (mdxTextureDefinition.flags & 1) > 0;
+                   materialData.yWrapTex1 = (mdxTextureDefinition.flags & 2) > 0;
 
                    if (mdxTextureDefinition.texType == 0) {
                        materialData.textureUnit1TexName = mdxTextureDefinition.textureName;
@@ -585,10 +581,8 @@ abstract class MDXObject {
                    var mdxTextureDefinition1 = mdxObject.m2File.textureDefinition[mdxTextureIndex1];
                    materialData.mdxTextureIndex2 = mdxTextureIndex1;
                    // JS-BUG: the wrap flags of texture unit 2 are read from the first texture (mdxTextureDefinition), not mdxTextureDefinition1
-                   // @ts-expect-error a boolean (1 > 0) as the right operand of &; ported as-is
-                   materialData.xWrapTex2 = mdxTextureDefinition!.flags & 1 > 0;
-                   // @ts-expect-error a boolean (2 > 0) as the right operand of &; ported as-is
-                   materialData.yWrapTex2 = mdxTextureDefinition!.flags & 2 > 0;
+                   materialData.xWrapTex2 = (mdxTextureDefinition!.flags & 1) > 0;
+                   materialData.yWrapTex2 = (mdxTextureDefinition!.flags & 2) > 0;
                    materialData.texUnit2TexIndex = i;
 
                    if (mdxTextureDefinition1.texType == 0) {
@@ -602,10 +596,8 @@ abstract class MDXObject {
                    var mdxTextureDefinition2 = mdxObject.m2File.textureDefinition[mdxTextureIndex2];
                    materialData.mdxTextureIndex3 = mdxTextureIndex2;
                    // JS-BUG: the wrap flags of texture unit 3 are read from the first texture (mdxTextureDefinition), not mdxTextureDefinition2
-                   // @ts-expect-error a boolean (1 > 0) as the right operand of &; ported as-is
-                   materialData.xWrapTex3 = mdxTextureDefinition!.flags & 1 > 0;
-                   // @ts-expect-error a boolean (2 > 0) as the right operand of &; ported as-is
-                   materialData.yWrapTex3 = mdxTextureDefinition!.flags & 2 > 0;
+                   materialData.xWrapTex3 = (mdxTextureDefinition!.flags & 1) > 0;
+                   materialData.yWrapTex3 = (mdxTextureDefinition!.flags & 2) > 0;
                    materialData.texUnit3TexIndex = i;
 
                    if (mdxTextureDefinition2.texType == 0) {
