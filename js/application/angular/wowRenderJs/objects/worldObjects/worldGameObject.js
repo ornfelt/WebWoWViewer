@@ -27,7 +27,7 @@ class WorldGameObject extends WorldObject {
 
         this.rotationMatrix = rotationMatrix;
     }
-    update (deltaTime, cameraPos) {
+    update (deltaTime, cameraPos, viewMat) {
         var properScale = 1.0;
         if (this.scale > 0.0001) {
             properScale = this.scale;
@@ -37,7 +37,7 @@ class WorldGameObject extends WorldObject {
             this.objectModel.createPlacementMatrix(this.pos, this.f, properScale, this.rotationMatrix);
 
             /* Update bone matrices */
-            this.objectModel.objectUpdate(deltaTime, cameraPos);
+            this.objectModel.objectUpdate(deltaTime, cameraPos, viewMat);
         }
     }
 }
