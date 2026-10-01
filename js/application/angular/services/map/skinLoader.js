@@ -272,9 +272,6 @@ export default function(filePath) {
 
             resultSkinObject.fileName = filePath;
             return resultSkinObject;
-        },
-        function error(errorObj){
-            return errorObj;
         });
 
     return newPromise;
