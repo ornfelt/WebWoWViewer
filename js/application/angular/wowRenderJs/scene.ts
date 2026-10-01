@@ -151,6 +151,9 @@ const SecPerSkyHour = 2.0; // 2 s -> next sky hour
 const TicksPerHour = 120; // 120 ticks = 1 Look-up hour
 /* far plane of the sky's own projection: the sky dome (radius 400) lies on the scene's far plane (400) */
 const skyFarPlane = 850;
+/* the liquid clock wraps after this many seconds: a whole number of texture frames (30 per second),
+ * of UV scroll (0.02 per second) and of wave periods (the liquid shader's WAVE_SPEED), so it wraps seamlessly */
+const LiquidClockPeriod = 50;
 
 
 class Scene {
@@ -271,7 +274,7 @@ class Scene {
     skyClockStart: number | undefined;
     lastHour: number;
 
-    /* performance.now() when the liquid clock (texture frames, scrolling) last (re)started */
+    /* performance.now() when the liquid clock (texture frames, scrolling) started */
     liquidClockStart: number | undefined;
 
     constructor(canvas: HTMLCanvasElement) {
@@ -1665,10 +1668,9 @@ class Scene {
         this.graphManager.sortGeometry(perspectiveMatrixForCulling, lookAtMat4);
 
 
-        // liquid clock: seconds, restarted after 30 s
+        // liquid clock: seconds, wrapped every LiquidClockPeriod
         if (this.liquidClockStart === undefined) this.liquidClockStart = performance.now();
-        else if ((performance.now() - this.liquidClockStart) / 1000 > 30) this.liquidClockStart = performance.now();
-        var liquidTime = (performance.now() - this.liquidClockStart) / 1000;
+        var liquidTime = ((performance.now() - this.liquidClockStart) / 1000) % LiquidClockPeriod;
 
         gl.viewport(0,0,this.canvas.width, this.canvas.height);
         if (config.getDoubleCameraDebug()) {
