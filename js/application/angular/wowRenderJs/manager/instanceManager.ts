@@ -1,12 +1,13 @@
 
 import type { SceneApi } from './../sceneApi';
+import type { M2Object } from './../objects/M2Object';
 
 export default class InstanceManager {
     sceneApi: SceneApi;
-    mdxObjectList: any[]; // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
-    sceneObjNumMap: { [sceneNumber: number]: any }; // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
+    mdxObjectList: M2Object[];
+    sceneObjNumMap: { [sceneNumber: number]: M2Object };
     lastUpdatedNumber: number;
-    previousObjectList: any[]; // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
+    previousObjectList: M2Object[];
     /* created by the first updatePlacementVBO() */
     placementVBO: WebGLBuffer | undefined;
     maxAmountWritten!: number;
@@ -19,7 +20,7 @@ export default class InstanceManager {
         this.previousObjectList = [];
     }
 
-    addMDXObject(MDXObject: any) { // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
+    addMDXObject(MDXObject: M2Object) {
         if (this.sceneObjNumMap[MDXObject.sceneNumber]) return; // The object has already been added to this manager
 
         this.sceneObjNumMap[MDXObject.sceneNumber] = MDXObject;
@@ -37,7 +38,7 @@ export default class InstanceManager {
         var permanentBuffer: number[] = [];
 
         //1. Collect objects
-        var newList: any[] = []; // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
+        var newList: M2Object[] = [];
         for (var i = 0; i < this.mdxObjectList.length; i++) {
             var mdxObject = this.mdxObjectList[i];
             if (mdxObject.getIsRendered()) {
@@ -81,7 +82,7 @@ export default class InstanceManager {
     }
     drawInstancedNonTransparentMeshes(opaqueMap: { [sceneNumber: number]: boolean }) {
         if (!this.mdxObjectList[0]) return;
-        var lastDrawn: any; // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
+        var lastDrawn: M2Object | undefined;
         for (var i = 0; i < this.mdxObjectList.length; i++) {
             opaqueMap[this.mdxObjectList[i].sceneNumber] = true;
             if (this.mdxObjectList[i].getIsRendered()) {
@@ -89,11 +90,11 @@ export default class InstanceManager {
             }
         }
 
-        lastDrawn.drawInstancedNonTransparentMeshes(this.lastUpdatedNumber, this.placementVBO);
+        lastDrawn!.drawInstancedNonTransparentMeshes(this.lastUpdatedNumber, this.placementVBO!);
     }
     drawInstancedTransparentMeshes(transparentMap: { [sceneNumber: number]: boolean }) {
         if (!this.mdxObjectList[0]) return;
-        var lastDrawn: any; // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
+        var lastDrawn: M2Object | undefined;
         for (var i = 0; i < this.mdxObjectList.length; i++) {
             transparentMap[this.mdxObjectList[i].sceneNumber] = true;
             if (this.mdxObjectList[i].getIsRendered()) {
@@ -101,6 +102,6 @@ export default class InstanceManager {
             }
         }
 
-        lastDrawn.drawInstancedTransparentMeshes(this.lastUpdatedNumber, this.placementVBO);
+        lastDrawn!.drawInstancedTransparentMeshes(this.lastUpdatedNumber, this.placementVBO!);
     }
 }

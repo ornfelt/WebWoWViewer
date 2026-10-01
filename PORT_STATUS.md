@@ -5,8 +5,8 @@ the tree is. Re-derive with:
 `find js/application/angular -name '*.js'` (unported) and
 `grep -rn 'TS-PORT' js/application/angular` (partially typed / parked).
 
-**Last run:** run 7 - group 6 (Math, camera, managers)
-**Next:** group 7 - Scene objects (M2Object first, then its subclasses)
+**Last run:** run 8 - group 7 (Scene objects)
+**Next:** group 8 - World objects (worldObject first)
 
 ## Porting order
 
@@ -16,26 +16,23 @@ the tree is. Re-derive with:
 - [x] 4. Format parsers - wdt, adt, blp, skin, wmo, mdx
 - [x] 5. Caches - adt/skin/m2/wmo geometry caches, wmoMainCache, textureCache
 - [x] 6. Math, camera, managers - portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager
-- [ ] 7. Scene objects - M2Object, adtM2Object, wmoM2Object, worldM2Object, adtObject, wmoObject
+- [x] 7. Scene objects - M2Object, adtM2Object, wmoM2Object, worldM2Object, adtObject, wmoObject
 - [ ] 8. World objects - worldObject, worldUnit, worldPlayer, worldGameObject, worldObjectManager
 - [ ] 9. Scene - sceneGraphManager, scene
 - [ ] 10. Entry and UI - wowJsRenderDirective_noangular, app_wowjs -> app_wow; last sweep; switch-over
 
 ## Parked types
 
-- `services/config.ts` - `cameraM2` and `setCameraM2(value)`: waits for `wowRenderJs/objects/M2Object.ts` (M2Object).
-- `wowRenderJs/sceneApi.ts` - every `SceneApiObjects` member: `wowRenderJs/manager/sceneGraphManager.ts`.
-- `wowRenderJs/geometry/m2GeomCache.ts` - `drawMesh(materialData)`: waits for `wowRenderJs/objects/M2Object.ts`
-  (its material type).
-- `wowRenderJs/math/portalCullingAlgo.ts` - every `wmoObject` parameter: waits for `wowRenderJs/objects/wmoObject.ts`
-  (WmoObject); the M2 object sets (`Set<any>`, `wmoM2Candidates`): wait for `wowRenderJs/objects/M2Object.ts`.
-- `wowRenderJs/manager/instanceManager.ts` - `mdxObjectList`, `sceneObjNumMap`, `previousObjectList`, `addMDXObject`,
-  `newList`, `lastDrawn`: wait for `wowRenderJs/objects/M2Object.ts` (M2Object; the subclasses add
-  `getDiffuseColor` / `drawInstanced*Meshes`).
+(none open)
+
 - Resolved in run 5: `mathHelper.ts` BSP types (`WmoBspNode`, `WmoGroupFile`), `SceneApi.getCurrentWdt()` (`WdtFile`),
   `SceneApi.resources.loadWmoMain()` (`WmoFile | undefined`), every `SceneApiDbc` getter (its `*Record` table).
 - Resolved in run 6: the `SceneApiResources` loaders (`Texture`, `WmoGeom`, `M2Geom`, `SkinGeom`, `ADTGeom`).
 - Resolved in run 7: `m2GeomCache.ts` `setupUniforms(lights)` (`M2LightDetails[]` from `animationManager.ts`).
+- Resolved in run 8: `config.ts` `cameraM2` / `setCameraM2` and every `instanceManager.ts` list (`M2Object` union),
+  `m2GeomCache.ts` `drawMesh(materialData)` (`M2MaterialData`), `portalCullingAlgo.ts` (`WmoObject`, `Set<M2Object>`,
+  `Set<WmoM2Object>`), every `SceneApiObjects` member (the group 7 classes; `loadAdtChunk` returns `void` - read off
+  `addADTObject` in the still-JavaScript sceneGraphManager).
 
 ## JavaScript bugs (ported as-is)
 
@@ -100,6 +97,29 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 52 | `wowRenderJs/manager/animationManager.ts` `calcBones` / `calcChildBones` | `calcBones` passes 5 arguments to the 8-parameter `calcChildBones`, which passes 8 to the 5-parameter `calcBoneMatrix` | the camera position lands in `blendAnimationIndex` and is forwarded into `calcBoneMatrix`'s `cameraPosInLocal` - works by accident |
 | 53 | `wowRenderJs/manager/animationManager.ts` `calcSubMeshColors` | the blend branch evaluates the alpha track with `time` / `animationRecord` / `animationIndex` instead of the blend animation's | alpha is not blended between animations; unreachable today (sub-animation picking is disabled by `if (false)` in `update()`) |
 | 54 | `wowRenderJs/manager/animationManager.ts` `calcLights` | indexes (`[0]`) and scales the `getTimedValue` results without checking them | a light whose track has no keys for the current animation (`null` / `undefined`) throws a TypeError |
+| 55 | `wowRenderJs/objects/M2Object.ts` `calcDistance` | tests `this.getIs`, which does not exist (probably `this.getIsRendered()`) | the base `calcDistance` never updates `currentDistance`, so ADT / WMO doodads keep distance 0 and the scene graph's distance sort does nothing for them |
+| 56 | `wowRenderJs/objects/M2Object.ts` `load` | the `!m2Geom` branch calls `$log.log(... + modelName)` - neither is declared | ReferenceError; unreachable (`skinGeom.fixData(m2Geom.m2File)` above already throws for a missing `m2Geom`, inside the same `try`) |
+| 57 | `wowRenderJs/objects/M2Object.ts` `getShaderNames` | the retry calls the three-parameter `getTabledShaderNames` with four arguments | `0x11` becomes `tex_unit_number2` and `textureUnitNum` is dropped; harmless - the `return 0` paths do not depend on that argument, so the retry always returns 0 again |
+| 58 | `wowRenderJs/objects/M2Object.ts` `getShaderNames` | cases 1-3 of the `0x8000` branch store the `Combiners_*` name in `vertexShader` and `Diffuse_T1_Env` in `pixelShader` - probably swapped | `pixelShaderTable["Diffuse_T1_Env"]` is undefined, so those batches draw with pixel shader 0 (Combiners_Opaque) |
+| 59 | `wowRenderJs/objects/M2Object.ts` `makeTextureArray` | `textureUnitNum <= textUnitLookup.length` instead of `<` | reads one past the end (undefined); harmless |
+| 60 | `wowRenderJs/objects/M2Object.ts` `makeTextureArray` | `flags & 2 > 0` parses as `flags & (2 > 0)`, i.e. `flags & 1` (the same on every `yWrapTex*` line; the `& 1 > 0` lines happen to work, like 40) | the Y wrap mode follows the X wrap bit - textures that wrap in only one direction are clamped / repeated wrongly in Y |
+| 61 | `wowRenderJs/objects/M2Object.ts` `makeTextureArray` | the wrap flags of texture units 2 and 3 are read from `mdxTextureDefinition` (unit 1) instead of `mdxTextureDefinition1` / `mdxTextureDefinition2` | the second / third texture gets the first texture's wrap mode |
+| 62 | `wowRenderJs/objects/M2Object.ts` `sortMaterials` | `mat4.multiply(modelViewMat, this.placementMatrix, lookAtMat4)` - placement * lookAt; view space is lookAt * placement (probably swapped) | the transparent-mesh sort keys and the "camera inside the sub-mesh box" test use a wrong transform, so the sort order is off |
+| 63 | `wowRenderJs/objects/M2Object.ts` `sortMaterials` | `isInsideAABB1 && isInsideAABB1` (and `!(...)`) - probably meant `isInsideAABB2` | harmless: after the returns above both flags are equal there |
+| 64 | `wowRenderJs/objects/M2Object.ts` `initAnimationManager` | the stored `startLeftHandClosed` is applied with `setRightHandClosed` (probably `setLeftHandClosed`) | a left-hand close requested before the model loaded (`worldUnit` calls `setLeftHandClosed(true)`) closes the right hand and overwrites any stored right-hand state |
+| 65 | `wowRenderJs/objects/adtM2Object.ts` constructor | `super(sceneApi, localBB)` - the MDXObject constructor takes one argument, and no caller passes `localBB` | harmless |
+| 66 | `wowRenderJs/objects/adtM2Object.ts` `draw` | `super.draw(this.placementMatrix, this.diffuseColor)` - the `drawTransparent` argument is missing | `placementMatrix` lands in `drawTransparent` and `diffuseColor` is used as the placement matrix; nothing calls `AdtM2Object.draw()` today (the scene graph uses `draw*Meshes`) |
+| 67 | `wowRenderJs/objects/adtM2Object.ts` `drawInstanced*Meshes` | pass `0xffffffff` as a fourth argument to the three-parameter `drawInstanced` | harmless, ignored |
+| 68 | `wowRenderJs/objects/wmoM2Object.ts` `load` | `useLocalColor` is never used (nor by the scene graph's `addWmoM2Object`) | the `false` that `WmoObject.loadDoodad` passes is lost; WMO doodads keep `useLocalLighting = true` until a group with the no-local-lighting flags turns it off |
+| 69 | `wowRenderJs/objects/wmoObject.ts` `isInsideInterior` | `this.currentGroupId = i` - `i` indexes `candidateGroups`, not the WMO groups (probably `candidateGroups[i].groupId`) | `drawBspVerticles()` and the BSP branch of `drawPortalBased()` pick the wrong group |
+| 70 | `wowRenderJs/objects/wmoObject.ts` `checkFrustumCulling` | `m2Object.checkFrustumCulling(..., num_planes, false)` - four arguments (like 44) | harmless, the `false` is ignored |
+| 71 | `wowRenderJs/objects/wmoObject.ts` `getDoodadObject` | `index > doodadsSet.index + doodadsSet.number` instead of `>=` | the first doodad of the next doodad set is loaded as part of the current one (and stored past the end of the set's slots) |
+| 72 | `wowRenderJs/objects/wmoObject.ts` `drawPortalBased` | BSP branch calls `this.currentNodeId.map(...)` (a number) and reads `wmoGroupArray[i].wmoGroupFile` (it is `wmoGeom.wmoGroupFile`) | TypeError when BSP rendering is on, the camera is outside and `currentGroupId == i`; the list it builds is never used |
+| 73 | `wowRenderJs/objects/wmoObject.ts` `drawPortals` | reads `portalInfo.isFalse`, which nothing sets | every portal is drawn blue (debug drawing only) |
+| 74 | `wowRenderJs/objects/wmoObject.ts` `drawPortalFrustumsBB` | `portalViewFrustums` is never assigned on the WmoObject (portalCullingAlgo keeps its own), and the loop tests `wmoGroupArray[i].wmoGroupFile`, which does not exist | the function always returns at once - the portal frustum debug drawing never draws |
+| 75 | `wowRenderJs/objects/wmoObject.ts` `drawBspVerticles` | reads `wmoGroupFile`, `combinedVBO` and `mobrVBO` from the WmoGroupObject; they are members of its `wmoGeom` | TypeError whenever BSP rendering is on and the camera is inside an interior group (`currentGroupId >= 0`) |
+| 76 | `wowRenderJs/objects/wmoObject.ts` `WmoGroupObject.updateWorldGroupBBWithM2` | `mogp.flags` - the field is `Flags` | `dontUseLocalLighting` is always false; nothing calls this method today |
+| 77 | `wowRenderJs/objects/wmoObject.ts` `WmoGroupObject.checkIfInsideGroup` | the `candidateGroups.push` is inside the BSP descent loop (probably meant after it) | every inner node on the way down becomes a candidate with an intermediate `nodeId`; `isInsideInterior` can then pick a non-leaf node |
 
 ## Runtime notes
 
@@ -168,6 +188,32 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   `isAnimated`, `leftHandClosed`, `rightHandClosed`, `nextSubAnimationActive` are `| undefined` - not set by the
   constructor.
 
+- `M2Object.ts`: `MDXObject` is an `abstract class` (erased) with abstract declarations for the members only the
+  subclasses implement (`getInvertModelMatrix`, `getDiffuseColor`, `setIsRendered`, `draw*Meshes`, ...). AdtM2Object
+  and WmoM2Object override `load()` and `checkAgainstDepthBuffer()` with other signatures - `@ts-expect-error` on those
+  four declarations - so they are not assignable to `MDXObject`; "any M2 in the scene" is the exported union
+  `M2Object = AdtM2Object | WmoM2Object | WorldMDXObject` (config, instanceManager, portalCullingAlgo, wmoObject).
+  `@ts-expect-error` on bugs 55, 56, 57, the six wrap-flag lines (60, 61) and the boolean XOR
+  (`isTransparent ^ !drawTransparent`) in `drawMeshes`. Assertions: `{...} as M2MaterialData`, `{} as M2CameraDetails` /
+  `M2LightDetails`, `color as Float32List` (subMeshColors are plain arrays), `aabb as unknown as AABB` (`SubMeshBB` is
+  `number[][]`), `placementMatrix as Float32List` for `uniformMatrix4fv`. `!` on `localBB`, `aabb`, `subMeshColors`
+  (set by load()), the `textureUnitNTexName` passed to `loadTexture` (guarded by the `if`), `mdxTextureDefinition`
+  (a `var` from the `op_count > 0` branch), `texUnit2TexIndex! >= 0` (the JS relies on `undefined >= 0` being false),
+  `result!` in the sort comparator, and `(shaderNames as M2ShaderNames).pixel!` - `shaderNames` may be `0` and `pixel`
+  undefined, which indexes `pixelShaderTable` with undefined (uniform 0).
+- `m2GeomCache.ts` `drawMesh`: `meshColor` widened from `Float32Array` to `Float32List` (it receives the plain-array
+  sub-mesh colors). `mathHelper.ts` `checkFrustum`: `points` widened to `| null` (the WMO callers pass `null`).
+- `instanceManager.ts`: `lastDrawn!` and `placementVBO!` - the JS assumes a rendered object and a prior
+  `updatePlacementVBO()`.
+- `adtM2Object.ts`: `@ts-expect-error` on bugs 65, 66 and both lines of 67. `worldM2Object.ts`: `attachLookups!` /
+  `attachments!` (absent only for the 274 layout, bug 28), `mdxTextureIndex2!` / `3!` (an undefined index reads undefined).
+- `adtObject.ts`: `m2Array!` / `wmoArray!` - filled through `self`, which TS does not narrow.
+- `wmoObject.ts`: fields assigned through `self` in the constructor are declared with `!` (also in `wmoM2Object.ts`).
+  `wmoObj!` in `loadMainFile` (bug 27). `portalVerticles!` / `portalInfos!` / `portalRelations!` here and in
+  `portalCullingAlgo.ts` - only used for WMOs with portals. `modf.bb2!` (set together with `bb1`), `slice(0) as [vec4,
+  vec4]`, `wmoDoodads[i]!` and `aabb!` (in `updateWorldGroupBBWithM2`). `@ts-expect-error` on bugs 70, 72, 73, 74, 75
+  (three lines) and 76; `portalCullingAlgo.ts` now also needs it on both lines of bug 44.
+
 ## Run log
 
 | Run | Files | ~Lines | tsc | build | emit check |
@@ -180,3 +226,4 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 | 5 | group 3: services/dbc/* (18); group 4: wdtLoader, adtLoader, blpLoader, skinLoader, wmoLoader; parked types resolved in sceneApi.ts, mathHelper.ts | 2,610 | clean | green | all SAME |
 | 6 | group 4: mdxLoader; group 5: adtGeomCache, skinGeomCache, m2GeomCache, wmoGeomCache, wmoMainCache, textureCache; parked loaders resolved in sceneApi.ts | 3,790 | clean | green | all SAME |
 | 7 | group 6: portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager; parked `lights` resolved in m2GeomCache.ts | 1,900 | clean | green | all SAME |
+| 8 | group 7: M2Object, adtM2Object, wmoM2Object, worldM2Object, adtObject, wmoObject; every parked type resolved (config, instanceManager, m2GeomCache, portalCullingAlgo, sceneApi) | 2,620 | clean | green | all SAME |

@@ -1,7 +1,25 @@
-import mathHelper from './../math/mathHelper.js';
+import mathHelper from './../math/mathHelper';
+import type { AABB } from './../math/mathHelper';
+import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix';
+import type { WdtFile } from '../../services/map/wdtLoader';
+import type { ADTGeom } from '../geometry/adtGeomCache';
+import type { SceneApi } from '../sceneApi';
+import type AdtM2Object from './adtM2Object';
+import type WmoObject from './wmoObject';
 
 class ADTObject {
-    constructor(sceneApi, wdtFile) {
+    sceneApi: SceneApi;
+    drawChunk: boolean[];
+    /* per MCNK, set by calcBoundingBoxes() */
+    aabbs: AABB[];
+    /* indexed by the MDDF / MODF record, filled by loadM2s() / loadWmos() */
+    m2Array: AdtM2Object[] | null;
+    wmoArray: WmoObject[] | null;
+    /* set once the ADT has loaded */
+    adtGeom!: ADTGeom;
+
+    /* the scene graph manager passes only sceneApi; wdtFile is never used */
+    constructor(sceneApi: SceneApi, wdtFile?: WdtFile) {
         this.sceneApi = sceneApi;
         this.drawChunk = new Array(256);
         this.aabbs = [];
@@ -13,7 +31,8 @@ class ADTObject {
         }
     }
 
-    checkFrustumCulling (cameraVec4, frustumPlanes, lookAtMat4, num_planes, m2ObjectsCandidates, wmoCandidates) {
+    checkFrustumCulling (cameraVec4: ReadonlyVec4, frustumPlanes: ReadonlyVec4[], lookAtMat4: ReadonlyMat4, num_planes: number,
+                         m2ObjectsCandidates: Set<AdtM2Object>, wmoCandidates: Set<WmoObject>) {
         if (!this.adtGeom) return false;
         var adtFile = this.adtGeom.adtFile;
         var atLeastOneIsDrawn = false;
@@ -45,7 +64,7 @@ class ADTObject {
                     for (var j= 0; j < mcnk.m2Refs.length; j++) {
                         var m2Ref = mcnk.m2Refs[j];
 
-                        m2ObjectsCandidates.add(this.m2Array[m2Ref])
+                        m2ObjectsCandidates.add(this.m2Array![m2Ref])
                     }
                 }
                 if (this.wmoArray) {
@@ -61,7 +80,7 @@ class ADTObject {
     }
 
     calcBoundingBoxes() {
-        var aabbs = new Array(256);
+        var aabbs: AABB[] = new Array(256);
         var adtFile = this.adtGeom.adtFile;
         for(var i = 0 ; i < 256; i++) {
             var mcnk = adtFile.mcnkObjs[i];
@@ -111,11 +130,11 @@ class ADTObject {
         this.wmoArray = new Array(wmoPositions.length);
         for (var i = 0; i < wmoPositions.length; i++) {
             var wmoDef = wmoPositions[i];
-            self.wmoArray[i] = self.sceneApi.objects.loadAdtWmo(wmoDef);
+            self.wmoArray![i] = self.sceneApi.objects.loadAdtWmo(wmoDef);
         }
     }
 
-    load(modelName) {
+    load(modelName: string) {
         var self = this;
 
         var adtPromise = this.sceneApi.resources.loadAdtGeom(modelName);
@@ -129,7 +148,8 @@ class ADTObject {
         });
     }
 
-    draw(deltaTime) {
+    /* the scene graph manager calls it without deltaTime, which is never used */
+    draw(deltaTime?: number) {
         if (this.adtGeom) {
             this.adtGeom.draw(this.drawChunk);
         }

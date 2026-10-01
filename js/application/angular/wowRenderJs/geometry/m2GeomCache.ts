@@ -6,6 +6,7 @@ import type { SceneApi } from './../sceneApi';
 import type { SkinGeom } from './skinGeomCache';
 import type { Texture } from './../texture/textureCache';
 import type { M2LightDetails } from './../manager/animationManager';
+import type { M2MaterialData } from './../objects/M2Object';
 
 
 class M2Geom {
@@ -211,8 +212,8 @@ class M2Geom {
         }
     }
 
-   drawMesh(materialData: any, // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports its material type
-            skinObject: SkinGeom, meshColor: Float32Array, transparency: number, textureMatrix1: mat4, textureMatrix2: mat4,
+   drawMesh(materialData: M2MaterialData,
+            skinObject: SkinGeom, meshColor: Float32List, transparency: number, textureMatrix1: mat4, textureMatrix2: mat4,
             pixelShaderIndex: number, originalFogColor: number[], instanceCount: number) {
         var gl = this.gl;
         var m2File = this.m2File;

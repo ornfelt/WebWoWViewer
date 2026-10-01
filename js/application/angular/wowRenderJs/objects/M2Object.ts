@@ -1,11 +1,83 @@
 import config from './../../services/config';
-import AnimationManager from './../manager/animationManager.js'
-import mathHelper from './../math/mathHelper.js';
+import AnimationManager from './../manager/animationManager'
+import type { M2CameraDetails, M2LightDetails } from './../manager/animationManager';
+import type InstanceManager from './../manager/instanceManager';
+import mathHelper from './../math/mathHelper';
+import type { AABB } from './../math/mathHelper';
 import QuickSort from './../math/quickSort';
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
+import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix';
 import Expansion from '../../Expansion';
+import type { Vector3f } from '../../services/fileReadHelper';
+import type { M2File } from '../../services/map/mdxLoader';
+import type { SkinHeader, SkinTex } from '../../services/map/skinLoader';
+import type { M2Geom } from '../geometry/m2GeomCache';
+import type { SkinGeom } from '../geometry/skinGeomCache';
+import type { Texture } from '../texture/textureCache';
+import type { SceneApi } from '../sceneApi';
+import type AdtM2Object from './adtM2Object';
+import type WmoM2Object from './wmoM2Object';
+import type WorldMDXObject from './worldM2Object';
 
-const pixelShaderTable = {
+/* What getShaderNames() returns for a skin batch; a name stays undefined when the table has no entry for it */
+export interface M2ShaderNames {
+    vertex: string | undefined;
+    pixel: string | undefined;
+}
+
+/* A texture bound to a material: a loaded Texture, or the composed texture overrideModelTexture() puts in */
+export type M2MaterialTexture = Pick<Texture, 'texture'>;
+
+/* One entry of materialArray, built by makeTextureArray() and drawn by M2Geom.drawMesh() */
+export interface M2MaterialData {
+    isRendered: boolean;
+    isTransparent: boolean;
+    isEnviromentMapping: boolean;
+    meshIndex: number;
+    textureTexUnit1: null;
+    textureTexUnit2: null;
+    textureTexUnit3: null;
+
+    layer: number;
+    /* 0 when getShaderNames() finds no shader pair */
+    shaderNames: M2ShaderNames | 0;
+    renderFlag: number;
+    renderBlending: number;
+
+    /* op_count > 0 */
+    texUnit1TexIndex: number;
+    mdxTextureIndex1: number;
+    /* the result of flags & (n > 0), a number - see makeTextureArray() */
+    xWrapTex1: number;
+    yWrapTex1: number;
+    textureUnit1TexName: string | undefined;
+    /* op_count > 1 */
+    mdxTextureIndex2?: number;
+    xWrapTex2?: number;
+    yWrapTex2?: number;
+    texUnit2TexIndex?: number;
+    textureUnit2TexName?: string;
+    /* op_count > 2 */
+    mdxTextureIndex3?: number;
+    xWrapTex3?: number;
+    yWrapTex3?: number;
+    texUnit3TexIndex?: number;
+    textureUnit3TexName?: string;
+
+    /* set once the texture has loaded (or by overrideModelTexture) */
+    texUnit1Texture?: M2MaterialTexture;
+    texUnit2Texture?: M2MaterialTexture;
+    texUnit3Texture?: M2MaterialTexture;
+}
+
+/* Any M2 object in the scene. AdtM2Object and WmoM2Object override load() and checkAgainstDepthBuffer() with
+   other signatures, so they are not assignable to MDXObject itself - code that holds "some M2 object" uses this */
+export type M2Object = AdtM2Object | WmoM2Object | WorldMDXObject;
+
+/* The depth test checkAgainstDepthBuffer() hands the projected box to */
+export type CheckDepthFunc = (min_x: number, max_x: number, min_y: number, max_y: number, depth: number) => boolean;
+
+const pixelShaderTable: { [name: string]: number } = {
     "Combiners_Opaque" : 0,
     "Combiners_Decal" : 1,
     "Combiners_Add" : 2,
@@ -28,8 +100,72 @@ const pixelShaderTable = {
     "Combiners_Mod2x_Mod2x" : 19
 }
 
-class MDXObject {
-    constructor(sceneApi){
+abstract class MDXObject {
+    sceneApi: SceneApi;
+    currentAnimationStart: number;
+    currentAnimation: number;
+    currentTime: number;
+    isAnimated: boolean;
+    subMeshColors: vec4[] | null;
+    hasBillboarded: boolean;
+    rightHandClosed: boolean;
+    leftHandClosed: boolean;
+    localBB: [Vector3f, Vector3f] | null;
+    loaded: boolean;
+    loading: boolean;
+
+    /* set by setLoadParams() */
+    fileIdent!: string;
+    modelName!: string;
+    skinNum!: number;
+    /* null or left out when the whole model is drawn with its own textures */
+    meshIds: number[] | null | undefined;
+    replaceTextures: string[] | null | undefined;
+
+    /* set by load() */
+    m2Geom!: M2Geom;
+    skinGeom!: SkinGeom;
+    animationManager!: AnimationManager;
+    materialArray!: M2MaterialData[];
+    textAnimMatrices!: mat4[];
+    cameras!: M2CameraDetails[];
+    lights!: M2LightDetails[];
+    bonesMatrices!: mat4[];
+    transparencies!: number[];
+    diameter!: number;
+    /* WorldMDXObject starts it as null */
+    aabb!: [vec4, vec4] | null;
+    /* set by update() */
+    combinedBoneMatrix!: Float32Array;
+
+    /* kept until the animation manager exists */
+    startAnimationId: number | undefined;
+    startLeftHandClosed: boolean | undefined;
+    startRightHandClosed: boolean | undefined;
+
+    isCandidateForDrawing!: boolean;
+    /* set by the subclass constructors and setIsRendered() */
+    isRendered!: boolean;
+    currentDistance!: number;
+    /* set by the subclasses' createPlacementMatrix() */
+    placementMatrix!: mat4;
+
+    /* set by the scene graph manager (sceneGraphManager) */
+    sceneNumber!: number;
+    instanceManager: InstanceManager | undefined;
+
+    /* implemented by every subclass */
+    abstract getInvertModelMatrix(): mat4;
+    abstract getDiffuseColor(): Float32Array;
+    abstract setIsRendered(value: boolean): void;
+    abstract getCurrentDistance(): number;
+    abstract getDiameter(): number;
+    abstract drawTransparentMeshes(): void;
+    abstract drawNonTransparentMeshes(): void;
+    abstract drawInstancedNonTransparentMeshes(instanceCount: number, placementVBO: WebGLBuffer): void;
+    abstract drawInstancedTransparentMeshes(instanceCount: number, placementVBO: WebGLBuffer): void;
+
+    constructor(sceneApi: SceneApi){
         this.sceneApi = sceneApi;
         this.currentAnimationStart = 0;
         this.currentAnimation = 0;
@@ -56,7 +192,7 @@ class MDXObject {
 
         return !(this.animationManager.firstCalc || this.animationManager.isAnimated);
     }
-    setLeftHandClosed(value) {
+    setLeftHandClosed(value: boolean) {
         if (!this.animationManager) {
             this.startLeftHandClosed = value;
             return;
@@ -64,7 +200,7 @@ class MDXObject {
 
         this.animationManager.setLeftHandClosed(value);
     }
-    setRightHandClosed(value) {
+    setRightHandClosed(value: boolean) {
         if (!this.animationManager) {
             this.startRightHandClosed = value;
             return;
@@ -89,16 +225,18 @@ class MDXObject {
             this.aabb = worldAABB;
         }
     }
-    calcDistance (position) {
+    calcDistance (position: ReadonlyVec4) {
+        // JS-BUG: this.getIs does not exist (probably meant this.getIsRendered()), so the base calcDistance never updates currentDistance
+        // @ts-expect-error getIs is not a member; ported as-is
         if (this.loaded && this.getIs) {
-            this.currentDistance = mathHelper.distanceFromAABBToPoint(this.aabb, position);
+            this.currentDistance = mathHelper.distanceFromAABBToPoint(this.aabb!, position);
         }
     }
     getIsRendered () {
         return this.isRendered;
     }
 
-    setLoadParams (modelName, skinNum, meshIds, replaceTextures) {
+    setLoadParams (modelName: string, skinNum: number, meshIds?: number[] | null, replaceTextures?: string[] | null) {
         this.modelName = modelName;
 
         // HEHE
@@ -171,6 +309,8 @@ class MDXObject {
                   skinGeom.calcBBForSkinSections(m2Geom.m2File);
 
                   if (!m2Geom) {
+                      // JS-BUG: $log and modelName are not declared - ReferenceError; unreachable (skinGeom.fixData(m2Geom.m2File) above already throws for a missing m2Geom)
+                      // @ts-expect-error $log and modelName are not declared; ported as-is
                       $log.log("m2 file failed to load : " + modelName);
                   } else {
                       var gl = self.sceneApi.getGlContext();
@@ -206,15 +346,15 @@ class MDXObject {
     postLoad(){
 
     }
-    getShaderNames(m2Batch){
-        function getTabledShaderNames(shaderId, op_count, tex_unit_number2){
+    getShaderNames(m2Batch: SkinTex): M2ShaderNames | 0 {
+        function getTabledShaderNames(shaderId: number, op_count: number, tex_unit_number2: number): M2ShaderNames | 0 {
             var v4 = (shaderId >> 4) & 7;
             var v5 = shaderId & 7;
             var v6 = (shaderId >> 4) & 8;
             var v7 = shaderId & 8;
 
-            var vertexShaderName;
-            var pixelShaderName;
+            var vertexShaderName: string | undefined;
+            var pixelShaderName: string | undefined;
             if ( op_count == 1 ) {
                 if ( v6 )
                 {
@@ -330,11 +470,13 @@ class MDXObject {
 
         var shaderId = m2Batch.shaderId;
         var shaderNames;
-        var vertexShader;
-        var pixelShader;
+        var vertexShader: string | undefined;
+        var pixelShader: string | undefined;
         if ( !(shaderId & 0x8000) ) {
             shaderNames = getTabledShaderNames(shaderId, m2Batch.op_count, m2Batch.textureUnitNum);
             if ( !shaderNames )
+                // JS-BUG: four arguments to the three-parameter getTabledShaderNames - the retry passes 0x11 as tex_unit_number2 and drops textureUnitNum; it returns 0 again either way
+                // @ts-expect-error getTabledShaderNames takes three arguments; ported as-is
                 shaderNames = getTabledShaderNames(shaderId, m2Batch.op_count, 0x11, m2Batch.textureUnitNum);
             return shaderNames;
         }
@@ -342,6 +484,7 @@ class MDXObject {
             case 0:
                 return 0;
             case 1:
+                // JS-BUG: cases 1-3 put the Combiners_* (pixel) name in vertexShader and the Diffuse_* (vertex) name in pixelShader - probably swapped
                 vertexShader = "Combiners_Opaque_Mod2xNA_Alpha";
                 pixelShader = "Diffuse_T1_Env";
                 break;
@@ -359,7 +502,7 @@ class MDXObject {
 
         return { vertex: vertexShader, pixel : pixelShader }
     }
-    makeTextureArray (meshIds, replaceTextures) {
+    makeTextureArray (meshIds: number[] | null | undefined, replaceTextures: string[] | null | undefined) {
        try {
            var self = this;
            var mdxObject = this.m2Geom;
@@ -370,7 +513,7 @@ class MDXObject {
            /* 1. Free previous subMeshArray */
 
            /* 2. Fill the materialArray */
-           var materialArray = new Array();
+           var materialArray: M2MaterialData[] = new Array();
 
 
            var subMeshes = skinObject.skinFile.header.subMeshes;
@@ -383,7 +526,7 @@ class MDXObject {
                    textureTexUnit1: null,
                    textureTexUnit2: null,
                    textureTexUnit3: null
-               };
+               } as M2MaterialData;
 
                var skinTextureDefinition = skinObject.skinFile.header.texs[i];
                var subMesh = subMeshes[skinTextureDefinition.submeshIndex];
@@ -413,6 +556,7 @@ class MDXObject {
                materialData.renderBlending = mdxObject.m2File.renderFlags[renderFlagIndex].blend;
 
                var textureUnit;
+               // JS-BUG: <= instead of < - for textureUnitNum == length it reads textUnitLookup[length] (undefined); harmless
                if (skinTextureDefinition.textureUnitNum <= mdxObject.m2File.textUnitLookup.length) {
                    textureUnit = mdxObject.m2File.textUnitLookup[skinTextureDefinition.textureUnitNum];
                    if (textureUnit == 0xFFFF) {
@@ -426,7 +570,10 @@ class MDXObject {
                    var mdxTextureDefinition = mdxObject.m2File.textureDefinition[mdxTextureIndex];
                    materialData.texUnit1TexIndex = i;
                    materialData.mdxTextureIndex1 = mdxTextureIndex;
+                   // @ts-expect-error a boolean (1 > 0) as the right operand of &; ported as-is
                    materialData.xWrapTex1 = mdxTextureDefinition.flags & 1 > 0;
+                   // JS-BUG: precedence - flags & (2 > 0) is flags & 1, so the Y wrap follows the X wrap bit (probably meant (flags & 2) > 0); the same on the tex2 / tex3 lines below
+                   // @ts-expect-error a boolean (2 > 0) as the right operand of &; ported as-is
                    materialData.yWrapTex1 = mdxTextureDefinition.flags & 2 > 0;
 
                    if (mdxTextureDefinition.texType == 0) {
@@ -439,8 +586,11 @@ class MDXObject {
                    var mdxTextureIndex1 = mdxObject.m2File.texLookup[skinTextureDefinition.textureIndex + 1];
                    var mdxTextureDefinition1 = mdxObject.m2File.textureDefinition[mdxTextureIndex1];
                    materialData.mdxTextureIndex2 = mdxTextureIndex1;
-                   materialData.xWrapTex2 = mdxTextureDefinition.flags & 1 > 0;
-                   materialData.yWrapTex2 = mdxTextureDefinition.flags & 2 > 0;
+                   // JS-BUG: the wrap flags of texture unit 2 are read from the first texture (mdxTextureDefinition), not mdxTextureDefinition1
+                   // @ts-expect-error a boolean (1 > 0) as the right operand of &; ported as-is
+                   materialData.xWrapTex2 = mdxTextureDefinition!.flags & 1 > 0;
+                   // @ts-expect-error a boolean (2 > 0) as the right operand of &; ported as-is
+                   materialData.yWrapTex2 = mdxTextureDefinition!.flags & 2 > 0;
                    materialData.texUnit2TexIndex = i;
 
                    if (mdxTextureDefinition1.texType == 0) {
@@ -453,8 +603,11 @@ class MDXObject {
                    var mdxTextureIndex2 = mdxObject.m2File.texLookup[skinTextureDefinition.textureIndex + 2];
                    var mdxTextureDefinition2 = mdxObject.m2File.textureDefinition[mdxTextureIndex2];
                    materialData.mdxTextureIndex3 = mdxTextureIndex2;
-                   materialData.xWrapTex3 = mdxTextureDefinition.flags & 1 > 0;
-                   materialData.yWrapTex3 = mdxTextureDefinition.flags & 2 > 0;
+                   // JS-BUG: the wrap flags of texture unit 3 are read from the first texture (mdxTextureDefinition), not mdxTextureDefinition2
+                   // @ts-expect-error a boolean (1 > 0) as the right operand of &; ported as-is
+                   materialData.xWrapTex3 = mdxTextureDefinition!.flags & 1 > 0;
+                   // @ts-expect-error a boolean (2 > 0) as the right operand of &; ported as-is
+                   materialData.yWrapTex3 = mdxTextureDefinition!.flags & 2 > 0;
                    materialData.texUnit3TexIndex = i;
 
                    if (mdxTextureDefinition2.texType == 0) {
@@ -468,8 +621,8 @@ class MDXObject {
            for (var i = 0; i < materialArray.length; i++) {
                var materialData = materialArray[i];
                if (materialData.textureUnit1TexName) {
-                   (function (materialData) {
-                       self.sceneApi.resources.loadTexture(materialData.textureUnit1TexName)
+                   (function (materialData: M2MaterialData) {
+                       self.sceneApi.resources.loadTexture(materialData.textureUnit1TexName!)
                            .then(function success(textObject) {
                                materialData.texUnit1Texture = textObject;
                            }, function error() {
@@ -477,8 +630,8 @@ class MDXObject {
                    })(materialData);
                }
                if (materialData.textureUnit2TexName) {
-                   (function (materialData) {
-                       self.sceneApi.resources.loadTexture(materialData.textureUnit2TexName)
+                   (function (materialData: M2MaterialData) {
+                       self.sceneApi.resources.loadTexture(materialData.textureUnit2TexName!)
                            .then(function success(textObject) {
                                materialData.texUnit2Texture = textObject;
                            }, function error() {
@@ -486,8 +639,8 @@ class MDXObject {
                    })(materialData);
                }
                if (materialData.textureUnit3TexName) {
-                   (function (materialData) {
-                       self.sceneApi.resources.loadTexture(materialData.textureUnit3TexName)
+                   (function (materialData: M2MaterialData) {
+                       self.sceneApi.resources.loadTexture(materialData.textureUnit3TexName!)
                            .then(function success(textObject) {
                                materialData.texUnit3Texture = textObject;
                            }, function error() {
@@ -503,8 +656,8 @@ class MDXObject {
        }
 
     }
-    checkFrustumCulling (cameraVec4, frustumPlanes, num_planes) {
-        var aabb = this.aabb;
+    checkFrustumCulling (cameraVec4: ReadonlyVec4, frustumPlanes: ReadonlyVec4[], num_planes: number): boolean {
+        var aabb = this.aabb!;
 
         //1. Check if camera position is inside Bounding Box
         if (
@@ -517,7 +670,7 @@ class MDXObject {
         var result = mathHelper.checkFrustum(frustumPlanes, aabb, num_planes);
         return result;
     }
-    checkAgainstDepthBuffer(frustumMatrix, lookAtMat4, placementMatrix, checkDepth) {
+    checkAgainstDepthBuffer(frustumMatrix: ReadonlyMat4, lookAtMat4: ReadonlyMat4, placementMatrix: ReadonlyMat4, checkDepth: CheckDepthFunc) {
         var bb = this.getBoundingBox();
         if (!bb) return false;
 
@@ -550,7 +703,7 @@ class MDXObject {
         return checkDepth(min_x, max_x, min_y, max_y, depth);
     }
 
-    setAnimationId(animationId) {
+    setAnimationId(animationId: number) {
         if (!this.loaded) {
             this.startAnimationId = animationId;
             return;
@@ -558,17 +711,17 @@ class MDXObject {
         this.animationManager.setAnimationId(animationId);
     }
 
-    getCombinedColor(skinData, materialData, subMeshColors) {
+    getCombinedColor(skinData: SkinHeader, materialData: M2MaterialData, subMeshColors: vec4[] | null): Float32List {
         var colorIndex = skinData.texs[materialData.texUnit1TexIndex].colorIndex;
-        var submeshColor = new Float32Array([1,1,1,1]);
+        var submeshColor: Float32List = new Float32Array([1,1,1,1]);
         if ((colorIndex >= 0) && (subMeshColors)) {
             var color = subMeshColors[colorIndex];
-            submeshColor = color;
+            submeshColor = color as Float32List;
         }
 
         return submeshColor;
     }
-    getTransparency(skinData, materialData,transparencies) {
+    getTransparency(skinData: SkinHeader, materialData: M2MaterialData,transparencies: number[]) {
         var transparency = 1.0;
         var transpIndex = skinData.texs[materialData.texUnit1TexIndex].transpIndex;
         if ((transpIndex >= 0) && (transparencies)) {
@@ -578,21 +731,21 @@ class MDXObject {
         return transparency;
     }
 
-    updateLocalBB(localBB) {
+    updateLocalBB(localBB: [Vector3f, Vector3f]) {
         this.localBB = localBB
     }
     getBoundingBox () {
         return {
-            ab: this.localBB[0],
-            cd: this.localBB[1]
+            ab: this.localBB![0],
+            cd: this.localBB![1]
         }
     }
 
-    updateCameras(deltaTime) {
+    updateCameras(deltaTime: number) {
         this.animationManager.updateCameraSimplified(deltaTime, this.cameras);
 
     }
-    update (deltaTime, cameraPos, viewMat) {
+    update (deltaTime: number, cameraPos: ReadonlyVec4, viewMat: ReadonlyMat4) {
         if (!this.loaded) return;
         if (!this.getIsRendered()) return;
         var invPlacementMat = this.getInvertModelMatrix();
@@ -606,7 +759,7 @@ class MDXObject {
 
         /* 2. Update animation values */
         this.animationManager.update(deltaTime, cameraInlocalPos, this.bonesMatrices, this.textAnimMatrices,
-            this.subMeshColors, this.transparencies, this.cameras, this.lights);
+            this.subMeshColors!, this.transparencies, this.cameras, this.lights);
 
         for (var i = 0; i < this.lights.length; i++) {
             var light = this.lights[i];
@@ -619,7 +772,7 @@ class MDXObject {
         this.currentTime += deltaTime;
     }
 
-    sortMaterials(lookAtMat4) {
+    sortMaterials(lookAtMat4: ReadonlyMat4) {
         if (!this.loaded ) return;
         if (!this.getIsRendered()) return;
 
@@ -628,25 +781,26 @@ class MDXObject {
         var skinGeom = this.skinGeom;
 
         var modelViewMat = mat4.create();
+        // JS-BUG: placement * lookAt - the view-space transform is lookAt * placement (probably swapped), so the sort keys are not view-space boxes
         mat4.multiply(modelViewMat, this.placementMatrix, lookAtMat4);
 
         var zeroVect = vec3.create();
 
         /* 3.1 Transform aabb with current mat */
         if (skinGeom.subMeshBBs) {
-            var transformedAABB = new Array(skinGeom.subMeshBBs.length);
+            var transformedAABB: [vec4, vec4][] = new Array(skinGeom.subMeshBBs.length);
             for (var i = 0; i < transformedAABB.length; i++) {
                 var aabb = skinGeom.subMeshBBs[i];
-                transformedAABB[i] = mathHelper.transformAABBWithMat4(modelViewMat, aabb);
+                transformedAABB[i] = mathHelper.transformAABBWithMat4(modelViewMat, aabb as unknown as AABB);
             }
 
             QuickSort.multiQuickSort(
                 this.materialArray,
                 0, this.materialArray.length - 1,
-                function sortOnLevel(a, b) {
+                function sortOnLevel(a: M2MaterialData, b: M2MaterialData) {
                     return a.layer - b.layer;
                 },
-                function test1(a, b) {
+                function test1(a: M2MaterialData, b: M2MaterialData): number {
                     var aabb1_t = transformedAABB[a.meshIndex];
                     var aabb2_t = transformedAABB[b.meshIndex];
 
@@ -660,13 +814,14 @@ class MDXObject {
                     }
 
                     var result;
+                    // JS-BUG: isInsideAABB1 && isInsideAABB1 (probably meant isInsideAABB2 in both conditions); harmless - after the returns above both flags are equal
                     if (isInsideAABB1 && isInsideAABB1) {
                         result = aabb1_t[0][2] - aabb2_t[0][2];
                     } else if (!(isInsideAABB1 && isInsideAABB1)) {
                         result = aabb2_t[0][2] - aabb1_t[0][2];
                     }
 
-                    return result;
+                    return result!;
                 }
             );
         }
@@ -688,7 +843,7 @@ class MDXObject {
         return false;
     }
 
-    initAnimationManager (m2File) {
+    initAnimationManager (m2File: M2File) {
         this.animationManager = new AnimationManager(m2File)
         if (typeof this.startAnimationId != 'undefined') {
             this.animationManager.setAnimationId(this.startAnimationId, true);
@@ -700,6 +855,7 @@ class MDXObject {
             this.startRightHandClosed = undefined;
         }
         if (typeof this.startLeftHandClosed != 'undefined') {
+            // JS-BUG: the stored left-hand state is applied with setRightHandClosed (probably meant setLeftHandClosed)
             this.animationManager.setRightHandClosed(this.startLeftHandClosed);
             this.startLeftHandClosed = undefined;
         }
@@ -707,7 +863,7 @@ class MDXObject {
     initTextureAnimMatrices() {
         var m2File = this.m2Geom.m2File;
 
-        var textAnimMatrices = new Array(m2File.nTexAnims);
+        var textAnimMatrices: mat4[] = new Array(m2File.nTexAnims);
         for (var i = 0; i < m2File.nTexAnims; i++) {
             textAnimMatrices[i] = mat4.create();;
         }
@@ -717,9 +873,9 @@ class MDXObject {
     initCameras() {
         var m2File = this.m2Geom.m2File;
 
-        var cameras = new Array(m2File.nCameras);
+        var cameras: M2CameraDetails[] = new Array(m2File.nCameras);
         for (var i = 0; i < m2File.nCameras; i++) {
-            cameras[i] = {};
+            cameras[i] = {} as M2CameraDetails;
         }
 
         this.cameras = cameras;
@@ -727,9 +883,9 @@ class MDXObject {
     initLights() {
         var m2File = this.m2Geom.m2File;
 
-        var lights = new Array(m2File.nLights);
+        var lights: M2LightDetails[] = new Array(m2File.nLights);
         for (var i = 0; i < m2File.nLights; i++) {
-            lights[i] = {};
+            lights[i] = {} as M2LightDetails;
         }
 
         this.lights = lights;
@@ -737,7 +893,7 @@ class MDXObject {
     initBoneAnimMatrices() {
         var m2File = this.m2Geom.m2File;
 
-        var bonesMatrices = new Array(m2File.nBones);
+        var bonesMatrices: mat4[] = new Array(m2File.nBones);
         for (var i = 0; i < m2File.nBones; i++) {
             bonesMatrices[i] = mat4.create();
         }
@@ -772,7 +928,7 @@ class MDXObject {
     *
     * */
 
-    drawMeshes(drawTransparent, instanceCount) {
+    drawMeshes(drawTransparent: boolean, instanceCount: number) {
         var originalFogColor = this.sceneApi.getFogColor();
         var identMat = mat4.create();
         mat4.identity(identMat);
@@ -780,6 +936,7 @@ class MDXObject {
         var meshIdsTobeRendered = window.meshestoBeRendered;
         for (var i = 0; i < this.materialArray.length; i++) {
             var materialData = this.materialArray[i];
+            // @ts-expect-error ^ on two booleans (XOR); valid JavaScript, ported as-is
             if (!(materialData.isTransparent ^ !drawTransparent)) continue;
 
             if (meshIdsTobeRendered && !meshIdsTobeRendered[materialData.texUnit1TexIndex]) continue;
@@ -794,7 +951,7 @@ class MDXObject {
                 if (textureMatIndex !== undefined && this.textAnimMatrices && textureMatIndex >= 0 && textureMatIndex <  this.textAnimMatrices.length) {
                     textureMatrix1 = this.textAnimMatrices[textureMatIndex];
                 }
-                if (materialData.texUnit2TexIndex >= 0) {
+                if (materialData.texUnit2TexIndex! >= 0) {
                     var textureMatIndex = this.m2Geom.m2File.texAnimLookup[textureAnim+1];
                     if (textureMatIndex !== undefined && this.textAnimMatrices && textureMatIndex >= 0 && textureMatIndex <  this.textAnimMatrices.length) {
                         textureMatrix2 = this.textAnimMatrices[textureMatIndex];
@@ -807,11 +964,11 @@ class MDXObject {
             //Don't draw meshes with 0 transp
             if ((transparency < 0.0001) || (meshColor[3] < 0.001)) continue;
 
-            var pixelShaderIndex = pixelShaderTable[materialData.shaderNames.pixel];
+            var pixelShaderIndex = pixelShaderTable[(materialData.shaderNames as M2ShaderNames).pixel!];
             this.m2Geom.drawMesh(materialData, this.skinGeom, meshColor, transparency, textureMatrix1, textureMatrix2, pixelShaderIndex, originalFogColor, instanceCount)
         }
     }
-    drawInstanced(drawTransparent, instanceCount, placementVBO) {
+    drawInstanced(drawTransparent: boolean, instanceCount: number, placementVBO: WebGLBuffer) {
         if (!this.m2Geom || !this.skinGeom) return;
 
         this.m2Geom.setupAttributes(this.skinGeom);
@@ -827,7 +984,7 @@ class MDXObject {
             MDXObject.prototype.load.apply(this);
         }
     }
-    draw(drawTransparent, placementMatrix, diffuseColor) {
+    draw(drawTransparent: boolean, placementMatrix: mat4, diffuseColor: Float32Array) {
         if (!this.loaded) {
             this.startLoading();
             return;
@@ -847,10 +1004,10 @@ class MDXObject {
             this.m2Geom.unbindVao()
         }
     }
-    drawBB (color){
+    drawBB (color: number[]){
         if (!this.loaded) return;
 
-        function drawBBInternal(bb1, bb2, color, placementMatrix) {
+        function drawBBInternal(bb1: Vector3f, bb2: Vector3f, color: number[], placementMatrix: mat4) {
             var center = [
                 (bb1.x + bb2.x) / 2,
                 (bb1.y + bb2.y) / 2,
@@ -866,15 +1023,15 @@ class MDXObject {
             gl.uniform3fv(uniforms.uBBScale, new Float32Array(scale));
             gl.uniform3fv(uniforms.uBBCenter, new Float32Array(center));
             gl.uniform3fv(uniforms.uColor, new Float32Array(color)); //red
-            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, placementMatrix);
+            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, placementMatrix as Float32List);
 
             gl.drawElements(gl.LINES, 48, gl.UNSIGNED_SHORT, 0);
         }
-        function drawBBInternal2(center, scale, color, placementMatrix) {
+        function drawBBInternal2(center: number[], scale: number[], color: number[], placementMatrix: mat4) {
             gl.uniform3fv(uniforms.uBBScale, new Float32Array(scale));
             gl.uniform3fv(uniforms.uBBCenter, new Float32Array(center));
             gl.uniform3fv(uniforms.uColor, new Float32Array(color)); //red
-            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, placementMatrix);
+            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, placementMatrix as Float32List);
 
             gl.drawElements(gl.LINES, 48, gl.UNSIGNED_SHORT, 0);
         }

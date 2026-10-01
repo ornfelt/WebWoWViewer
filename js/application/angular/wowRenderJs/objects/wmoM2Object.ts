@@ -1,10 +1,26 @@
-import MDXObject from './M2Object.js';
-import config from './../../services/config.js'
-import mathHelper from './../math/mathHelper.js';
+import MDXObject from './M2Object';
+import type { CheckDepthFunc } from './M2Object';
+import type WmoObject from './wmoObject';
+import config from './../../services/config'
+import mathHelper from './../math/mathHelper';
 import {mat4, vec4, vec3} from 'gl-matrix';
+import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix';
+import type { WmoDoodad } from '../../services/map/wmoLoader';
+import type { SceneApi } from '../sceneApi';
 
 class WmoM2Object extends MDXObject {
-    constructor(sceneApi) {
+    /* assigned through self in the constructor */
+    useLocalLighting!: boolean;
+    wmoObject!: WmoObject | null;
+    /* set by load() */
+    doodad!: WmoDoodad;
+    diffuseColor!: Float32Array;
+    /* set by createPlacementMatrix() */
+    placementInvertMatrix!: mat4;
+    /* set by calcOwnPosition() */
+    position!: vec4;
+
+    constructor(sceneApi: SceneApi) {
         super(sceneApi);
 
         var self = this;
@@ -15,7 +31,7 @@ class WmoM2Object extends MDXObject {
         self.wmoObject = null;
     }
 
-    setWmoObject(value) {
+    setWmoObject(value: WmoObject) {
         this.wmoObject = value;
     }
     getDiffuseColor() {
@@ -24,14 +40,15 @@ class WmoM2Object extends MDXObject {
     getInvertModelMatrix() {
         return this.placementInvertMatrix;
     }
-    checkFrustumCulling (cameraVec4, frustumPlanes, num_planes) {
+    checkFrustumCulling (cameraVec4: ReadonlyVec4, frustumPlanes: ReadonlyVec4[], num_planes: number): boolean {
         if (!this.loaded) {
             return true;
         }
         var inFrustum = super.checkFrustumCulling(cameraVec4, frustumPlanes, num_planes);
         return inFrustum;
     }
-    checkAgainstDepthBuffer(frustumMatrix, lookAtMat4, getDepth) {
+    // @ts-expect-error overrides MDXObject.checkAgainstDepthBuffer with a different signature (no placementMatrix); ported as-is
+    checkAgainstDepthBuffer(frustumMatrix: ReadonlyMat4, lookAtMat4: ReadonlyMat4, getDepth: CheckDepthFunc) {
         this.setIsRendered(this.getIsRendered() && super.checkAgainstDepthBuffer(frustumMatrix, lookAtMat4, this.placementMatrix, getDepth));
     }
 
@@ -43,17 +60,17 @@ class WmoM2Object extends MDXObject {
         var diffuseColor = this.getDiffuseColor();
         this.draw(false, this.placementMatrix, diffuseColor);
     }
-    drawInstancedNonTransparentMeshes (instanceCount, placementVBO) {
+    drawInstancedNonTransparentMeshes (instanceCount: number, placementVBO: WebGLBuffer) {
         this.drawInstanced(false, instanceCount, placementVBO);
     }
-    drawInstancedTransparentMeshes (instanceCount, placementVBO) {
+    drawInstancedTransparentMeshes (instanceCount: number, placementVBO: WebGLBuffer) {
         this.drawInstanced(true, instanceCount, placementVBO);
     }
     drawBB () {
         super.drawBB([0.819607843, 0.058, 0.058])
     }
 
-    createPlacementMatrix (doodad, wmoPlacementMatrix){
+    createPlacementMatrix (doodad: WmoDoodad, wmoPlacementMatrix: mat4){
         var placementMatrix = mat4.create();
         mat4.identity(placementMatrix);
         mat4.multiply(placementMatrix, placementMatrix, wmoPlacementMatrix);
@@ -83,7 +100,7 @@ class WmoM2Object extends MDXObject {
 
         this.position = position;
     }
-    setUseLocalLighting(value) {
+    setUseLocalLighting(value: boolean) {
         this.useLocalLighting = value;
     }
     getCurrentDistance (){
@@ -92,10 +109,12 @@ class WmoM2Object extends MDXObject {
     getDiameter () {
         return this.diameter;
     }
-    setIsRendered (value) {
+    setIsRendered (value: boolean) {
         this.isRendered = value;
     }
-    load (doodad, wmoPlacementMatrix, useLocalColor){
+    // JS-BUG: useLocalColor is never used, so the false that WmoObject passes (through loadWmoM2Obj) never reaches setUseLocalLighting - doodads keep useLocalLighting = true
+    // @ts-expect-error overrides MDXObject.load with a different signature; startLoading() calls MDXObject.prototype.load directly
+    load (doodad: WmoDoodad, wmoPlacementMatrix: mat4, useLocalColor: boolean){
         var self = this;
 
         self.doodad = doodad;

@@ -1,10 +1,81 @@
 import {vec4, mat4, vec3, glMatrix} from 'gl-matrix';
+import type {ReadonlyVec4} from 'gl-matrix';
 
-import mathHelper from './../math/mathHelper.js';
-import config from './../../services/config.js';
+import mathHelper from './../math/mathHelper';
+import type { TopAndBottomZ } from './../math/mathHelper';
+import type { TraversedPortal } from './../math/portalCullingAlgo';
+import config from './../../services/config';
+import type { Vector3f } from '../../services/fileReadHelper';
+import type { WmoBspNode, WmoDoodad, WmoDoodadSet, WmoFile, WmoGroupInfo } from '../../services/map/wmoLoader';
+import type { WmoGeom } from '../geometry/wmoGeomCache';
+import type { SceneApi } from '../sceneApi';
+import type { M2Object } from './M2Object';
+import type WmoM2Object from './wmoM2Object';
+
+/* What setLoadingParam() reads: an ADT or WDT MODF record, or the literal the viewer UI builds for a WMO scene
+   (no bb1 / bb2 - then the WMO starts loading at once) */
+export interface WmoPlacement {
+    fileName: string;
+    uniqueId: number;
+    pos: Vector3f;
+    rotation: Vector3f;
+    doodadSet: number;
+    bb1?: Vector3f;
+    bb2?: Vector3f;
+}
+
+/* A group the camera may be in, collected by WmoGroupObject.checkIfInsideGroup() */
+export interface WmoGroupCandidate {
+    topBottom: TopAndBottomZ;
+    groupId: number;
+    bspList: number[];
+    nodeId: number;
+}
 
 class WmoObject {
-    constructor (sceneApi){
+    /* assigned through self in the constructor */
+    sceneApi!: SceneApi;
+    wmoGroupArray!: WmoGroupObject[];
+    /* indexed by doodad index within the current doodad set; filled by getDoodadObject() */
+    doodadsArray!: WmoM2Object[];
+    /* never filled - drawBB() reads it */
+    drawGroup!: boolean[];
+    drawDoodads!: boolean[];
+    drawExterior!: boolean;
+    /* replaced by the portal culling (portalCullingAlgo) */
+    exteriorPortals!: TraversedPortal[];
+    interiorPortals!: TraversedPortal[];
+    loaded!: boolean;
+    loading!: boolean;
+
+    /* set by setLoadingParam() */
+    fileName!: string;
+    doodadSet!: number;
+    /* set only for a placement with bb1 / bb2; never read */
+    boundingBox: number[][] | undefined;
+    /* set by createPlacementMatrix() */
+    placementMatrix!: mat4;
+    placementInvertMatrix!: mat4;
+
+    /* set once the root file has loaded */
+    wmoObj!: WmoFile;
+    currentDoodadSet!: WmoDoodadSet;
+    /* set by createPortalsVBO() when the WMO has portals */
+    vertexVBO!: WebGLBuffer | null;
+    indexVBO!: WebGLBuffer | null;
+    diameter!: number;
+    aabb!: [vec4, vec4];
+    worldPortalVerticles!: vec4[][];
+
+    /* set by checkFrustumCulling() */
+    isRendered!: boolean;
+    /* set by isInsideInterior() */
+    currentNodeId!: number;
+    currentGroupId!: number;
+    /* never assigned (portalCullingAlgo keeps its own portalViewFrustums), so drawPortalFrustumsBB() draws nothing */
+    portalViewFrustums: mat4[] | undefined;
+
+    constructor (sceneApi: SceneApi){
         var self = this;
         self.sceneApi = sceneApi;
 
@@ -29,7 +100,7 @@ class WmoObject {
         return this.wmoObj && this.wmoObj.portalInfos && (this.wmoObj.portalInfos.length > 0);
     }
 
-    isInsideInterior (cameraVec4) {
+    isInsideInterior (cameraVec4: ReadonlyVec4) {
         if (!this.wmoGroupArray || this.wmoGroupArray.length ==0) return -1;
 
         //Transform camera into local coordinates
@@ -48,7 +119,7 @@ class WmoObject {
         var wmoGroupsInside = 0;
         var interiorGroups = 0;
         var lastWmoGroupInside = -1;
-        var candidateGroups = [];
+        var candidateGroups: WmoGroupCandidate[] = [];
 
         for (var i = 0; i < this.wmoGroupArray.length; i++) {
             this.wmoGroupArray[i].checkIfInsideGroup(cameraVec4, cameraLocal, candidateGroups)
@@ -66,6 +137,7 @@ class WmoObject {
                 if (dist < minDist) {
                     minDist = dist;
                     this.currentNodeId = candidateGroups[i].nodeId;
+                    // JS-BUG: i indexes candidateGroups, not the WMO groups (probably meant candidateGroups[i].groupId); drawBspVerticles() and the BSP branch of drawPortalBased() use it as a group index
                     this.currentGroupId = i;
                     resObj = { groupId : candidateGroups[i].groupId, nodeId : candidateGroups[i].nodeId};
                 }
@@ -82,7 +154,7 @@ class WmoObject {
 
         return {groupId : -1, nodeId : -1};
     }
-    checkFrustumCulling (cameraVec4, frustumPlanes, num_planes, m2RenderedThisFrame) {
+    checkFrustumCulling (cameraVec4: ReadonlyVec4, frustumPlanes: ReadonlyVec4[], num_planes: number, m2RenderedThisFrame: Set<M2Object>) {
         if (!this.loaded) {
             return true;
         }
@@ -103,7 +175,7 @@ class WmoObject {
         }
         this.isRendered = result;
         if (result) {
-            var wmoM2Candidates = new Set();
+            var wmoM2Candidates = new Set<WmoM2Object>();
             //1. Calculate visibility for groups
             for (var i = 0; i < this.wmoGroupArray.length; i++) {
                 this.wmoGroupArray[i].checkGroupFrustum(cameraVec4, frustumPlanes, null, wmoM2Candidates);
@@ -114,6 +186,8 @@ class WmoObject {
                 var m2Object = value;
                 if (!m2Object) return;
 
+                // JS-BUG: checkFrustumCulling takes three arguments; the fourth (false) is ignored - harmless (like bug 44)
+                // @ts-expect-error checkFrustumCulling takes three arguments; ported as-is
                 var result = m2Object.checkFrustumCulling(cameraVec4, frustumPlanes, num_planes, false);
                 m2Object.setIsRendered(result);
                 if (result) m2RenderedThisFrame.add(m2Object);
@@ -134,13 +208,14 @@ class WmoObject {
     /*
      * Load functions
      */
-    getDoodadObject(index) {
+    getDoodadObject(index: number) {
         var self = this;
         if (!self.wmoObj.modd) {
             return;
         }
 
         var doodadsSet = self.currentDoodadSet;
+        // JS-BUG: > instead of >= - index == doodadsSet.index + doodadsSet.number (the first doodad of the next set) is treated as part of this set
         if (index < doodadsSet.index || index > doodadsSet.index+doodadsSet.number) return null;
 
         var doodadIndex = index - doodadsSet.index;
@@ -156,14 +231,14 @@ class WmoObject {
         return doodadObject;
     }
 
-    loadDoodad (doodad) {
+    loadDoodad (doodad: WmoDoodad) {
         var self = this;
 
         var wmoM2Object = self.sceneApi.objects.loadWmoM2Obj(doodad, self.placementMatrix, false);
         wmoM2Object.setWmoObject(this);
         return wmoM2Object;
     }
-    setLoadingParam (modf){
+    setLoadingParam (modf: WmoPlacement){
         var self = this;
 
         var filename = modf.fileName;
@@ -177,7 +252,7 @@ class WmoObject {
             //Loaded from actual map
             self.boundingBox = [
                 [modf.bb1.x, modf.bb1.y, modf.bb1.z],
-                [modf.bb2.x, modf.bb2.y, modf.bb2.z]
+                [modf.bb2!.x, modf.bb2!.y, modf.bb2!.z]
             ];
         } else {
             //Loaded from scene params
@@ -189,8 +264,8 @@ class WmoObject {
         var filename = this.fileName;
         var wmoMailPromise = self.sceneApi.resources.loadWmoMain(filename);
         wmoMailPromise.then(function success(wmoObj){
-            self.wmoObj = wmoObj;
-            self.wmoGroupArray = new Array(wmoObj.nGroups);
+            self.wmoObj = wmoObj!;
+            self.wmoGroupArray = new Array(wmoObj!.nGroups);
 
             self.createPortalsVBO();
             self.createBoundingBox();
@@ -198,8 +273,8 @@ class WmoObject {
 
             /* 1. Load wmo group files */
             var template = filename.substr(0, filename.lastIndexOf("."));
-            for (var i = 0; i < wmoObj.nGroups; i++) {
-                var groupInfo = wmoObj.groupInfos[i];
+            for (var i = 0; i < wmoObj!.nGroups; i++) {
+                var groupInfo = wmoObj!.groupInfos[i];
 
                 var numStr = i.toString();
                 for (var j = numStr.length; j < 3; j++) numStr = '0'+numStr;
@@ -226,7 +301,7 @@ class WmoObject {
      * Post load transform functions
      */
 
-    createPlacementMatrix (modf){
+    createPlacementMatrix (modf: WmoPlacement){
         var TILESIZE = 533.333333333;
 
         var posx = 32*TILESIZE - modf.pos.x;
@@ -261,12 +336,12 @@ class WmoObject {
         this.vertexVBO = gl.createBuffer();
 
         gl.bindBuffer( gl.ARRAY_BUFFER, this.vertexVBO);
-        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(this.wmoObj.portalVerticles), gl.STATIC_DRAW );
+        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(this.wmoObj.portalVerticles!), gl.STATIC_DRAW );
         gl.bindBuffer( gl.ARRAY_BUFFER, null);
 
-        var indiciesArray = [];
-        for (var i = 0; i < this.wmoObj.portalInfos.length; i++) {
-            var portalInfo = this.wmoObj.portalInfos[i];
+        var indiciesArray: number[] = [];
+        for (var i = 0; i < this.wmoObj.portalInfos!.length; i++) {
+            var portalInfo = this.wmoObj.portalInfos![i];
             //if (portalInfo.index_count != 4) throw new Error("portalInfo.index_count != 4");
             var base_index = portalInfo.base_index;
             for (var j =0; j < portalInfo.index_count-2; j++) {
@@ -300,20 +375,20 @@ class WmoObject {
         var portalVerticles = this.wmoObj.portalVerticles;
 
         if (portalVerticles) {
-            var worldPortalVertices = new Array(portalVerticles.length)
+            var worldPortalVertices: vec4[][] = new Array(portalVerticles.length)
         } else {
-            var worldPortalVertices = new Array(0);
+            var worldPortalVertices: vec4[][] = new Array(0);
             return;
         }
 
-        for (var i = 0; i < this.wmoObj.portalInfos.length; i++) {
-            var portalInfo = this.wmoObj.portalInfos[i];
+        for (var i = 0; i < this.wmoObj.portalInfos!.length; i++) {
+            var portalInfo = this.wmoObj.portalInfos![i];
 
             var base_index = portalInfo.base_index;
             var plane = portalInfo.plane;
 
             //Make portal vertices for world space
-            var thisPortalVertices = new Array(portalInfo.index_count);
+            var thisPortalVertices: vec4[] = new Array(portalInfo.index_count);
             for (var j = 0; j < portalInfo.index_count; j++) {
                 thisPortalVertices[j] = vec4.fromValues(
                     portalVerticles[3 * (base_index + j)    ],
@@ -348,7 +423,7 @@ class WmoObject {
         if (!this.wmoObj) return;
 
         if (this.placementMatrix) {
-            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix);
+            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix as Float32List);
         }
 
 
@@ -374,7 +449,7 @@ class WmoObject {
             }
         }
     }
-    drawPortalBased(fromInteriorGroup) {
+    drawPortalBased(fromInteriorGroup: boolean) {
         if (!this.loaded) {
             this.startLoading();
             return;
@@ -399,7 +474,7 @@ class WmoObject {
         if (fromInteriorGroup) {
             var uniforms = this.sceneApi.shaders.getShaderUniforms();
             if (this.placementMatrix) {
-                gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix);
+                gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix as Float32List);
             }
 
             //1. Draw wmos
@@ -424,7 +499,7 @@ class WmoObject {
         } else {
             var uniforms = this.sceneApi.shaders.getShaderUniforms();
             if (this.placementMatrix) {
-                gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix);
+                gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix as Float32List);
             }
 
             //Draw interior
@@ -435,7 +510,9 @@ class WmoObject {
                 var bpsNodeList = null;
                 if (config.getRenderBSP()) {
                     bpsNodeList = (this.currentGroupId == i) ?
-                        this.currentNodeId.map((x) => this.wmoGroupArray[i].wmoGroupFile.nodes[x])
+                        // JS-BUG: currentNodeId is a number (no map) and WmoGroupObject has no wmoGroupFile (it is wmoGeom.wmoGroupFile) - TypeError with BSP rendering on when currentGroupId == i; the list is never used either
+                        // @ts-expect-error map on a number, wmoGroupFile on WmoGroupObject; ported as-is
+                        this.currentNodeId.map((x: number) => this.wmoGroupArray[i].wmoGroupFile.nodes[x])
                         : null;
                 }
 
@@ -462,7 +539,7 @@ class WmoObject {
 
         /* 1) identity placement matrix */
         const mat4_ident = mat4.create();          // mat4.create() already returns I₄
-        gl.uniformMatrix4fv(uniforms.uPlacementMat, false, mat4_ident);
+        gl.uniformMatrix4fv(uniforms.uPlacementMat, false, mat4_ident as Float32List);
 
         /* 2) iterate over WMO groups */
         for (let i = 0; i < this.wmoGroupArray.length; ++i) {
@@ -520,16 +597,18 @@ class WmoObject {
         gl.vertexAttribPointer(shaderAttributes.aPosition, 3, gl.FLOAT, false, 0, 0);  // position
 
         if (this.placementMatrix) {
-            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix);
+            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix as Float32List);
         }
 
         gl.disable(gl.CULL_FACE);
         gl.depthMask(false);
 
         var offset = 0;
-        for (var i = 0; i < this.wmoObj.portalInfos.length; i++) {
-            var portalInfo = this.wmoObj.portalInfos[i];
+        for (var i = 0; i < this.wmoObj.portalInfos!.length; i++) {
+            var portalInfo = this.wmoObj.portalInfos![i];
 
+            // JS-BUG: nothing sets isFalse on a portal, so every portal is drawn blue
+            // @ts-expect-error WmoPortalInfo has no isFalse; ported as-is
             if (portalInfo.isFalse) {
                 gl.uniform4fv(uniforms.uColor, new Float32Array([0.819607843, 0.058, 0.058, 0.3])); //red
             } else {
@@ -550,9 +629,11 @@ class WmoObject {
         if (!this.portalViewFrustums) return;
 
         gl.disable(gl.DEPTH_TEST);
-        gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix);
+        gl.uniformMatrix4fv(uniforms.uPlacementMat, false, this.placementMatrix as Float32List);
 
         for (var i = 0; i < this.portalViewFrustums.length; i++) {
+            // JS-BUG: WmoGroupObject has no wmoGroupFile (it is wmoGeom.wmoGroupFile), so every group is skipped; unreachable anyway (portalViewFrustums is never set)
+            // @ts-expect-error WmoGroupObject has no wmoGroupFile; ported as-is
             if (!this.wmoGroupArray[i] || !this.wmoGroupArray[i].wmoGroupFile) continue;
             if (!this.portalViewFrustums[i]) continue;
 
@@ -584,9 +665,13 @@ class WmoObject {
         gl.disable(gl.BLEND);
 
         if (this.currentGroupId >= 0 && this.wmoGroupArray[this.currentGroupId]) {
+            // JS-BUG: wmoGroupFile, combinedVBO and mobrVBO are members of the group's wmoGeom, not of WmoGroupObject - TypeError here whenever BSP rendering is on and the camera is inside a group
+            // @ts-expect-error WmoGroupObject has no wmoGroupFile; ported as-is
             var node = this.wmoGroupArray[this.currentGroupId].wmoGroupFile.nodes[this.currentNodeId];
 
+            // @ts-expect-error WmoGroupObject has no combinedVBO; ported as-is
             gl.bindBuffer(gl.ARRAY_BUFFER, this.wmoGroupArray[this.currentGroupId].combinedVBO);
+            // @ts-expect-error WmoGroupObject has no mobrVBO; ported as-is
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.wmoGroupArray[this.currentGroupId].mobrVBO);
 
             gl.vertexAttribPointer(shaderAttributes.aPosition, 3, gl.FLOAT, false, 0, 0); // position
@@ -604,7 +689,28 @@ class WmoObject {
 }
 
 class WmoGroupObject {
-    constructor (sceneApi, parentWmo, fileName, groupInfo, groupId) {
+    sceneApi: SceneApi;
+    fileName: string;
+    parentWmo: WmoObject;
+    isRendered: boolean;
+    groupInfo: WmoGroupInfo;
+    groupId: number;
+    doodadsLoadingTriggered: boolean;
+    /* a slot is null / undefined when getDoodadObject() finds no doodad for the reference */
+    wmoDoodads: (WmoM2Object | null | undefined)[];
+    /* set by createWorldGroupBB(), which the constructor calls */
+    worldGroupBorder!: [vec4, vec4];
+    volumeWorldGroupBorder!: [vec4, vec4];
+
+    /* not set by the constructor */
+    loaded: boolean | undefined;
+    loading: boolean | undefined;
+    texturesLoadingTriggered: boolean | undefined;
+    dontUseLocalLightingForM2: boolean | undefined;
+    /* set once the group file has loaded */
+    wmoGeom!: WmoGeom;
+
+    constructor (sceneApi: SceneApi, parentWmo: WmoObject, fileName: string, groupInfo: WmoGroupInfo, groupId: number) {
 
 
         this.sceneApi = sceneApi;
@@ -640,7 +746,7 @@ class WmoGroupObject {
         var doodadRefs = this.wmoGeom.wmoGroupFile.doodadRefs;
         if (!doodadRefs) return;
 
-        var wmoDoodads = new Array(doodadRefs.length);
+        var wmoDoodads: (WmoM2Object | null | undefined)[] = new Array(doodadRefs.length);
 
         //Load all doodad from MOBR
         for (var i = 0; i < wmoDoodads.length; i++) {
@@ -654,7 +760,8 @@ class WmoGroupObject {
             this.load();
         }
     }
-    draw(ambientColor, bpsNodeList) {
+    /* both parameters are unused; drawPortalBased() calls it without them */
+    draw(ambientColor?: number[], bpsNodeList?: WmoBspNode[] | null) {
         if (!this.loaded) {
             this.startLoading();
             return;
@@ -670,14 +777,14 @@ class WmoGroupObject {
 
         this.wmoGeom.draw()
     }
-    setIsRendered(value) {
+    setIsRendered(value: boolean) {
         this.isRendered = value;
     }
 
     getIsRendered() {
         return this.isRendered;
     }
-    createWorldGroupBB (fromGroupInfo) {
+    createWorldGroupBB (fromGroupInfo: boolean) {
         var groupInfo = null;
         var bb1 = null, bb2 = null;
         if (fromGroupInfo) {
@@ -697,17 +804,19 @@ class WmoGroupObject {
         var worldAABB = mathHelper.transformAABBWithMat4(this.parentWmo.placementMatrix, [bb1vec, bb2vec]);
 
         this.worldGroupBorder = worldAABB;
-        this.volumeWorldGroupBorder = worldAABB.slice(0);
+        this.volumeWorldGroupBorder = worldAABB.slice(0) as [vec4, vec4];
     }
     updateWorldGroupBBWithM2 () {
         var doodadRefs = this.wmoGeom.wmoGroupFile.doodadRefs;
         var mogp = this.wmoGeom.wmoGroupFile.mogp;
         var groupAABB = this.worldGroupBorder;
 
+        // JS-BUG: the MOGP field is Flags (as in load()), mogp.flags is undefined, so dontUseLocalLighting is always false; nothing calls updateWorldGroupBBWithM2 today
+        // @ts-expect-error WmoMogp has Flags, not flags; ported as-is
         var dontUseLocalLighting = ((mogp.flags & 0x40) > 0) || ((mogp.flags & 0x8) > 0);
 
         for (var j = 0; j < this.wmoDoodads.length; j++) {
-            var mdxObject = this.wmoDoodads[j];
+            var mdxObject = this.wmoDoodads[j]!;
             //1. Update the mdx
             //If at least one exterior WMO group reference the doodad - do not use the diffuse lightning from modd chunk
             if (dontUseLocalLighting) {
@@ -717,16 +826,16 @@ class WmoGroupObject {
             if (!mdxObject.loaded) continue; //corrupted :(
 
             //2. Update the world group BB
-            groupAABB[0] = vec3.fromValues(Math.min(mdxObject.aabb[0][0],groupAABB[0][0]),
-                Math.min(mdxObject.aabb[0][1],groupAABB[0][1]),
-                Math.min(mdxObject.aabb[0][2],groupAABB[0][2]));
+            groupAABB[0] = vec3.fromValues(Math.min(mdxObject.aabb![0][0],groupAABB[0][0]),
+                Math.min(mdxObject.aabb![0][1],groupAABB[0][1]),
+                Math.min(mdxObject.aabb![0][2],groupAABB[0][2]));
 
-            groupAABB[1] = vec3.fromValues(Math.max(mdxObject.aabb[1][0],groupAABB[1][0]),
-                Math.max(mdxObject.aabb[1][1],groupAABB[1][1]),
-                Math.max(mdxObject.aabb[1][2],groupAABB[1][2]));
+            groupAABB[1] = vec3.fromValues(Math.max(mdxObject.aabb![1][0],groupAABB[1][0]),
+                Math.max(mdxObject.aabb![1][1],groupAABB[1][1]),
+                Math.max(mdxObject.aabb![1][2],groupAABB[1][2]));
         }
     }
-    checkGroupFrustum(cameraVec4, frustumPlanes, points, wmoM2Candidates) {
+    checkGroupFrustum(cameraVec4: ReadonlyVec4, frustumPlanes: ReadonlyVec4[], points: ReadonlyVec4[] | null, wmoM2Candidates: Set<WmoM2Object>) {
         var bbArray = this.worldGroupBorder;
 
         var isInsideM2Volume = (
@@ -754,18 +863,18 @@ class WmoGroupObject {
         }
         return drawGroup;
     }
-    checkDoodads(wmoM2Candidates){
+    checkDoodads(wmoM2Candidates: Set<WmoM2Object>){
         for (var i = 0; i< this.wmoDoodads.length; i++) {
             if (this.wmoDoodads[i]) {
                 if (this.dontUseLocalLightingForM2) {
-                    this.wmoDoodads[i].setUseLocalLighting(false);
+                    this.wmoDoodads[i]!.setUseLocalLighting(false);
                 }
-                wmoM2Candidates.add(this.wmoDoodads[i]);
+                wmoM2Candidates.add(this.wmoDoodads[i]!);
             }
         }
     }
 
-    checkIfInsideGroup(cameraVec4, cameraLocal, candidateGroups) {
+    checkIfInsideGroup(cameraVec4: ReadonlyVec4, cameraLocal: vec4, candidateGroups: WmoGroupCandidate[]) {
         var bbArray = this.volumeWorldGroupBorder;
         var groupInfo = this.groupInfo;
 
@@ -798,7 +907,7 @@ class WmoGroupObject {
 
         var nodeId = 0;
         var nodes = groupFile.nodes;
-        var bspLeafList = [];
+        var bspLeafList: number[] = [];
         mathHelper.queryBspTree([cameraBBMin, cameraBBMax], nodeId, nodes, bspLeafList);
         var topBottom = mathHelper.getTopAndBottomTriangleFromBsp(cameraLocal, groupFile, bspLeafList);
 
@@ -837,6 +946,7 @@ class WmoGroupObject {
                     nodeId = nodes[nodeId].children2;
                 }
             }
+            // JS-BUG: the push is inside the descent loop, so every inner node on the way down is added as a candidate, not only the leaf (probably meant after the loop)
             candidateGroups.push({'topBottom' : topBottom, groupId : this.groupId, bspList : bspLeafList, nodeId: nodeId});
         }
     }

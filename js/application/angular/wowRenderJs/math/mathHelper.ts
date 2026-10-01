@@ -290,7 +290,7 @@ class MathHelper {
         var u = 1.0 - v - w;
         return vec3.fromValues(u, v, w)
     }
-    static checkFrustum (planes: ReadonlyVec4[], box: AABB, num_planes: number, points?: ReadonlyVec4[]): boolean {
+    static checkFrustum (planes: ReadonlyVec4[], box: AABB, num_planes: number, points?: ReadonlyVec4[] | null): boolean {
       // check box outside/inside of frustum
         for(var i=0; i< num_planes; i++ )
         {

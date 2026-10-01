@@ -16,13 +16,20 @@ import type { LightRecord } from '../services/dbc/lightDBC';
 import type { LightFloatBandRecord } from '../services/dbc/lightFloatBandDBC';
 import type { LightIntBandRecord } from '../services/dbc/lightIntBandDBC';
 import type { LightParamsRecord } from '../services/dbc/lightParamsDBC';
+import type { mat4 } from 'gl-matrix';
+import type { AdtM2Placement } from '../services/map/adtLoader';
 import type { WdtFile } from '../services/map/wdtLoader';
-import type { WmoFile } from '../services/map/wmoLoader';
+import type { WmoDoodad, WmoFile } from '../services/map/wmoLoader';
 import type { ADTGeom } from './geometry/adtGeomCache';
 import type { M2Geom } from './geometry/m2GeomCache';
 import type { SkinGeom } from './geometry/skinGeomCache';
 import type { WmoGeom } from './geometry/wmoGeomCache';
 import type { Texture } from './texture/textureCache';
+import type AdtM2Object from './objects/adtM2Object';
+import type WmoM2Object from './objects/wmoM2Object';
+import type WmoObject from './objects/wmoObject';
+import type { WmoPlacement } from './objects/wmoObject';
+import type WorldMDXObject from './objects/worldM2Object';
 
 export interface SceneApiExtensions {
     getInstancingExt(): ANGLE_instanced_arrays | undefined;
@@ -76,11 +83,12 @@ export interface SceneApiDbc {
 }
 
 export interface SceneApiObjects {
-    loadAdtM2Obj(doodad: any): any; // TS-PORT: parked until wowRenderJs/manager/sceneGraphManager.ts (addAdtM2Object)
-    loadAdtWmo(wmoDef: any): any; // TS-PORT: parked until wowRenderJs/manager/sceneGraphManager.ts (addWmoObject)
-    loadWmoM2Obj(doodadDef: any, placementMatrix: any, useLocalLightning: any): any; // TS-PORT: parked until wowRenderJs/manager/sceneGraphManager.ts (addWmoM2Object)
-    loadWorldM2Obj(modelName: any, meshIds: any, replaceTextures: any): any; // TS-PORT: parked until wowRenderJs/manager/sceneGraphManager.ts (addWorldMDXObject)
-    loadAdtChunk(fileName: string): any; // TS-PORT: parked until wowRenderJs/manager/sceneGraphManager.ts (addADTObject)
+    loadAdtM2Obj(doodad: AdtM2Placement): AdtM2Object;
+    loadAdtWmo(wmoDef: WmoPlacement): WmoObject;
+    loadWmoM2Obj(doodadDef: WmoDoodad, placementMatrix: mat4, useLocalLightning: boolean): WmoM2Object;
+    loadWorldM2Obj(modelName: string, meshIds: number[] | null, replaceTextures: string[] | null): WorldMDXObject;
+    /* addADTObject returns nothing */
+    loadAdtChunk(fileName: string): void;
 }
 
 export interface SceneApiResources {

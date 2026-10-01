@@ -1,11 +1,27 @@
-import MDXObject from './M2Object.js';
-import mathHelper from './../math/mathHelper.js';
+import MDXObject from './M2Object';
+import type { CheckDepthFunc } from './M2Object';
+import mathHelper from './../math/mathHelper';
 
 import {mat4, vec4, vec3, glMatrix} from 'gl-matrix';
+import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix';
+import type { Vector3f } from '../../services/fileReadHelper';
+import type { AdtM2Placement } from '../../services/map/adtLoader';
+import type { SceneApi } from '../sceneApi';
 
 
 class AdtM2Object extends MDXObject {
-    constructor(sceneApi, localBB){
+    /* set by load() */
+    mddf!: AdtM2Placement;
+    diffuseColor!: Float32Array;
+    /* set by createPlacementMatrix() */
+    placementInvertMatrix!: mat4;
+    /* set by calcOwnPosition() */
+    position!: vec4;
+
+    /* the scene graph manager passes only sceneApi */
+    constructor(sceneApi: SceneApi, localBB?: [Vector3f, Vector3f]){
+        // JS-BUG: localBB is passed to the one-parameter MDXObject constructor, which ignores it (and no caller passes it); harmless
+        // @ts-expect-error MDXObject's constructor takes one argument; ported as-is
         super(sceneApi, localBB);
 
         var self = this;
@@ -30,29 +46,35 @@ class AdtM2Object extends MDXObject {
         super.draw(false, this.placementMatrix, this.diffuseColor);
     }
     draw () {
+        // JS-BUG: the drawTransparent argument is missing - placementMatrix lands in drawTransparent and diffuseColor in placementMatrix (probably meant draw(false, ...)); nothing calls AdtM2Object.draw() today
+        // @ts-expect-error MDXObject.draw takes (drawTransparent, placementMatrix, diffuseColor); ported as-is
         super.draw(this.placementMatrix, this.diffuseColor);
     }
-    drawInstancedNonTransparentMeshes (instanceCount, placementVBO) {
+    drawInstancedNonTransparentMeshes (instanceCount: number, placementVBO: WebGLBuffer) {
+        // JS-BUG: drawInstanced takes three arguments; the 0xffffffff here and below is ignored - harmless
+        // @ts-expect-error drawInstanced takes three arguments; ported as-is
         super.drawInstanced(false, instanceCount, placementVBO, 0xffffffff);
     }
-    drawInstancedTransparentMeshes (instanceCount, placementVBO) {
+    drawInstancedTransparentMeshes (instanceCount: number, placementVBO: WebGLBuffer) {
+        // @ts-expect-error drawInstanced takes three arguments; ported as-is
         super.drawInstanced(true, instanceCount, placementVBO, 0xffffffff);
     }
-    checkFrustumCullingAndSet (cameraVec4, frustumPlanes, num_planes) {
+    checkFrustumCullingAndSet (cameraVec4: ReadonlyVec4, frustumPlanes: ReadonlyVec4[], num_planes: number) {
         var inFrustum = this.checkFrustumCulling(cameraVec4, frustumPlanes, num_planes);
         this.setIsRendered(this.getIsRendered() && inFrustum);
     }
-    checkFrustumCulling (cameraVec4, frustumPlanes, num_planes) {
+    checkFrustumCulling (cameraVec4: ReadonlyVec4, frustumPlanes: ReadonlyVec4[], num_planes: number): boolean {
         if (!this.loaded) {
             return true;
         }
         var inFrustum = super.checkFrustumCulling(cameraVec4, frustumPlanes, num_planes);
         return inFrustum;
     }
-    checkAgainstDepthBuffer(frustrumMatrix, lookAtMat4, getDepth) {
+    // @ts-expect-error overrides MDXObject.checkAgainstDepthBuffer with a different signature (no placementMatrix); ported as-is
+    checkAgainstDepthBuffer(frustrumMatrix: ReadonlyMat4, lookAtMat4: ReadonlyMat4, getDepth: CheckDepthFunc) {
         this.setIsRendered(this.getIsRendered() && super.checkAgainstDepthBuffer(frustrumMatrix, lookAtMat4, this.placementMatrix, getDepth));
     }
-    createPlacementMatrix (mddf){
+    createPlacementMatrix (mddf: AdtM2Placement){
         var TILESIZE = 533.333333333;
 
         var posx = 32*TILESIZE - mddf.pos.x;
@@ -91,12 +113,13 @@ class AdtM2Object extends MDXObject {
     getDiameter () {
         return this.diameter;
     }
-    setIsRendered (value) {
+    setIsRendered (value: boolean) {
        //if (value === undefined) return;
 
         this.isRendered = value;
     }
-    load (mddf){
+    // @ts-expect-error overrides MDXObject.load with a different signature; startLoading() calls MDXObject.prototype.load directly
+    load (mddf: AdtM2Placement){
         var self = this;
 
         self.mddf = mddf;

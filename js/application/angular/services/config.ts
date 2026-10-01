@@ -1,3 +1,5 @@
+import type { M2Object } from '../wowRenderJs/objects/M2Object';
+
 //var urlToLoadWoWFile = '/get/';
 var urlToLoadWoWFile: string = 'http://127.0.0.1:3002/files/';
 var readFileMethod: string = 'http';
@@ -19,7 +21,7 @@ var doubleCameraDebug: boolean = false;
 
 var drawDepthBuffer: boolean = false;
 
-var cameraM2: any = null; // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
+var cameraM2: M2Object | null = null;
 
 var savedUrlForLoading: string | null | undefined;
 try {
@@ -139,7 +141,7 @@ export default {
     getCameraM2 : function () {
         return cameraM2;
     },
-    setCameraM2 : function (value: any) { // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
+    setCameraM2 : function (value: M2Object | null) {
         cameraM2 = value;
     }
 }
