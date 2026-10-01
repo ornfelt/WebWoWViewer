@@ -291,6 +291,7 @@
 
 import { initViewer } from './directives/wowJsRenderDirective_noangular';
 import Expansion from './Expansion';
+import configService from './services/config';
 
 // Example usage:
 // npm run start
@@ -307,7 +308,7 @@ let expansionLoaded: boolean = false;
 // Determine expansion first
 (async () => {
     try {
-        const url = "http://localhost:3002/files/exp.txt";
+        const url = configService.getUrlToLoadWoWFile() + "exp.txt";
         const response = await fetch(url);
         if (response.ok) {
             const text = (await response.text()).trim().toLowerCase();

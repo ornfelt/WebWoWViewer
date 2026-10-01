@@ -46,7 +46,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 2 | `wowRenderJs/math/mathHelper.ts` `createPlaneFromVertexes` | uses undeclared `edgeDir` (local is `edgeDir1`); never returns the plane | ReferenceError if called; nothing calls it |
 | 5 | `wowRenderJs/math/quickSort.ts` `multiQuickSort` | `var newRight = 1` instead of `left + 1` | wrong grouping when `left != 0`; harmless today (M2Object passes 0) |
 | 6 | `wowRenderJs/cache.ts` `remove` | calls `destroy()` on every cached object | ADTGeom, M2Geom, SkinGeom and the parsed WMO file have no `destroy()` - TypeError when they are unloaded; no caller unloads them today |
-| 8 | `services/fileSystem/fileLoaderStub.ts` | file server URL hard-coded to `http://127.0.0.1:3002/files/` | `config.getUrlToLoadWoWFile()` and the `urlForLoading` saved in localStorage have no effect |
 | 9 | `services/linedfileLoader.ts` `readType` | duplicate `case "int32Array"` | second case unreachable; harmless |
 | 10 | `services/linedfileLoader.ts` `readType`, `ablock_tbc` | `else if` reads `this.interpolation_type` / `this.global_sequence` (the LinedFile) instead of `result`'s | the whole-track range for TBC blocks without ranges is never added |
 | 11 | `services/linedfileLoader.ts` `readType`, `layout` | `if (!layout instanceof Array)` | always false - the "layout is not array" check never fires |

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-/* The subset of services/config the worker passes in (only read by commented-out code) */
+/* The subset of services/config the worker passes in */
 export interface FileLoaderConfig {
     getArchiveFile(): unknown;
     getFileReadMethod(): string;
@@ -16,8 +16,7 @@ interface StubWorkerScope {
 
 export default function (configService: FileLoaderConfig): FileLoaderFunc {
     function fileLoader(filePath: string): Promise<Uint8Array<ArrayBuffer>> {
-        // JS-BUG: URL is hard-coded; configService.getUrlToLoadWoWFile() (and the urlForLoading saved in localStorage) is ignored
-        filePath = "http://127.0.0.1:3002/files/" + filePath.toLowerCase();
+        filePath = configService.getUrlToLoadWoWFile() + filePath.toLowerCase();
         //console.log("fileLoaderStub filePath: "+filePath);
         //// Adjust the filePath if it ends with a null character
         //if (filePath[filePath.length - 1] === String.fromCharCode(0)) {
