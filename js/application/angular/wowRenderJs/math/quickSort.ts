@@ -1,11 +1,13 @@
+export type CompareFunc<T> = (a: T, b: T) => number;
+
 class QuickSort {
-    static swapItems(items, firstIndex, secondIndex){
+    static swapItems<T>(items: T[], firstIndex: number, secondIndex: number): void {
         var temp = items[firstIndex];
         items[firstIndex] = items[secondIndex];
         items[secondIndex] = temp;
     }
 
-    static partition(items, left, right, compareFunc) {
+    static partition<T>(items: T[], left: number, right: number, compareFunc: CompareFunc<T>): number {
 
         var pivot   = items[Math.floor((right + left) / 2)],
             i       = left,
@@ -32,8 +34,8 @@ class QuickSort {
         return i;
     }
 
-    static quickSort(items, left, right, compareFunc) {
-        var index;
+    static quickSort<T>(items: T[], left: number, right: number, compareFunc: CompareFunc<T>): T[] {
+        var index: number;
 
         if (items.length > 1) {
 
@@ -51,9 +53,10 @@ class QuickSort {
 
         return items;
     }
-    static multiQuickSort(items, left, right) {
+    static multiQuickSort<T>(items: T[], left: number, right: number, ...compareFuncs: CompareFunc<T>[]): void;
+    static multiQuickSort<T>(items: T[], left: number, right: number): void {
         var compareTimes = arguments.length - 3;
-        var compareFuncs = new Array(compareTimes);
+        var compareFuncs: CompareFunc<T>[] = new Array(compareTimes);
         for (var i = 0; i < compareFuncs.length; i++) {
             compareFuncs[i] = arguments[3 + i];
         }

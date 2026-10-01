@@ -1,5 +1,33 @@
 //from ZamModelViewer
-var WowRegions = {
+export interface TextureRegion {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
+/* Unused slots in the region tables are empty objects */
+export type TextureRegionSlot = Partial<TextureRegion>;
+
+export interface WowRegionTable {
+    ArmUpper: number;
+    ArmLower: number;
+    Hand: number;
+    TorsoUpper: number;
+    TorsoLower: number;
+    LegUpper: number;
+    LegLower: number;
+    Foot: number;
+    Accessory: number;
+    FaceUpper: number;
+    FaceLower: number;
+    Unused: number;
+    Base: number;
+    old: TextureRegionSlot[];
+    "new": TextureRegionSlot[];
+}
+
+var WowRegions: WowRegionTable = {
     ArmUpper: 0,
     ArmLower: 1,
     Hand: 2, //HA?

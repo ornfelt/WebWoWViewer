@@ -10,14 +10,6 @@ import Expansion from './Expansion';
 // npm run build:prod
 // Note: Also start wow mpq file server...
 
-// Extend the Window interface to include the custom property.
-declare global {
-  interface Window {
-    //selectedExpansion: typeof Expansion.WOTLK;
-    selectedExpansion: typeof Expansion[keyof typeof Expansion];
-  }
-}
-
 // Set a default expansion value.
 window.selectedExpansion = Expansion.WOTLK;
 let expansionLoaded: boolean = false;

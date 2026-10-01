@@ -1,16 +1,105 @@
-import fileLoader from './fileLoader.js';
-import fileReadHelper from './fileReadHelper.js';
+import fileLoader from './fileLoader';
+import fileReadHelper from './fileReadHelper';
+import type { FileOffset, FileReadHelper, Vector3f, Vector4f } from './fileReadHelper';
 
-export default function (filePath , arrayBuffer) {
+export type SectionType =
+    | "int8" | "int16" | "int32"
+    | "uint8" | "uint16" | "uint32"
+    | "int32Array" | "uint8Array" | "uint16Array" | "int16Array"
+    | "vector3f" | "vector4f" | "float32" | "string"
+    | "ablock" | "ablock_tbc" | "ablock_tbc2"
+    | "layout";
 
-    function parseLinedFileObj(a){
+// A definition-driven parse: the fields and their types are decided by the SectionDefinition at
+// runtime, so the parsed object is a record of any.
+export type ParsedObject = { [field: string]: any };
+
+export interface SectionDefinition {
+    name?: string;
+    type: SectionType;
+    valType?: SectionType;
+    /* a number, the name of an already parsed field, or a function of the parent object */
+    len?: number | string | ((parentObject: ParsedObject) => number);
+    /* a number, or the name of an already parsed field */
+    offset?: number | string;
+    /* the name of an already parsed field */
+    count?: string;
+    condition?: (parentObject: ParsedObject) => boolean;
+    layout?: LayoutField[];
+}
+
+export interface LayoutField extends SectionDefinition {
+    name: string;
+}
+
+export interface AnimationBlock {
+    interpolation_type: number;
+    global_sequence: number;
+    timestampsPerAnimation: number[][];
+    valuesPerAnimation: SectionValue[][];
+}
+
+export interface AnimationBlockTbc {
+    interpolation_type: number;
+    global_sequence: number;
+    interpolation_ranges_nb: number;
+    ofsRanges: number;
+    timestamps_nb: number;
+    ofsTimes: number;
+    values_nb: number;
+    ofsValues: number;
+    ranges?: { first: number; second: number }[];
+    timestampsPerAnimation: number[][];
+    valuesPerAnimation: SectionValue[][];
+}
+
+export interface AnimationBlockTbc2 {
+    interpolation_type: number;
+    global_sequence: number;
+    interpolation_ranges_nb: number;
+    ofsRanges: number;
+    timestamps_nb: number;
+    ofsTimes: number;
+    values_nb: number;
+    ofsValues: number;
+    ranges: { first: number; last: number }[];
+    timestampsPerAnimation: number[][];
+    valuesPerAnimation: SectionValue[][];
+}
+
+export type SectionValue =
+    | number
+    | string
+    | number[]
+    | Uint8Array
+    | Vector3f
+    | Vector4f
+    | AnimationBlock
+    | AnimationBlockTbc
+    | AnimationBlockTbc2
+    | ParsedObject
+    | undefined;
+
+export interface LinedFile extends FileReadHelper {
+    loadDataAtOffset(offset: number, length: number): FileReadHelper;
+    readType(fileObject: FileReadHelper, sectionDef: SectionDefinition, offset: FileOffset, len?: number): SectionValue;
+    parseSectionDefinition(parentObject: ParsedObject, sectionDefinition: SectionDefinition, fileObject: FileReadHelper, offset?: FileOffset, debugPrint?: boolean): SectionValue | SectionValue[];
+    /* set only when the file was loaded by path */
+    filePath?: string;
+}
+
+export default function (filePath: string, arrayBuffer: ArrayBuffer): LinedFile;
+export default function (filePath: string): Promise<LinedFile>;
+export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFile | Promise<LinedFile> {
+
+    function parseLinedFileObj(a: ArrayBuffer): LinedFile {
         var fileReader = fileReadHelper(a);
 
-        function LinedFileObj(){
-            this.loadDataAtOffset = function (offset, length) {
+        function LinedFileObj(this: LinedFile){
+            this.loadDataAtOffset = function (offset: number, length: number) {
                 return fileReadHelper(a, offset, length)
             };
-            this.readType = function(fileObject, sectionDef, offset, len) {
+            this.readType = function(this: LinedFile, fileObject: FileReadHelper, sectionDef: SectionDefinition, offset: FileOffset, len?: number): SectionValue {
                 var self = this;
                 var result;
 
@@ -35,19 +124,19 @@ export default function (filePath , arrayBuffer) {
                         result = fileObject.readUint32(offset);
                         break;
                     case "int32Array" :
-                        result = fileObject.readInt32Array(offset, len);
+                        result = fileObject.readInt32Array(offset, len!);
                         break;
                     case "uint8Array" :
-                        result = fileObject.readUint8Array(offset, len);
+                        result = fileObject.readUint8Array(offset, len!);
                         break;
                     case "uint16Array" :
-                        result = fileObject.readUint16Array(offset, len);
+                        result = fileObject.readUint16Array(offset, len!);
                         break;
                     case "int16Array" :
-                        result = fileObject.readInt16Array(offset, len);
+                        result = fileObject.readInt16Array(offset, len!);
                         break;
                     case "int32Array" :
-                        result = fileObject.readInt32Array(offset, len);
+                        result = fileObject.readInt32Array(offset, len!);
                         break;
                     case "vector3f" :
                         result = fileObject.readVector3f(offset);
@@ -68,7 +157,7 @@ export default function (filePath , arrayBuffer) {
 
                     case "ablock" :
 
-                        result = {};
+                        result = {} as AnimationBlock;
                         result.interpolation_type = fileObject.readUint16(offset);
                         result.global_sequence = fileObject.readInt16(offset);
 
@@ -113,9 +202,9 @@ export default function (filePath , arrayBuffer) {
                             for (var j = 0; j < valuesCnt; j++) {
                                 result.valuesPerAnimation[i][j] = self.readType(
                                     fileObject,
-                                    {type : sectionDef.valType, len: sectionDef.len},
+                                    {type : sectionDef.valType!, len: sectionDef.len},
                                     offs2,
-                                    sectionDef.len
+                                    sectionDef.len as number | undefined
                                 );
                             }
                         }
@@ -123,7 +212,7 @@ export default function (filePath , arrayBuffer) {
                         break;
 
                     case "ablock_tbc": {
-                        result = {};
+                        result = {} as AnimationBlockTbc;
 
                         result.interpolation_type      = fileObject.readUint16(offset);
                         result.global_sequence         = fileObject.readInt16(offset);
@@ -144,8 +233,9 @@ export default function (filePath , arrayBuffer) {
                                 var maximum = fileObject.readInt32(offRanges);
                                 result.ranges.push({ first: minimum, second: maximum });
                             }
+                        // @ts-expect-error reads this.interpolation_type / this.global_sequence (the LinedFile), not result's; ported as-is
                         } else if (this.interpolation_type !== 0 && this.global_sequence === -1) {
-                          result.ranges.push({ first: 0, second: result.values_nb - 1 });
+                          result.ranges!.push({ first: 0, second: result.values_nb - 1 });
                         }
                         
                         // Read timestamps as a single “animation”, so that:
@@ -174,9 +264,9 @@ export default function (filePath , arrayBuffer) {
                                 result.valuesPerAnimation[0].push(
                                     self.readType(
                                         fileObject,
-                                        { type: sectionDef.valType, len: sectionDef.len },
+                                        { type: sectionDef.valType!, len: sectionDef.len },
                                         offValues,
-                                        sectionDef.len
+                                        sectionDef.len as number | undefined
                                     )
                                 );
                             }
@@ -187,7 +277,7 @@ export default function (filePath , arrayBuffer) {
                     }
 
                     case "ablock_tbc2": {
-                        const block = {};
+                        const block = {} as AnimationBlockTbc2;
                         const interpolationType        = block.interpolation_type      = fileObject.readUint16(offset);
                         const globalSequence           = block.global_sequence         = fileObject.readInt16(offset);
                         const rangesCnt                = block.interpolation_ranges_nb = fileObject.readUint32(offset);
@@ -198,7 +288,7 @@ export default function (filePath , arrayBuffer) {
                         const valuesOff                = block.ofsValues               = fileObject.readUint32(offset);
 
                         // Ranges table
-                        const ranges = [];
+                        const ranges: { first: number; last: number }[] = [];
                         if (rangesCnt > 0) {
                             const off = { offs: rangesOff };
                             for (let i = 0; i < rangesCnt; ++i) {
@@ -213,7 +303,7 @@ export default function (filePath , arrayBuffer) {
                         block.ranges = ranges;
 
                         // Flat timestamps
-                        const flatTimes = [];
+                        const flatTimes: number[] = [];
                         if (timeCnt > 0) {
                             const off = { offs: timesOff };
                             for (let i = 0; i < timeCnt; ++i) {
@@ -222,16 +312,16 @@ export default function (filePath , arrayBuffer) {
                         }
 
                         // Flat values
-                        const flatValues = [];
+                        const flatValues: SectionValue[] = [];
                         if (valueCnt > 0) {
                             const off = { offs: valuesOff };
                             for (let i = 0; i < valueCnt; ++i) {
                                 flatValues.push(
                                     self.readType(
                                         fileObject,
-                                        { type: sectionDef.valType, len: sectionDef.len },
+                                        { type: sectionDef.valType!, len: sectionDef.len },
                                         off,
-                                        sectionDef.len
+                                        sectionDef.len as number | undefined
                                     )
                                 );
                             }
@@ -250,8 +340,8 @@ export default function (filePath , arrayBuffer) {
                             last  = Math.max(first, Math.min(last, valueCnt - 1));
 
                             const sliceLen = last - first + 1;
-                            const ts   = new Array(sliceLen);
-                            const vals = new Array(sliceLen);
+                            const ts: number[]   = new Array(sliceLen);
+                            const vals: SectionValue[] = new Array(sliceLen);
 
                             for (let k = 0; k < sliceLen; ++k) {
                                 const idx = first + k;
@@ -271,9 +361,10 @@ export default function (filePath , arrayBuffer) {
                         /*
                          * Parse layout
                          */
-                        var layout = sectionDef.layout;
-                        var resultObj = {};
+                        var layout = sectionDef.layout!;
+                        var resultObj: ParsedObject = {};
 
+                        // @ts-expect-error !layout is a boolean, so this instanceof is always false; ported as-is
                         if (!layout instanceof Array) {
                             throw "layout is not array";
                         }
@@ -293,8 +384,8 @@ export default function (filePath , arrayBuffer) {
                 return result;
             };
 
-            this.parseSectionDefinition = function(parentObject, sectionDefinition, fileObject, offset, debugPrint=false){
-                var offs;
+            this.parseSectionDefinition = function(this: LinedFile, parentObject: ParsedObject, sectionDefinition: SectionDefinition, fileObject: FileReadHelper, offset?: FileOffset, debugPrint=false){
+                var offs: number | undefined;
                 if (typeof sectionDefinition.offset == "string") {
                     offs = parentObject[sectionDefinition.offset];
                 } else {
@@ -304,7 +395,7 @@ export default function (filePath , arrayBuffer) {
 
                 var len = sectionDefinition.len;
                 if (typeof sectionDefinition.len == "string") {
-                    len = parentObject[len];
+                    len = parentObject[len as string];
                 } else if (typeof sectionDefinition.len == "function") {
                     len = sectionDefinition.len(parentObject);
                 }
@@ -320,17 +411,17 @@ export default function (filePath , arrayBuffer) {
                     offset = { offs : 0};
                 }
 
-                var fieldObject;
-                var fieldArray = [];
+                var fieldObject: SectionValue;
+                var fieldArray: SectionValue[] = [];
 
                 var count = 1;
                 var countIsGiven = sectionDefinition.count !== undefined;
                 if (countIsGiven) {
-                    count = parentObject[sectionDefinition.count];
+                    count = parentObject[sectionDefinition.count!];
                 }
 
                 for (var j = 0; j < count; j++) {
-                    fieldObject = this.readType(fileObject, sectionDefinition, offset, len);
+                    fieldObject = this.readType(fileObject, sectionDefinition, offset, len as number | undefined);
 
                     // Debug
                     //if (debugPrint) console.log(`DEBUG: Field "${sectionDefinition.name}" (type: "${sectionDefinition.type}") ->`, fieldObject);
@@ -338,7 +429,7 @@ export default function (filePath , arrayBuffer) {
 
                     fieldArray.push(fieldObject);
                 }
-                var resultObj;
+                var resultObj: SectionValue | SectionValue[];
                 if (countIsGiven) {
                     resultObj = fieldArray;
                 } else {
@@ -350,7 +441,7 @@ export default function (filePath , arrayBuffer) {
         }
         LinedFileObj.prototype = fileReader;
 
-        var linedFileObj = new LinedFileObj();
+        var linedFileObj = new (LinedFileObj as unknown as new () => LinedFile)();
         return linedFileObj;
     }
 

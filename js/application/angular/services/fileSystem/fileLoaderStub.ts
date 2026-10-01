@@ -1,7 +1,21 @@
 import axios from 'axios';
 
-export default function (configService) {
-    function fileLoader(filePath) {
+/* The subset of services/config the worker passes in (only read by commented-out code) */
+export interface FileLoaderConfig {
+    getArchiveFile(): unknown;
+    getFileReadMethod(): string;
+    getUrlToLoadWoWFile(): string;
+}
+
+export type FileLoaderFunc = (filePath: string) => Promise<Uint8Array<ArrayBuffer>>;
+
+/* In a Web Worker there is no window; the stub sets self.window = self */
+interface StubWorkerScope {
+    window: unknown;
+}
+
+export default function (configService: FileLoaderConfig): FileLoaderFunc {
+    function fileLoader(filePath: string): Promise<Uint8Array<ArrayBuffer>> {
         filePath = "http://127.0.0.1:3002/files/" + filePath.toLowerCase();
         //console.log("fileLoaderStub filePath: "+filePath);
         //// Adjust the filePath if it ends with a null character
@@ -17,11 +31,11 @@ export default function (configService) {
         const fullPath = filePath;
 
         if (typeof self !== 'undefined' && !self.window) {
-            self.window = self; // Mock window using self in Web Worker
+            (self as unknown as StubWorkerScope).window = self; // Mock window using self in Web Worker
         }
 
         // Use axios to fetch the file as an array buffer
-        return axios.get(fullPath, { responseType: "arraybuffer" })
+        return axios.get<ArrayBuffer>(fullPath, { responseType: "arraybuffer" })
             .then(response => new Uint8Array(response.data))
             .catch(error => {
                 console.error("axios error: ", error);

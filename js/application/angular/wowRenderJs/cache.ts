@@ -1,5 +1,28 @@
-class Cache {
-  constructor(load, process) {
+export interface CacheContainer<T> {
+  obj: T;
+  counter: number;
+}
+
+export interface CacheQueueEntry<T> {
+  resolve: (obj: T) => void;
+  reject: (error: unknown) => void;
+}
+
+export type CacheLoadFunc<L> = (fileName: string) => Promise<L>;
+export type CacheProcessFunc<T, L> = (loadedObj: L) => T;
+
+/* remove() calls destroy() on the cached object unconditionally */
+interface Destroyable {
+  destroy(): void;
+}
+
+class Cache<T, L = unknown> {
+  cache: { [fileName: string]: CacheContainer<T> | null };
+  queueForLoad: { [fileName: string]: CacheQueueEntry<T>[] | null };
+  load: CacheLoadFunc<L>;
+  process: CacheProcessFunc<T, L>;
+
+  constructor(load: CacheLoadFunc<L>, process: CacheProcessFunc<T, L>) {
     this.cache = {};
     this.queueForLoad = {};
 
@@ -10,7 +33,7 @@ class Cache {
   /*
    * Queue load functions
    */
-  get(fileName) {
+  get(fileName: string): Promise<T> {
     return new Promise((resolve, reject) => {
       // 1. Return the promise immediately if object is already in cache
       const obj = this.getCached(fileName);
@@ -38,7 +61,7 @@ class Cache {
     });
   }
 
-  _resolveQueue(fileName, obj) {
+  _resolveQueue(fileName: string, obj: T): void {
     const queue = this.queueForLoad[fileName] || [];
     for (let i = 0; i < queue.length; i++) {
       queue[i].resolve(obj);
@@ -46,7 +69,7 @@ class Cache {
     this.queueForLoad[fileName] = null;
   }
 
-  _rejectQueue(fileName, err) {
+  _rejectQueue(fileName: string, err: unknown): void {
     const queue = this.queueForLoad[fileName] || [];
     for (let i = 0; i < queue.length; i++) {
       queue[i].reject(err);
@@ -57,15 +80,15 @@ class Cache {
   /*
    * Cache storage functions
    */
-  put(fileName, obj) {
-    const container = {
+  put(fileName: string, obj: T): void {
+    const container: CacheContainer<T> = {
       obj: obj,
       counter: 1,
     };
     this.cache[fileName] = container;
   }
 
-  getCached(fileName) {
+  getCached(fileName: string): T | null {
     const container = this.cache[fileName];
     if (!container) {
       return null;
@@ -74,7 +97,7 @@ class Cache {
     return container.obj;
   }
 
-  remove(fileName) {
+  remove(fileName: string): void {
     const container = this.cache[fileName];
     if (!container) {
       // TODO: Log the message if needed.
@@ -84,11 +107,13 @@ class Cache {
     container.counter -= 1;
     if (container.counter <= 0) {
       this.cache[fileName] = null;
-      container.obj.destroy();
+      (container.obj as T & Destroyable).destroy();
     }
   }
 }
 
-export default function(load, process) {
+export type { Cache };
+
+export default function<T, L>(load: CacheLoadFunc<L>, process: CacheProcessFunc<T, L>): Cache<T, L> {
   return new Cache(load, process);
 }

@@ -13,6 +13,8 @@ const Expansion = {
   WOTLK: "wotlk"
 } as const;
 
+export type ExpansionValue = typeof Expansion[keyof typeof Expansion];
+
 export default Expansion;
 
 // Expansion.ts (using enum)

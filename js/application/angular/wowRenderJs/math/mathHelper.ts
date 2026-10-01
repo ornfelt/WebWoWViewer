@@ -1,8 +1,18 @@
 import {vec4, vec3, mat4} from 'gl-matrix';
+import type {ReadonlyMat4, ReadonlyVec3, ReadonlyVec4} from 'gl-matrix';
+import type {Vector3f} from '../../services/fileReadHelper';
+
+/* Axis-aligned bounding box: [min, max] */
+export type AABB = readonly [ReadonlyVec3, ReadonlyVec3];
+
+export interface TopAndBottomZ {
+    topZ: number;
+    bottomZ: number;
+}
 
 class MathHelper {
-    static getFrustumClipsFromMatrix(mat) {
-        var planes = new Array(6);
+    static getFrustumClipsFromMatrix(mat: ReadonlyMat4): vec4[] {
+        var planes: vec4[] = new Array(6);
         // Right clipping plane.
         planes[0] = vec4.fromValues(mat[3] - mat[0],
             mat[7] - mat[4],
@@ -42,20 +52,20 @@ class MathHelper {
 
         return planes;
     }
-    static fixNearPlane(planes, camera) {
+    static fixNearPlane(planes: vec4[], camera: ReadonlyVec3): void {
         var nearPlane = planes[5];
         var cameraVec4 = vec4.fromValues(camera[0], camera[1],camera[2],1);
         var dist = vec4.dot(nearPlane, cameraVec4);
         nearPlane[3] -= dist;
     }
-    static isPointInsideAABB(aabb, p ) {
+    static isPointInsideAABB(aabb: AABB, p: ReadonlyVec3 ): boolean {
         var result = p[0] > aabb[0][0] && p[0] < aabb[1][0] &&
             p[1] > aabb[0][1] && p[1] < aabb[1][1] &&
             p[2] > aabb[0][2] && p[2] < aabb[1][2];
         return result;
     }
-    static distanceFromAABBToPoint(aabb, p) {
-        function distance_aux(p, lower, upper){
+    static distanceFromAABBToPoint(aabb: AABB, p: ReadonlyVec3): number {
+        function distance_aux(p: number, lower: number, upper: number): number {
             if (p < lower) return lower - p;
             if (p > upper)  return p - upper;
             return 0
@@ -70,11 +80,12 @@ class MathHelper {
         else
             return Math.sqrt(dx * dx + dy * dy + dz * dz)
     }
-    static sortVec3ArrayAgainstPlane(thisPortalVertices, plane) {
+    static sortVec3ArrayAgainstPlane(thisPortalVertices: ReadonlyVec3[], plane: Vector3f): void {
         var center = vec3.fromValues(0, 0, 0);
         for (var j = 0; j < thisPortalVertices.length; j++) {
             vec3.add(center, thisPortalVertices[j], center);
         }
+        // @ts-expect-error vec3.scale takes (out, a, b); the JavaScript passes only two arguments
         vec3.scale(center, 1 / thisPortalVertices.length);
         thisPortalVertices.sort(function (a, b) {
             var ac = vec3.create();
@@ -92,8 +103,8 @@ class MathHelper {
         });
     }
 
-    static planeCull (points, planes) {
-        function intersection(p1, p2, k) {
+    static planeCull (points: vec3[], planes: ReadonlyVec4[]): boolean {
+        function intersection(p1: ReadonlyVec4, p2: ReadonlyVec4, k: number): vec4 {
             return vec4.fromValues(
                 p1[0] + k * (p2[0] - p1[0]),
                 p1[1] + k * (p2[1] - p1[1]),
@@ -103,7 +114,7 @@ class MathHelper {
         }
 
         // check box outside/inside of frustum
-        var vec4Points = new Array(points.length);
+        var vec4Points: vec4[] = new Array(points.length);
         for( var j = 0; j < points.length; j++) {
             vec4Points[j] = vec4.fromValues(points[j][0], points[j][1], points[j][2], 1.0)
         }
@@ -121,8 +132,8 @@ class MathHelper {
             //---------------------------------
             // Cull by points by current plane
             //---------------------------------
-            var resultPoints = new Array();
-            var pointO;
+            var resultPoints: vec4[] = new Array();
+            var pointO: vec3;
             if (planes[i][2] != 0) {
                 pointO = vec3.fromValues(0,0,-planes[i][3]/planes[i][2]);
             } else if (planes[i][1] != 0) {
@@ -165,10 +176,12 @@ class MathHelper {
     }
 
 
-    static createPlaneFromVertexes(vertex1, vertex2, vertex3) {
+    static createPlaneFromVertexes(vertex1: ReadonlyVec4, vertex2: ReadonlyVec4, vertex3: ReadonlyVec4): void {
         var edgeDir1 = vec4.create();
 
+        // @ts-expect-error edgeDir is never declared (the variable above is edgeDir1); ported as-is
         vec3.subtract(edgeDir, vertex1, vertex2);
+        // @ts-expect-error edgeDir is never declared (the variable above is edgeDir1); ported as-is
         vec3.normalize(edgeDir, edgeDir);
 
         var edgeDir2 = vec4.create();
@@ -177,6 +190,7 @@ class MathHelper {
         vec3.normalize(edgeDir2, edgeDir2);
 
         var planeNorm = vec4.create();
+        // @ts-expect-error edgeDir is never declared (the variable above is edgeDir1); ported as-is
         vec3.cross(planeNorm, edgeDir2, edgeDir);
         vec3.normalize(planeNorm, planeNorm);
 
@@ -188,7 +202,7 @@ class MathHelper {
 
     }
 
-    static createPlaneFromEyeAndVertexes(eye, vertex1, vertex2) {
+    static createPlaneFromEyeAndVertexes(eye: ReadonlyVec3, vertex1: ReadonlyVec3, vertex2: ReadonlyVec3): vec4 {
         var edgeDir1 = vec4.create();
         vec3.subtract(edgeDir1, vertex1, eye);
 
@@ -207,8 +221,8 @@ class MathHelper {
         return planeNorm;
     }
 
-    static GetPolyFrustum(poly, num_verts, frustum, eye) {
-        var v1, v2;
+    static GetPolyFrustum(poly: ReadonlyVec4[], num_verts: number, frustum: vec4[], eye: ReadonlyVec3): void {
+        var v1: ReadonlyVec4, v2: ReadonlyVec4;
 
         for (var i = 0; i <= (num_verts - 1); i++) {
             v1 = poly[(i + 1) % num_verts];
@@ -240,7 +254,7 @@ class MathHelper {
         }
     }
 
-    static calcZ(p1, p2, p3, x, y) {
+    static calcZ(p1: ReadonlyVec3, p2: ReadonlyVec3, p3: ReadonlyVec3, x: number, y: number): number {
         var det = (p2[1] - p3[1]) * (p1[0] - p3[0]) + (p3[0] - p2[0]) * (p1[1] - p3[1]);
 
         if (det > -0.001 && det < 0.001) {
@@ -253,7 +267,7 @@ class MathHelper {
 
         return l1 * p1[2] + l2 * p2[2] + l3 * p3[2];
     }
-    static getBarycentric( p, a, b, c) {
+    static getBarycentric( p: ReadonlyVec3, a: ReadonlyVec3, b: ReadonlyVec3, c: ReadonlyVec3): vec3 {
         var v0 = vec3.create();
         vec3.subtract(v0, b, a);
         var v1 = vec3.create();
@@ -272,7 +286,7 @@ class MathHelper {
         var u = 1.0 - v - w;
         return vec3.fromValues(u, v, w)
     }
-    static checkFrustum (planes, box, num_planes, points) {
+    static checkFrustum (planes: ReadonlyVec4[], box: AABB, num_planes: number, points?: ReadonlyVec4[]): boolean {
       // check box outside/inside of frustum
         for(var i=0; i< num_planes; i++ )
         {
@@ -300,7 +314,7 @@ class MathHelper {
 
         return true;
     }
-    static getFrustumPoints(perspectiveMatrix, viewMatrix){
+    static getFrustumPoints(perspectiveMatrix: ReadonlyMat4, viewMatrix: ReadonlyMat4): vec4[] {
         const frustumPoints =
             [
                 [-1, -1, -1], //0
@@ -318,7 +332,7 @@ class MathHelper {
         mat4.multiply(inverseMat, perspectiveMatrix, viewMatrix);
         mat4.invert(inverseMat, inverseMat);
 
-        var points = [];
+        var points: vec4[] = [];
         for (var i = 0; i < 8; i++) {
             points[i] = vec4.fromValues(frustumPoints[i][0], frustumPoints[i][1], frustumPoints[i][2], 1);
             vec4.transformMat4(points[i], points[i], inverseMat);
@@ -327,7 +341,7 @@ class MathHelper {
 
         return points;
     }
-    static transformAABBWithMat4 (mat4,aabb) {
+    static transformAABBWithMat4 (mat4: ReadonlyMat4,aabb: AABB): [vec4, vec4] {
         //Adapted from http://dev.theomader.com/transform-bounding-boxes/
         var xa = vec4.create();
         var xb = vec4.create();
@@ -376,7 +390,7 @@ class MathHelper {
     /*
        WMO specific algorithms
     */
-    static queryBspTree(bbox, nodeId, nodes, bspLeafIdList) {
+    static queryBspTree(bbox: AABB, nodeId: number, nodes: any[], bspLeafIdList: number[]): void { // TS-PORT: parked until services/map/wmoLoader.ts exports the BSP node type
         if (nodeId == -1) return;
 
         if ((nodes[nodeId].planeType&0x4)){
@@ -414,7 +428,7 @@ class MathHelper {
         }
     }
 
-    static getTopAndBottomTriangleFromBsp(cameraLocal, groupFile, bspLeafList) {
+    static getTopAndBottomTriangleFromBsp(cameraLocal: ReadonlyVec3, groupFile: any, bspLeafList: number[]): TopAndBottomZ { // TS-PORT: parked until services/map/wmoLoader.ts exports WmoGroupFile
         var result = 0;
         var nodes = groupFile.nodes;
         var topZ = -999999;

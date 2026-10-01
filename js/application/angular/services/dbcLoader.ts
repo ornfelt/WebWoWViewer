@@ -1,7 +1,19 @@
-import fileLoader from './fileLoader.js';
-import fileReadHelper from './fileReadHelper.js';
+import fileLoader from './fileLoader';
+import fileReadHelper from './fileReadHelper';
+import type { FileOffset } from './fileReadHelper';
 
-export default function (dbcFilePath) {
+export interface DbcObject {
+  fileSize: number;
+  getRowCount(): number;
+  getColCount(): number;
+  getRowSize(): number;
+  readInt32(row: number, col: number): number;
+  readFloat32(row: number, col: number): number;
+  readUInt32(row: number, col: number): number;
+  readText(row: number, col: number): string;
+}
+
+export default function (dbcFilePath: string): Promise<DbcObject> {
   const dbcHeaderLen = 20;
 
   return new Promise((resolve, reject) => {
@@ -19,18 +31,18 @@ export default function (dbcFilePath) {
 
         const textSectionStart = dbcHeaderLen + rowCount * (colCount * 4);
 
-        function calcOffset(row, col) {
+        function calcOffset(row: number, col: number): FileOffset {
           const offs = dbcHeaderLen + row * (colCount * 4) + col * 4;
           return { offs };
         }
-        function getTextOffset(row, col) {
+        function getTextOffset(row: number, col: number): FileOffset {
           const offs = calcOffset(row, col);
           const textOffs = fileReader.readUint32(offs);
           const result = textSectionStart + textOffs;
           return { offs: result };
         }
 
-        const dbcObject = {
+        const dbcObject: DbcObject = {
           fileSize    : a.byteLength,
           getRowCount : () => rowCount,
           getColCount : () => colCount,

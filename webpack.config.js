@@ -18,7 +18,10 @@ module.exports = {
     },
 
     resolve: {
-        extensions: ['.js', '.jsx', '.glsl', '.ts', '.tsx'],
+        extensions: ['.ts', '.js', '.jsx', '.glsl'],
+        extensionAlias: {
+            '.js': ['.ts', '.js'],
+        },
         modules: [
             path.resolve('./js/application/angular'),
             path.resolve('./glsl/'),

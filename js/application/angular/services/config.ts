@@ -1,27 +1,27 @@
 //var urlToLoadWoWFile = '/get/';
-var urlToLoadWoWFile = 'http://127.0.0.1:3002/files/';
-var readFileMethod = 'http';
-var archiveUrl = 'http://deamon87.github.io/WoWFiles/shattrath.zip';
+var urlToLoadWoWFile: string = 'http://127.0.0.1:3002/files/';
+var readFileMethod: string = 'http';
+var archiveUrl: string = 'http://deamon87.github.io/WoWFiles/shattrath.zip';
 
-var archiveFile = null;
+var archiveFile: unknown = null;
 
-var renderAdt = true;
-var renderMd2 = true;
-var renderWmo = true;
-var renderBSP = false;
-var renderPortals = false;
-var usePortalCulling = true;
+var renderAdt: boolean = true;
+var renderMd2: boolean = true;
+var renderWmo: boolean = true;
+var renderBSP: boolean = false;
+var renderPortals: boolean = false;
+var usePortalCulling: boolean = true;
 
-var drawWmoBB = false;
-var drawM2BB = false;
-var secondCamera = false;
-var doubleCameraDebug = false;
+var drawWmoBB: boolean = false;
+var drawM2BB: boolean = false;
+var secondCamera: boolean = false;
+var doubleCameraDebug: boolean = false;
 
-var drawDepthBuffer = false;
+var drawDepthBuffer: boolean = false;
 
-var cameraM2 = null;
+var cameraM2: any = null; // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
 
-var savedUrlForLoading;
+var savedUrlForLoading: string | null | undefined;
 try {
     savedUrlForLoading = localStorage.getItem('urlForLoading');
 } catch(e){
@@ -31,13 +31,13 @@ if (savedUrlForLoading) {
     urlToLoadWoWFile = savedUrlForLoading;
 }
 
-var sceneParams = null;
+var sceneParams: unknown = null;
 
 export default {
     getUrlToLoadWoWFile: function (){
         return urlToLoadWoWFile;
     },
-    setUrlToLoadWoWFile : function (url){
+    setUrlToLoadWoWFile : function (url: string){
         urlToLoadWoWFile = url;
         try {
             localStorage.setItem('urlForLoading', url);
@@ -48,98 +48,98 @@ export default {
     getFileReadMethod : function(){
         return readFileMethod;
     },
-    setFileReadMethod : function(value){
+    setFileReadMethod : function(value: string){
         readFileMethod = value;
     },
     getArchiveUrl : function (){
         return archiveUrl;
     },
-    setArchiveUrl : function (value) {
+    setArchiveUrl : function (value: string) {
         archiveUrl = value;
     },
 
     getArchiveFile : function (){
         return archiveFile;
     },
-    setArchiveFile : function(archive) {
+    setArchiveFile : function(archive: unknown) {
         archiveFile = archive;
     },
     getRenderM2 : function () {
         return renderMd2;
     },
-    setRenderM2 : function (value) {
+    setRenderM2 : function (value: boolean) {
         renderMd2 = value;
     },
     getRenderAdt : function () {
         return renderAdt;
     },
-    setRenderAdt : function (value) {
+    setRenderAdt : function (value: boolean) {
         renderAdt = value;
     },
     getRenderWMO : function () {
         return renderWmo;
     },
-    setRenderWMO : function (value) {
+    setRenderWMO : function (value: boolean) {
         renderWmo = value;
     },
     getRenderBSP : function () {
         return renderBSP;
     },
-    setRenderBSP : function (value) {
+    setRenderBSP : function (value: boolean) {
         renderBSP = value;
     },
     getRenderPortals : function () {
         return renderPortals;
     },
-    setRenderPortals : function (value) {
+    setRenderPortals : function (value: boolean) {
         renderPortals = value;
     },
     getUsePortalCulling : function () {
         return usePortalCulling;
     },
-    setUsePortalCulling : function (value) {
+    setUsePortalCulling : function (value: boolean) {
         usePortalCulling = value;
     },
     getSceneParams : function () {
         return sceneParams;
     },
-    setSceneParams: function (value) {
+    setSceneParams: function (value: unknown) {
         sceneParams = value;
     },
     getDrawWmoBB : function (){
         return drawWmoBB;
     },
-    setDrawWmoBB : function (value) {
+    setDrawWmoBB : function (value: boolean) {
         drawWmoBB = value;
     },
     getDrawM2BB : function (){
         return drawM2BB;
     },
-    setDrawM2BB: function (value) {
+    setDrawM2BB: function (value: boolean) {
         drawM2BB = value;
     },
     getUseSecondCamera : function() {
         return secondCamera;
     },
-    setUseSecondCamera : function(value) {
+    setUseSecondCamera : function(value: boolean) {
         secondCamera = value;
     },
     getDoubleCameraDebug : function () {
         return doubleCameraDebug;
     },
-    setDoubleCameraDebug : function (value) {
+    setDoubleCameraDebug : function (value: boolean) {
         doubleCameraDebug = value;
     },
     getDrawDepthBuffer : function () {
         return drawDepthBuffer;
     },
-    setDrawDepthBuffer : function (value) {
+    setDrawDepthBuffer : function (value: boolean) {
         drawDepthBuffer = value;
     },
     getCameraM2 : function () {
         return cameraM2;
     },
-    setCameraM2 : function (value) {
+    setCameraM2 : function (value: any) { // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports M2Object
         cameraM2 = value;
     }
 }
