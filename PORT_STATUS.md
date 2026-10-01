@@ -94,7 +94,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 52 | `wowRenderJs/manager/animationManager.ts` `calcBones` / `calcChildBones` | `calcBones` passes 5 arguments to the 8-parameter `calcChildBones`, which passes 8 to the 5-parameter `calcBoneMatrix` | the camera position lands in `blendAnimationIndex` and is forwarded into `calcBoneMatrix`'s `cameraPosInLocal` - works by accident |
 | 53 | `wowRenderJs/manager/animationManager.ts` `calcSubMeshColors` | the blend branch evaluates the alpha track with `time` / `animationRecord` / `animationIndex` instead of the blend animation's | alpha is not blended between animations; unreachable today (sub-animation picking is disabled by `if (false)` in `update()`) |
 | 54 | `wowRenderJs/manager/animationManager.ts` `calcLights` | indexes (`[0]`) and scales the `getTimedValue` results without checking them | a light whose track has no keys for the current animation (`null` / `undefined`) throws a TypeError |
-| 55 | `wowRenderJs/objects/M2Object.ts` `calcDistance` | tests `this.getIs`, which does not exist (probably `this.getIsRendered()`) | the base `calcDistance` never updates `currentDistance`, so ADT / WMO doodads keep distance 0 and the scene graph's distance sort does nothing for them |
 | 56 | `wowRenderJs/objects/M2Object.ts` `load` | the `!m2Geom` branch calls `$log.log(... + modelName)` - neither is declared | ReferenceError; unreachable (`skinGeom.fixData(m2Geom.m2File)` above already throws for a missing `m2Geom`, inside the same `try`) |
 | 57 | `wowRenderJs/objects/M2Object.ts` `getShaderNames` | the retry calls the three-parameter `getTabledShaderNames` with four arguments | `0x11` becomes `tex_unit_number2` and `textureUnitNum` is dropped; harmless - the `return 0` paths do not depend on that argument, so the retry always returns 0 again |
 | 58 | `wowRenderJs/objects/M2Object.ts` `getShaderNames` | cases 1-3 of the `0x8000` branch store the `Combiners_*` name in `vertexShader` and `Diffuse_T1_Env` in `pixelShader` - probably swapped | `pixelShaderTable["Diffuse_T1_Env"]` is undefined, so those batches draw with pixel shader 0 (Combiners_Opaque) |
@@ -213,7 +212,7 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   and WmoM2Object override `load()` and `checkAgainstDepthBuffer()` with other signatures - `@ts-expect-error` on those
   four declarations - so they are not assignable to `MDXObject`; "any M2 in the scene" is the exported union
   `M2Object = AdtM2Object | WmoM2Object | WorldMDXObject` (config, instanceManager, portalCullingAlgo, wmoObject).
-  `@ts-expect-error` on bugs 55, 56, 57, the six wrap-flag lines (60, 61) and the boolean XOR
+  `@ts-expect-error` on bugs 56, 57, the six wrap-flag lines (60, 61) and the boolean XOR
   (`isTransparent ^ !drawTransparent`) in `drawMeshes`. Assertions: `{...} as M2MaterialData`, `{} as M2CameraDetails` /
   `M2LightDetails`, `color as Float32List` (subMeshColors are plain arrays), `aabb as unknown as AABB` (`SubMeshBB` is
   `number[][]`), `placementMatrix as Float32List` for `uniformMatrix4fv`. `!` on `localBB`, `aabb`, `subMeshColors`

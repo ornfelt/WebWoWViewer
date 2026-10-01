@@ -226,9 +226,7 @@ abstract class MDXObject {
         }
     }
     calcDistance (position: ReadonlyVec4) {
-        // JS-BUG: this.getIs does not exist (probably meant this.getIsRendered()), so the base calcDistance never updates currentDistance
-        // @ts-expect-error getIs is not a member; ported as-is
-        if (this.loaded && this.getIs) {
+        if (this.loaded && this.getIsRendered()) {
             this.currentDistance = mathHelper.distanceFromAABBToPoint(this.aabb!, position);
         }
     }
