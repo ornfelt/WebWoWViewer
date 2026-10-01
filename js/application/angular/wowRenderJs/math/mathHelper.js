@@ -75,7 +75,7 @@ class MathHelper {
         for (var j = 0; j < thisPortalVertices.length; j++) {
             vec3.add(center, thisPortalVertices[j], center);
         }
-        vec3.scale(center, 1 / thisPortalVertices.length);
+        vec3.scale(center, center, 1 / thisPortalVertices.length);
         thisPortalVertices.sort(function (a, b) {
             var ac = vec3.create();
             vec3.subtract(ac, a, center);
