@@ -580,9 +580,8 @@ abstract class MDXObject {
                    var mdxTextureIndex1 = mdxObject.m2File.texLookup[skinTextureDefinition.textureIndex + 1];
                    var mdxTextureDefinition1 = mdxObject.m2File.textureDefinition[mdxTextureIndex1];
                    materialData.mdxTextureIndex2 = mdxTextureIndex1;
-                   // JS-BUG: the wrap flags of texture unit 2 are read from the first texture (mdxTextureDefinition), not mdxTextureDefinition1
-                   materialData.xWrapTex2 = (mdxTextureDefinition!.flags & 1) > 0;
-                   materialData.yWrapTex2 = (mdxTextureDefinition!.flags & 2) > 0;
+                   materialData.xWrapTex2 = (mdxTextureDefinition1.flags & 1) > 0;
+                   materialData.yWrapTex2 = (mdxTextureDefinition1.flags & 2) > 0;
                    materialData.texUnit2TexIndex = i;
 
                    if (mdxTextureDefinition1.texType == 0) {
@@ -595,9 +594,8 @@ abstract class MDXObject {
                    var mdxTextureIndex2 = mdxObject.m2File.texLookup[skinTextureDefinition.textureIndex + 2];
                    var mdxTextureDefinition2 = mdxObject.m2File.textureDefinition[mdxTextureIndex2];
                    materialData.mdxTextureIndex3 = mdxTextureIndex2;
-                   // JS-BUG: the wrap flags of texture unit 3 are read from the first texture (mdxTextureDefinition), not mdxTextureDefinition2
-                   materialData.xWrapTex3 = (mdxTextureDefinition!.flags & 1) > 0;
-                   materialData.yWrapTex3 = (mdxTextureDefinition!.flags & 2) > 0;
+                   materialData.xWrapTex3 = (mdxTextureDefinition2.flags & 1) > 0;
+                   materialData.yWrapTex3 = (mdxTextureDefinition2.flags & 2) > 0;
                    materialData.texUnit3TexIndex = i;
 
                    if (mdxTextureDefinition2.texType == 0) {
