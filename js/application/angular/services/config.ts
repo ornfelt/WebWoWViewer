@@ -18,6 +18,8 @@ var usePortalCulling: boolean = true;
 var renderSky: boolean = true;
 var useDebugSky: boolean = false;
 
+var renderLiquid: boolean = true;
+
 var drawWmoBB: boolean = false;
 var drawM2BB: boolean = false;
 var secondCamera: boolean = false;
@@ -120,6 +122,12 @@ export default {
     },
     setUseDebugSky : function (value: boolean) {
         useDebugSky = value;
+    },
+    getRenderLiquid : function () {
+        return renderLiquid;
+    },
+    setRenderLiquid : function (value: boolean) {
+        renderLiquid = value;
     },
     getSceneParams : function () {
         return sceneParams;

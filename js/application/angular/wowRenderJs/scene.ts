@@ -123,6 +123,7 @@ const drawFrustumShader        = getShaderSourceById('drawFrustum');
 const textureCompositionShader = getShaderSourceById('textureCompositionShader');
 const skyShader                = getShaderSourceById('sky');
 const skyGradientShader        = getShaderSourceById('SkyGradient');
+const liquidShader             = getShaderSourceById('liquid');
 
 // etc.
 
@@ -199,6 +200,7 @@ class Scene {
     drawPortalShader!: ShaderProgram;
     drawFrustumShader!: ShaderProgram;
     skyShader!: ShaderProgram;
+    liquidShader!: ShaderProgram;
     /* set by the activate*Shader() methods */
     currentShaderProgram!: ShaderProgram;
 
@@ -268,6 +270,9 @@ class Scene {
     skyWatchStart: number | undefined;
     skyClockStart: number | undefined;
     lastHour: number;
+
+    /* performance.now() when the liquid clock (texture frames, scrolling) last (re)started */
+    liquidClockStart: number | undefined;
 
     constructor(canvas: HTMLCanvasElement) {
         //var stats = new Stats();
@@ -615,6 +620,8 @@ class Scene {
         } else {
             self.skyShader = self.compileShader(skyShader, skyShader);
         }
+
+        self.liquidShader = self.compileShader(liquidShader, liquidShader);
     }
     initCaches (){
         this.wmoGeomCache = new WmoGeomCache(this.sceneApi);
@@ -843,6 +850,9 @@ class Scene {
                 },
                 getSkyShader: function () {
                     return self.skyShader;
+                },
+                getLiquidShader: function () {
+                    return self.liquidShader;
                 }
             },
             dbc : {
@@ -1655,6 +1665,11 @@ class Scene {
         this.graphManager.sortGeometry(perspectiveMatrixForCulling, lookAtMat4);
 
 
+        // liquid clock: seconds, restarted after 30 s
+        if (this.liquidClockStart === undefined) this.liquidClockStart = performance.now();
+        else if ((performance.now() - this.liquidClockStart) / 1000 > 30) this.liquidClockStart = performance.now();
+        var liquidTime = (performance.now() - this.liquidClockStart) / 1000;
+
         gl.viewport(0,0,this.canvas.width, this.canvas.height);
         if (config.getDoubleCameraDebug()) {
             //Draw static camera
@@ -1667,7 +1682,7 @@ class Scene {
             gl.activeTexture(gl.TEXTURE0);
             gl.depthMask(true);
             gl.enableVertexAttribArray(0);
-            this.graphManager.draw();
+            this.graphManager.draw(this.lookAtMat4, perspectiveMatrix, liquidTime);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
             //Draw debug camera from framebuffer into screen
@@ -1735,7 +1750,7 @@ class Scene {
         gl.activeTexture(gl.TEXTURE0);
         gl.depthMask(true);
         gl.enableVertexAttribArray(0);
-        this.graphManager.draw();
+        this.graphManager.draw(this.lookAtMat4, perspectiveMatrix, liquidTime);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
         if (!config.getDoubleCameraDebug()) {

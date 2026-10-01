@@ -61,6 +61,8 @@ export interface SceneApiShaders {
     getShaderAttributes(): { [name: string]: number };
     /* the lights.lit sky dome shader (sky), or the gradient debug sky shader (SkyGradient) when config.getUseDebugSky() */
     getSkyShader(): ShaderProgram;
+    /* the liquid surface shader (liquid) */
+    getLiquidShader(): ShaderProgram;
 }
 
 export interface SceneApiDbc {

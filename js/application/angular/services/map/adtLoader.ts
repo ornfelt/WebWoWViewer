@@ -2,6 +2,7 @@ import chunkedLoader from './../chunkedLoader';
 import type { Chunk, ChunkedFile, ChunkHandlerTable } from './../chunkedLoader';
 import fileReadHelper from './../fileReadHelper';
 import type { Vector3f } from './../fileReadHelper';
+import Liquid from './../../wowRenderJs/liquid/liquid';
 
 /* MCIN record - read and used to find the MCNK, not kept */
 export interface AdtMcinEntry {
@@ -51,6 +52,10 @@ export interface AdtMcnkObj {
     textureLayers?: AdtTextureLayer[];
     /* MCAL - unset when sizeAlpha is 0 */
     alphaArray?: Uint8Array;
+    /* MCLQ - unset when sizeLiquid is 0 */
+    hasWater?: boolean;
+    waterLevel?: number;
+    liquidInfo?: Liquid | null;
 }
 
 /* MDDF record */
@@ -90,6 +95,8 @@ export interface AdtFile {
     mddf?: AdtM2Placement[];
     wmoObjs?: AdtModfChunk[];
 }
+
+const TILESIZE = 533.33333;
 
 const handlerTable: ChunkHandlerTable = {
     "MVER" : function (adtObject: AdtFile, chunk: Chunk) {
@@ -203,7 +210,9 @@ const handlerTable: ChunkHandlerTable = {
         chunkedFile.processChunkAtOffs(chunk.chunkOffset + ofsLayer, mcnkObj);
         //4. Load MCAL
         chunkedFile.processChunkAtOffsWithSize(chunk.chunkOffset + ofsAlpha, mcnkObj.sizeAlpha, mcnkObj);
-        //5. Load MCRF
+        //5. Load MCLQ
+        chunkedFile.processChunkAtOffsWithSize(chunk.chunkOffset + ofsLiquid, sizeLiquid, mcnkObj);
+        //6. Load MCRF
 
         chunkedFile.processChunkAtOffs(chunk.chunkOffset + ofsRefs, mcnkObj);
     },
@@ -258,6 +267,34 @@ const handlerTable: ChunkHandlerTable = {
 
         mcnkObj.m2Refs = m2Refs;
         mcnkObj.wmoRefs = wmoRefs;
+    },
+    "MCLQ": function (mcnkObj: AdtMcnkObj, chunk: Chunk, chunkedFile: ChunkedFile) {
+        var off = {offs: 0};
+
+        // read water height (float)
+        var waterLevel = chunk.readFloat32(off);
+        off.offs -= 4;
+
+        // next 4 bytes tell us if liquid section is empty ("MCSE")
+        var subId = chunk.reverseStr(chunk.readNZTString(off, 4));   // == "MCSE" -> dry chunk
+
+        if (subId == "MCSE") {      // no liquid for this chunk
+            mcnkObj.hasWater = false;
+            mcnkObj.liquidInfo = null;
+            return;
+        }
+
+        // we DO have water
+        mcnkObj.hasWater = true;
+        mcnkObj.waterLevel = waterLevel;
+
+        off.offs += 4;
+
+        // From wow coords:
+        var normCoords = [TILESIZE * 32 - mcnkObj.pos.y, mcnkObj.pos.z, TILESIZE * 32 - mcnkObj.pos.x];
+
+        mcnkObj.liquidInfo = new Liquid(8, 8, [normCoords[0], mcnkObj.waterLevel, normCoords[2]]);
+        mcnkObj.liquidInfo.initFromTerrain(chunk, off, mcnkObj.flags);
     },
     "MTEX" : function (adtObject: AdtFile, chunk: Chunk) {
         var offset = {offs: 0};
