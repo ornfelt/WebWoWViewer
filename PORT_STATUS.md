@@ -58,7 +58,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 18 | `services/dbc/wmoAreaTableDBC.ts` | a copy of `lightDBC`: loads `Light.dbc` and builds light records | not WMOAreaTable data at all; nothing imports it |
 | 19 | `services/map/adtLoader.ts` `MVER` handler | throws with undeclared `filename` | ReferenceError instead of the message; unreachable (handler only runs for MVER) |
 | 21 | `services/map/blpLoader.ts` palette path | always reads 8-bit alpha after the indices, whatever `alphaChannelBitDepth` is | palettised BLPs without alpha come out fully transparent; 1- and 4-bit alpha misread |
-| 22 | `services/map/skinLoader.ts` | rejection handler returns `errorObj` | a failed load resolves with the error as if it were the SkinFile (like 7) |
 | 23 | `services/map/wmoLoader.ts` `MOGP` | the uint16 after `numBatchesC` is not read | `Indeces`, `Unk1`, `groupID`, `Unk2`, `Unk3` read 2 bytes early; none is used today |
 | 24 | `services/map/wmoLoader.ts` `MOPY` | `chunk.length` - a chunk has no `length` | `n` is NaN; unused, harmless |
 | 25 | `services/map/wmoLoader.ts` `MOVT`, `MONR`, `MOTV` | non-plain branch calls `readVector3f` / `readVector2f` with a count; they read one vector | would store a single vector; unreachable (wmoGeomCache always passes `loadPlainVertexes = true`) |

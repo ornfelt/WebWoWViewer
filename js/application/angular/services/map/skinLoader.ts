@@ -407,10 +407,6 @@ export default function(filePath: string): Promise<SkinFile> {
 
             resultSkinObject.fileName = filePath;
             return resultSkinObject;
-        },
-        // JS-BUG: the rejection handler returns errorObj, so a failed load resolves with the error as if it were the SkinFile
-        function error(errorObj: unknown): SkinFile {
-            return errorObj as SkinFile;
         });
 
     return newPromise;
