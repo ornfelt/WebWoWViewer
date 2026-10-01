@@ -19,6 +19,8 @@ var useDebugSky = false;
 
 var renderLiquid = true;
 
+var renderLowresTerrain = true;
+
 var drawWmoBB = false;
 var drawM2BB = false;
 var secondCamera = false;
@@ -130,6 +132,12 @@ export default {
     },
     setRenderLiquid : function (value) {
         renderLiquid = value;
+    },
+    getRenderLowresTerrain : function () {
+        return renderLowresTerrain;
+    },
+    setRenderLowresTerrain : function (value) {
+        renderLowresTerrain = value;
     },
     getSceneParams : function () {
         return sceneParams;

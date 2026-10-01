@@ -27,6 +27,7 @@ import TextureWoWCache from './texture/textureCache.js';
 import firstPersonCamera from './camera/firstPersonCamera.js'
 
 import Skies from './sky/skies.js'
+import LowresTerrain from './lowresTerrain/lowresTerrain.js'
 
 import {mat4, vec4, vec3, glMatrix} from 'gl-matrix'
 
@@ -74,6 +75,7 @@ const textureCompositionShader = getShaderSourceById('textureCompositionShader')
 const skyShader                = getShaderSourceById('sky');
 const skyGradientShader        = getShaderSourceById('SkyGradient');
 const liquidShader             = getShaderSourceById('liquid');
+const lowresTerrainShader      = getShaderSourceById('lowresTerrain');
 
 // etc.
 
@@ -461,6 +463,8 @@ class Scene {
         }
 
         self.liquidShader = self.compileShader(liquidShader, liquidShader);
+
+        self.lowresTerrainShader = self.compileShader(lowresTerrainShader, lowresTerrainShader);
     }
     initCaches (){
         this.wmoGeomCache = new WmoGeomCache(this.sceneApi);
@@ -690,6 +694,9 @@ class Scene {
                 },
                 getLiquidShader: function () {
                     return self.liquidShader;
+                },
+                getLowresTerrainShader: function () {
+                    return self.lowresTerrainShader;
                 }
             },
             dbc : {
@@ -827,6 +834,9 @@ class Scene {
         } else {
             this.skies = new Skies(this.sceneApi, this.currentMapName, false);
         }
+    }
+    initLowresTerrain () {
+        this.lowresTerrain = new LowresTerrain(this.sceneApi, this.currentMapName);
     }
     initBoxVBO (){
         var gl = this.gl;
@@ -1584,6 +1594,16 @@ class Scene {
             gl.enable(gl.DEPTH_TEST); // restore for everything else
         }
 
+        // Draw lowresterrain
+        if (config.getRenderLowresTerrain() && this.lowresTerrain) {
+            gl.enable(gl.CULL_FACE);
+            gl.disable(gl.DEPTH_TEST);
+            // the sky's projection has the far plane my_web_wow draws everything with (850)
+            this.lowresTerrain.drawAll(lookAtMat4, skyPerspectiveMatrix, this.fogColor);
+            gl.disable(gl.CULL_FACE);
+            gl.enable(gl.DEPTH_TEST); // restore for everything else
+        }
+
         gl.activeTexture(gl.TEXTURE0);
         gl.depthMask(true);
         gl.enableVertexAttribArray(0);
@@ -1650,6 +1670,7 @@ class Scene {
             self.currentMapName = mapName;
 
             self.initSky();
+            self.initLowresTerrain();
 
             if (wdtFile.isWMOMap) {
                 self.graphManager.loadWmoMap(wdtFile.modfChunk);

@@ -1264,6 +1264,29 @@ void main()
 #endif //COMPILING_FS
     </script>
 
+    <script id="lowresTerrain" type="text/plain">
+#ifdef COMPILING_VS
+attribute vec3 aPosition;
+
+uniform mat4 uLookAtMat;
+uniform mat4 uPMatrix;
+
+void main() {
+    gl_Position = uPMatrix * uLookAtMat * vec4(aPosition, 1.0);
+}
+#endif //COMPILING_VS
+#ifdef COMPILING_FS
+precision mediump float;
+
+// the flat color you want (RGB)
+uniform vec3 uColor;
+
+void main() {
+    gl_FragColor = vec4(uColor, 1.0);
+}
+#endif //COMPILING_FS
+    </script>
+
     <!-- Our final Webpack bundle -->
     <script src="build/main.js"></script>
   </body>
