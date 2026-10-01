@@ -875,9 +875,9 @@ export default class AnimationManager {
             if (blendAnimationRecord != null) {
                 alpha = this.getTimedValue(
                     2,
-                    time,
-                    animationRecord.length,
-                    animationIndex,
+                    blendAnimationTime,
+                    blendAnimationRecord.length,
+                    blendAnimationIndex,
                     colors[i].alpha);
 
                 if (alpha) {
