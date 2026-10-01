@@ -139,13 +139,13 @@ export interface M2File {
     ofsGlobalSequences: number;
     nAnimations: number;
     ofsAnimations: number;
-    /* 264 only */
+    /* not in 274 */
     nAnimationLookup?: number;
-    /* 264 only */
+    /* not in 274 */
     ofsAnimationLookup?: number;
-    /* not in 264 */
+    /* 274 only */
     nC?: number;
-    /* not in 264 */
+    /* 274 only */
     ofsC?: number;
     /* TBC / classic only */
     nD?: number;
@@ -153,13 +153,13 @@ export interface M2File {
     ofsD?: number;
     nBones: number;
     ofsBones: number;
-    /* 264 only */
+    /* not in 274 */
     nKeyBoneLookup?: number;
-    /* 264 only */
+    /* not in 274 */
     ofsKeyBoneLookup?: number;
-    /* not in 264 */
+    /* 274 only */
     nF?: number;
-    /* not in 264 */
+    /* 274 only */
     ofsF?: number;
     nVertexes: number;
     ofsVertexes: number;
@@ -182,13 +182,13 @@ export interface M2File {
     ofsTexReplace: number;
     nRenderFlags: number;
     ofsRenderFlags: number;
-    /* 264 only */
+    /* not in 274 */
     nBoneLookupTable?: number;
-    /* 264 only */
+    /* not in 274 */
     ofsBoneLookupTable?: number;
-    /* not in 264 */
+    /* 274 only */
     nGroupBoneIDs?: number;
-    /* not in 264 */
+    /* 274 only */
     ofsGroupBoneIDs?: number;
     nTexLookup: number;
     ofsTexLookup: number;
@@ -212,13 +212,13 @@ export interface M2File {
     ofsBoundingNormals: number;
     nAttachments: number;
     ofsAttachments: number;
-    /* 264 only */
+    /* not in 274 */
     nAttachLookup?: number;
-    /* 264 only */
+    /* not in 274 */
     ofsAttachLookup?: number;
-    /* not in 264 */
+    /* 274 only */
     nP?: number;
-    /* not in 264 */
+    /* 274 only */
     ofsP?: number;
     nNumEvents: number;
     ofsNumEvents: number;
@@ -1011,14 +1011,14 @@ const mdx_ver262: SectionDefinition = {
         {name: "ofsGlobalSequences",    type: "int32"},
         {name: "nAnimations",           type: "int32"},
         {name: "ofsAnimations",         type: "int32"},
-        {name: "nC",                    type: "int32"},
-        {name: "ofsC",                  type: "int32"},
+        {name: "nAnimationLookup",      type: "int32"},
+        {name: "ofsAnimationLookup",    type: "int32"},
         {name: "nD",                    type: "int32"},
         {name: "ofsD",                  type: "int32"},
         {name: "nBones",                type: "int32"},
         {name: "ofsBones",              type: "int32"},
-        {name: "nF",                    type: "int32"},
-        {name: "ofsF",                  type: "int32"},
+        {name: "nKeyBoneLookup",        type: "int32"},
+        {name: "ofsKeyBoneLookup",      type: "int32"},
         {name: "nVertexes",             type: "int32"},
         {name: "ofsVertexes",           type: "int32"},
         {name: "nViews",                type: "int32"},
@@ -1044,8 +1044,8 @@ const mdx_ver262: SectionDefinition = {
         {name: "nRenderFlags",          type: "int32"},
         {name: "ofsRenderFlags",        type: "int32"},
 
-        {name: "nGroupBoneIDs",         type: "int32"},
-        {name: "ofsGroupBoneIDs",       type: "int32"},
+        {name: "nBoneLookupTable",      type: "int32"},
+        {name: "ofsBoneLookupTable",    type: "int32"},
         {name: "nTexLookup",            type: "int32"},
         {name: "ofsTexLookup",          type: "int32"},
         {name: "nTexUnits",             type: "int32"},
@@ -1069,8 +1069,8 @@ const mdx_ver262: SectionDefinition = {
         {name: "ofsBoundingNormals",    type: "int32"},
         {name: "nAttachments",          type: "int32"},
         {name: "ofsAttachments",        type: "int32"},
-        {name: "nP",                    type: "int32"},
-        {name: "ofsP",                  type: "int32"},
+        {name: "nAttachLookup",         type: "int32"},
+        {name: "ofsAttachLookup",       type: "int32"},
         {name: "nNumEvents",            type: "int32"},
         {name: "ofsNumEvents",          type: "int32"},
 
@@ -1347,7 +1347,6 @@ const mdx_ver262: SectionDefinition = {
                 }
             ]
         },
-        // JS-BUG: this header has no nAttachLookup / nAnimationLookup / nKeyBoneLookup / nBoneLookupTable (they are the unnamed nC / nF / ... fields), so these four lookups always come out empty
         {
             name: "attachLookups",
             offset: "ofsAttachLookup",
@@ -1432,14 +1431,14 @@ const mdx_ver256: SectionDefinition = {
         {name: "ofsGlobalSequences",    type: "int32"},
         {name: "nAnimations",           type: "int32"},
         {name: "ofsAnimations",         type: "int32"},
-        {name: "nC",                    type: "int32"},
-        {name: "ofsC",                  type: "int32"},
+        {name: "nAnimationLookup",      type: "int32"},
+        {name: "ofsAnimationLookup",    type: "int32"},
         {name: "nD",                    type: "int32"},
         {name: "ofsD",                  type: "int32"},
         {name: "nBones",                type: "int32"},
         {name: "ofsBones",              type: "int32"},
-        {name: "nF",                    type: "int32"},
-        {name: "ofsF",                  type: "int32"},
+        {name: "nKeyBoneLookup",        type: "int32"},
+        {name: "ofsKeyBoneLookup",      type: "int32"},
         {name: "nVertexes",             type: "int32"},
         {name: "ofsVertexes",           type: "int32"},
         {name: "nViews",                type: "int32"},
@@ -1465,8 +1464,8 @@ const mdx_ver256: SectionDefinition = {
         {name: "nRenderFlags",          type: "int32"},
         {name: "ofsRenderFlags",        type: "int32"},
 
-        {name: "nGroupBoneIDs",         type: "int32"},
-        {name: "ofsGroupBoneIDs",       type: "int32"},
+        {name: "nBoneLookupTable",      type: "int32"},
+        {name: "ofsBoneLookupTable",    type: "int32"},
         {name: "nTexLookup",            type: "int32"},
         {name: "ofsTexLookup",          type: "int32"},
         {name: "nTexUnits",             type: "int32"},
@@ -1490,8 +1489,8 @@ const mdx_ver256: SectionDefinition = {
         {name: "ofsBoundingNormals",    type: "int32"},
         {name: "nAttachments",          type: "int32"},
         {name: "ofsAttachments",        type: "int32"},
-        {name: "nP",                    type: "int32"},
-        {name: "ofsP",                  type: "int32"},
+        {name: "nAttachLookup",         type: "int32"},
+        {name: "ofsAttachLookup",       type: "int32"},
         {name: "nNumEvents",            type: "int32"},
         {name: "ofsNumEvents",          type: "int32"},
 
@@ -1767,7 +1766,6 @@ const mdx_ver256: SectionDefinition = {
                 }
             ]
         },
-        // JS-BUG: this header has no nAttachLookup / nAnimationLookup / nKeyBoneLookup / nBoneLookupTable (they are the unnamed nC / nF / ... fields), so these four lookups always come out empty
         {
             name: "attachLookups",
             offset: "ofsAttachLookup",

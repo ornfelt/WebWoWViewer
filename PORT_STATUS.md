@@ -60,7 +60,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 24 | `services/map/wmoLoader.ts` `MOPY` | `chunk.length` - a chunk has no `length` | `n` is NaN; unused, harmless |
 | 25 | `services/map/wmoLoader.ts` `MOVT`, `MONR`, `MOTV` | non-plain branch calls `readVector3f` / `readVector2f` with a count; they read one vector | would store a single vector; unreachable (wmoGeomCache always passes `loadPlainVertexes = true`) |
 | 28 | `services/map/mdxLoader.ts` `mdx_ver274` | the layout has no cameras, attachments, attachLookups, animationLookup, keyBoneLookup, boneLookupTable or lights sections | `animationManager` reads `animationLookup` / `keyBoneLookup` unconditionally - TypeError for version-274 models |
-| 29 | `services/map/mdxLoader.ts` `mdx_ver262`, `mdx_ver256` | the lookup sections count by `nAttachLookup` / `nAnimationLookup` / `nKeyBoneLookup` / `nBoneLookupTable`, which these headers do not have (the tables are the unnamed `nC` / `nF` / ... fields) | the four lookups are always `[]` for TBC / classic models, and `nAnimationLookup` is `undefined`, so `animationManager.setAnimationId` probably never finds an animation by id for them |
 | 30 | `services/map/mdxLoader.ts` `mdxChunked['12DM']` | `$.extend` - jQuery is neither imported nor loaded | ReferenceError; unreachable today (bug 32) |
 | 31 | `services/map/mdxLoader.ts` `parseOldFile` | when `timeStart > timeEnd`, `timeEnd -= timeStartTemp` instead of `timeEnd = timeStartTemp` (the code's own TODO doubts it) | `timeEnd` becomes negative and `length` is `-timeStart` for those TBC / classic animations (probably meant a swap) |
 | 32 | `services/map/mdxLoader.ts` `BaseMdxChunkedLoader.getHandler` | returns `handlerTable[...]`, which is not declared (probably meant `mdxChunked`) | ReferenceError on the first chunk; unreachable today (bug 33) |
@@ -172,7 +171,7 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   Unused are `{}`), and `update()` only draws slots that have a region.
 - `animationManager.ts`: track values are the `M2TrackValue` union; `convertValueTypeToVec4` asserts the value per
   `type` (`as Vector3f` / `as Vector4f` / `as number[]` / `as number`). `!` on `probability`, `timeStart` / `timeEnd`
-  (optional in `M2Animation`), `nAnimationLookup` / `animationLookup` / `keyBoneLookup` (bugs 28-29),
+  (optional in `M2Animation`), `nAnimationLookup` / `animationLookup` / `keyBoneLookup` (bug 28),
   `subAnimRecord!` (a `var` assigned in a branch), `value1!` / `value2!` (convert returns `undefined` only for an
   unknown type), and `interpolateValues(...)!` in `calcSubMeshColors` (interpolation type 1 always returns);
   `unk_ambient` is declared `vec4 | number | null | undefined` and
