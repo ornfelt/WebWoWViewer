@@ -1,3 +1,5 @@
+import Expansion from '../Expansion.js';
+
 //var urlToLoadWoWFile = '/get/';
 var urlToLoadWoWFile = 'http://127.0.0.1:3002/files/';
 var readFileMethod = 'http';
@@ -11,6 +13,9 @@ var renderWmo = true;
 var renderBSP = false;
 var renderPortals = false;
 var usePortalCulling = true;
+
+var renderSky = true;
+var useDebugSky = false;
 
 var drawWmoBB = false;
 var drawM2BB = false;
@@ -99,6 +104,21 @@ export default {
     },
     setUsePortalCulling : function (value) {
         usePortalCulling = value;
+    },
+    getRenderSky : function () {
+        return renderSky;
+    },
+    setRenderSky : function (value) {
+        renderSky = value;
+    },
+    getUseDebugSky : function () {
+        // TODO: fix sky/lit files for WOTLK. Maybe only use debug_sky if sky
+        // file is missing?
+        if (window.selectedExpansion === Expansion.WOTLK) return true;
+        return useDebugSky;
+    },
+    setUseDebugSky : function (value) {
+        useDebugSky = value;
     },
     getSceneParams : function () {
         return sceneParams;

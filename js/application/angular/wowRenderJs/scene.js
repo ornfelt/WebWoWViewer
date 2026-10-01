@@ -26,6 +26,8 @@ import TextureWoWCache from './texture/textureCache.js';
 
 import firstPersonCamera from './camera/firstPersonCamera.js'
 
+import Skies from './sky/skies.js'
+
 import {mat4, vec4, vec3, glMatrix} from 'gl-matrix'
 
 /* DBC stuff */
@@ -68,12 +70,35 @@ const adtShader                = getShaderSourceById('adtShader');
 const drawPortalShader         = getShaderSourceById('drawPortalShader');
 const drawFrustumShader        = getShaderSourceById('drawFrustum');
 const textureCompositionShader = getShaderSourceById('textureCompositionShader');
+const skyShader                = getShaderSourceById('sky');
+const skyGradientShader        = getShaderSourceById('SkyGradient');
 
 // etc.
 
 /*************/
 
 glMatrix.setMatrixArrayType(Array);
+
+// TODO: don't cycle for arena maps... Instead just pick one of these:
+const skyPalettes = [
+    {
+        zenith:  [0.15, 0.45, 0.85],
+        horizon: [0.40, 0.75, 1.00]
+    },
+    {
+        zenith:  [0.10, 0.30, 0.70],
+        horizon: [0.35, 0.60, 0.90]
+    },
+    {
+        zenith:  [0.30, 0.15, 0.05], // sunset orange-red at top
+        horizon: [0.60, 0.35, 0.20]  // warm orange at horizon
+    }
+];
+
+const SecPerSkyHour = 2.0; // 2 s -> next sky hour
+const TicksPerHour = 120; // 120 ticks = 1 Look-up hour
+/* far plane of the sky's own projection: the sky dome (radius 400) lies on the scene's far plane (400) */
+const skyFarPlane = 850;
 
 
 class Scene {
@@ -104,6 +129,8 @@ class Scene {
 
         this.uFogStart = -1;
         this.uFogEnd  = -1;
+
+        this.lastHour = -1;
 
         self.initGlContext(canvas);
         self.initArrayInstancedExt();
@@ -414,6 +441,12 @@ class Scene {
 
         self.drawPortalShader = self.compileShader(drawPortalShader, drawPortalShader);
         self.drawFrustumShader = self.compileShader(drawFrustumShader, drawFrustumShader);
+
+        if (config.getUseDebugSky()) {
+            self.skyShader = self.compileShader(skyGradientShader, skyGradientShader);
+        } else {
+            self.skyShader = self.compileShader(skyShader, skyShader);
+        }
     }
     initCaches (){
         this.wmoGeomCache = new WmoGeomCache(this.sceneApi);
@@ -637,6 +670,9 @@ class Scene {
                 },
                 getShaderAttributes: function () {
                     return self.currentShaderProgram.shaderAttributes;
+                },
+                getSkyShader: function () {
+                    return self.skyShader;
                 }
             },
             dbc : {
@@ -749,6 +785,26 @@ class Scene {
     }
     initCamera (){
         this.camera = new firstPersonCamera();
+    }
+    initSky () {
+        if (config.getUseDebugSky()) {
+            var gl = this.gl;
+            var quad = [
+                -1, -1, // two triangles that fill NDC
+                 1, -1,
+                -1,  1,
+                -1,  1,
+                 1, -1,
+                 1,  1
+            ];
+
+            this.skyQuadVbo = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.skyQuadVbo);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(quad), gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        } else {
+            this.skies = new Skies(this.sceneApi, this.currentMapName, false);
+        }
     }
     initBoxVBO (){
         var gl = this.gl;
@@ -1191,6 +1247,32 @@ class Scene {
             gl.uniformMatrix4fv(this.currentShaderProgram.shaderUniforms.uPMatrix, false, this.perspectiveMatrix);
         }
     }
+    activateSkyShader () {
+        this.currentShaderProgram = this.skyShader;
+        var gl = this.gl;
+        gl.useProgram(this.currentShaderProgram.program);
+
+        gl.enableVertexAttribArray(this.currentShaderProgram.shaderAttributes.aPosition);
+        gl.vertexAttribPointer(this.currentShaderProgram.shaderAttributes.aPosition, 2, gl.FLOAT, false, 0, 0);
+
+        // Tweak colours at run-time
+        if (this.skyWatchStart === undefined) this.skyWatchStart = performance.now();
+        var totalSec = (performance.now() - this.skyWatchStart) / 1000;
+        var idx = Math.floor(totalSec / 5) % skyPalettes.length;
+        var next = (idx + 1) % skyPalettes.length;
+        var f = (totalSec % 5) / 5;
+        var z = vec3.create();
+        var h = vec3.create();
+        vec3.lerp(z, skyPalettes[idx].zenith, skyPalettes[next].zenith, f);
+        vec3.lerp(h, skyPalettes[idx].horizon, skyPalettes[next].horizon, f);
+        gl.uniform3fv(this.currentShaderProgram.shaderUniforms.uZenithColor, z);
+        gl.uniform3fv(this.currentShaderProgram.shaderUniforms.uHorizonColor, h);
+
+        gl.uniform1f(this.currentShaderProgram.shaderUniforms.uExponent, 1.4);
+    }
+    deactivateSkyShader () {
+        // nothing special - no attributes other than aPosition are active
+    }
     activateDrawPortalShader () {
         this.currentShaderProgram = this.drawPortalShader;
         if (this.currentShaderProgram) {
@@ -1354,6 +1436,9 @@ class Scene {
         //mat4.ortho(perspectiveMatrix, -o_width, o_width, -o_height, o_height, 1, 1000);
 
 
+        var skyPerspectiveMatrix = mat4.create();
+        mat4.perspective(skyPerspectiveMatrix, fov, this.canvas.width / this.canvas.height, nearPlane, skyFarPlane);
+
         var perspectiveMatrixForCulling = mat4.create();
         mat4.perspective(perspectiveMatrixForCulling, fov, this.canvas.width / this.canvas.height, nearPlane, farPlane);
 
@@ -1426,6 +1511,53 @@ class Scene {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
         this.glClearScreen(gl, this.fogColor);
 
+        if (config.getRenderSky()) {
+            /* draw the sky bg */
+            gl.disable(gl.DEPTH_TEST); // background never writes depth
+
+            if (config.getUseDebugSky()) {
+                // Debug sky
+                if (this.skyQuadVbo) {
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.skyQuadVbo);
+                    this.activateSkyShader();
+                    gl.drawArrays(gl.TRIANGLES, 0, 6);
+                    this.deactivateSkyShader();
+                }
+            } else if (this.skies) {
+                // Use real sky
+                // TODO: use time properly?
+
+                // Cycle
+                // start clock on first tick
+                if (this.skyClockStart === undefined) this.skyClockStart = performance.now();
+
+                // real seconds -> simulated hour 0-23
+                var elapsed = (performance.now() - this.skyClockStart) / 1000;
+                var hour = Math.floor(elapsed / SecPerSkyHour) % 24;
+
+                // log only when the hour changes
+                if (hour != this.lastHour) {
+                    console.log("[Sky] hour " + (hour < 10 ? "0" + hour : hour) + "   daytime ticks " + (hour * TicksPerHour));
+                    this.lastHour = hour;
+                }
+
+                // Feed the lighting / sky systems
+                var daytime = hour * TicksPerHour; // 0, 120, 240 ... 2760
+
+                // the sky gets its own projection, see skyFarPlane
+                this.skies.drawSky(this.mainCamera, lookAtMat4, skyPerspectiveMatrix, daytime);
+
+                // Optional: restart the day after 24 h of simulated time
+                if (elapsed >= SecPerSkyHour * 24) {
+                    this.skyClockStart = performance.now();
+                    this.lastHour = -1;
+                }
+            }
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            gl.enable(gl.DEPTH_TEST); // restore for everything else
+        }
+
         gl.activeTexture(gl.TEXTURE0);
         gl.depthMask(true);
         gl.enableVertexAttribArray(0);
@@ -1490,6 +1622,9 @@ class Scene {
         wdtLoader(wdtFileName).then(function success(wdtFile){
             self.currentWdt = wdtFile;
             self.currentMapName = mapName;
+
+            self.initSky();
+
             if (wdtFile.isWMOMap) {
                 self.graphManager.loadWmoMap(wdtFile.modfChunk);
             } else {

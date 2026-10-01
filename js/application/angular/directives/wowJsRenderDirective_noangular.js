@@ -167,6 +167,7 @@ export async function initViewer(containerEl) {
         <label><input type="checkbox" id="chkDrawAdt"> Draw ADT</label><br/>
         <label><input type="checkbox" id="chkDrawM2"> Draw M2</label><br/>
         <label><input type="checkbox" id="chkDrawWMO"> Draw WMO</label><br/>
+        <label><input type="checkbox" id="chkRenderSky"> Render Sky</label><br/>
         <label><input type="checkbox" id="chkDrawPortals"> Draw Portals</label><br/>
         <label><input type="checkbox" id="chkDrawM2BB"> Draw M2 BB</label><br/>
         <label><input type="checkbox" id="chkDrawWmoBB"> Draw WMO BB</label><br/>
@@ -193,6 +194,7 @@ export async function initViewer(containerEl) {
   const chkDrawAdt          = containerEl.querySelector('#chkDrawAdt');
   const chkDrawM2           = containerEl.querySelector('#chkDrawM2');
   const chkDrawWMO           = containerEl.querySelector('#chkDrawWMO');
+  const chkRenderSky        = containerEl.querySelector('#chkRenderSky');
   const chkDrawPortals      = containerEl.querySelector('#chkDrawPortals');
   const chkDrawM2BB         = containerEl.querySelector('#chkDrawM2BB');
   const chkDrawWmoBB        = containerEl.querySelector('#chkDrawWmoBB');
@@ -211,9 +213,6 @@ export async function initViewer(containerEl) {
   const containerH = containerEl.clientHeight;
   canvas.width  = Math.floor(containerW * 0.79);
   canvas.height = containerH;
-
-  // Create Scene
-  const sceneObj = new Scene(canvas);
 
   // Hard-code params
     //const mapParams = {
@@ -397,6 +396,7 @@ export async function initViewer(containerEl) {
     //    name: 'arena wmo',
     //    source: 'http',
     //    sceneType: 'wmo',
+    //    useDebugSky: true,
     //    fileName: 'world\\wmo\\pvp\\buildings\\lordaeron\\pvp_lordaeron_arena.wmo'
     //    //fileName: 'world\\wmo\\pvp\\buildings\\dalaran\\dalaran_sewer_arena.wmo'
     //    //fileName: 'world\\wmo\\pvp\\buildings\\dalaran\\dalaran_sewer_arena.wmo'
@@ -444,6 +444,23 @@ export async function initViewer(containerEl) {
     //}
 
     // TODO: test individual adt, more WMOs and models...
+
+  const useDebugSky = mapParams.useDebugSky === true;
+  if (useDebugSky) {
+    config.setRenderSky(true);
+    config.setUseDebugSky(true);
+  }
+
+  // Create Scene
+  const sceneObj = new Scene(canvas);
+
+  // Disable sky rendering if not running map mode
+  if (mapParams.sceneType != 'map') {
+    if (useDebugSky)
+      sceneObj.initSky();
+    else
+      config.setRenderSky(false);
+  }
 
   // Calculate ADT coords
   const adt_x = Math.floor((32 - (mapParams.y / 533.33333)));
@@ -583,6 +600,7 @@ export async function initViewer(containerEl) {
   chkDrawAdt.checked          = config.getRenderAdt();
   chkDrawM2.checked           = config.getRenderM2();
   chkDrawWMO.checked           = config.getRenderWMO();
+  chkRenderSky.checked        = config.getRenderSky();
   chkDrawPortals.checked      = config.getRenderPortals();
   chkDrawM2BB.checked         = config.getDrawM2BB();
   chkDrawWmoBB.checked        = config.getDrawWmoBB();
@@ -600,6 +618,7 @@ export async function initViewer(containerEl) {
   chkDrawAdt.addEventListener('change', () => { config.setRenderAdt(chkDrawAdt.checked); });
   chkDrawM2.addEventListener('change', () => { config.setRenderM2(chkDrawM2.checked); });
   chkDrawWMO.addEventListener('change', () => { config.setRenderWMO(chkDrawWMO.checked); });
+  chkRenderSky.addEventListener('change', () => { config.setRenderSky(chkRenderSky.checked); });
   chkDrawPortals.addEventListener('change', () => { config.setRenderPortals(chkDrawPortals.checked); });
   chkDrawM2BB.addEventListener('change', () => { config.setDrawM2BB(chkDrawM2BB.checked); });
   chkDrawWmoBB.addEventListener('change', () => { config.setDrawWmoBB(chkDrawWmoBB.checked); });
