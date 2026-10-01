@@ -62,8 +62,14 @@ class WorldPlayer extends WorldUnit {
     }
 
     /* Items */
+    /* Item.dbc is only loaded for WotLK, and only once it has been read */
+    getItemRecord(entry) {
+        var itemDBC = this.sceneApi.dbc.getItemDBC();
+        return itemDBC ? itemDBC[entry] : undefined;
+    }
+
     setHeadItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.headItemId = itemRecord.displayId;
         }
@@ -71,91 +77,91 @@ class WorldPlayer extends WorldUnit {
     }
 
     setNeckItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.neckItemId = itemRecord.displayId;
         }
     }
 
     setShouldersItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.shoulderItemId = itemRecord.displayId;
         }
     }
 
     setBodyItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.bodyItemId = itemRecord.displayId;
         }
     }
 
     setChestItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.chestItemId = itemRecord.displayId;
         }
     }
 
     setWaistItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.waistItemId = itemRecord.displayId;
         }
     }
 
     setLegsItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.legsItemId = itemRecord.displayId;
         }
     }
 
     setFeetItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.feetItemId = itemRecord.displayId;
         }
     }
 
     setWristItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.wristItemId = itemRecord.displayId;
         }
     }
 
     setHandsItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.handsItemId = itemRecord.displayId;
         }
     }
 
     setBackItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.backItemId = itemRecord.displayId;
         }
     }
 
     setMainHandItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.mainHandItemId = itemRecord.displayId;
         }
     }
 
     setOffHandItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.offHandItemId = itemRecord.displayId;
         }
     }
 
     setTabardItem(entry) {
-        var itemRecord = this.sceneApi.dbc.getItemDBC()[entry];
+        var itemRecord = this.getItemRecord(entry);
         if (itemRecord) {
             this.tabardItemId = itemRecord.displayId;
         }
