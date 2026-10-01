@@ -6,7 +6,7 @@ export default function helmetGeosetVisDataDBC() {
   return new Promise((resolve, reject) => {
     if (helmetGeosetVisDataDBCFile === null) {
       helmetGeosetVisDataDBCFile = {};
-      loadDBC("DBFilesClient/helmetGeosetVisData.dbc")
+      loadDBC("DBFilesClient/HelmetGeosetVisData.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
             const record = {};
