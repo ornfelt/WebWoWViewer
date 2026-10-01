@@ -107,6 +107,7 @@ class Cache<T, L = unknown> {
     container.counter -= 1;
     if (container.counter <= 0) {
       this.cache[fileName] = null;
+      // JS-BUG: ADTGeom, M2Geom, SkinGeom and the parsed WMO file have no destroy(), so unloading them throws a TypeError (no caller unloads them today)
       (container.obj as T & Destroyable).destroy();
     }
   }

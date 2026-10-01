@@ -85,6 +85,7 @@ class MathHelper {
         for (var j = 0; j < thisPortalVertices.length; j++) {
             vec3.add(center, thisPortalVertices[j], center);
         }
+        // JS-BUG: vec3.scale gets two arguments, so center becomes NaN; the comparator below then sorts on NaN (should be vec3.scale(center, center, 1 / n))
         // @ts-expect-error vec3.scale takes (out, a, b); the JavaScript passes only two arguments
         vec3.scale(center, 1 / thisPortalVertices.length);
         thisPortalVertices.sort(function (a, b) {
@@ -179,6 +180,7 @@ class MathHelper {
     static createPlaneFromVertexes(vertex1: ReadonlyVec4, vertex2: ReadonlyVec4, vertex3: ReadonlyVec4): void {
         var edgeDir1 = vec4.create();
 
+        // JS-BUG: edgeDir is never declared (the local is edgeDir1) - throws ReferenceError if called; the plane is also never returned. Nothing calls this function
         // @ts-expect-error edgeDir is never declared (the variable above is edgeDir1); ported as-is
         vec3.subtract(edgeDir, vertex1, vertex2);
         // @ts-expect-error edgeDir is never declared (the variable above is edgeDir1); ported as-is
@@ -258,6 +260,7 @@ class MathHelper {
         var det = (p2[1] - p3[1]) * (p1[0] - p3[0]) + (p3[0] - p2[0]) * (p1[1] - p3[1]);
 
         if (det > -0.001 && det < 0.001) {
+            // JS-BUG: degenerate-triangle fallback returns the minimum x coordinate ([0]), not z ([2])
             return Math.min(p1[0], p2[0], p3[0]);
         }
 
@@ -508,6 +511,7 @@ class MathHelper {
                 if (normal_avg > 0) {
                     //Bottom
                     var distanceToCamera = cameraLocal[2] - z;
+                    // JS-BUG: minPositiveDistanceToCamera is never updated, so bottomZ is the last triangle below the camera, not the closest one
                     if ((distanceToCamera > 0) && (distanceToCamera < minPositiveDistanceToCamera))
                         bottomZ = z;
                 } else {

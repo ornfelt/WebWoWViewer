@@ -135,6 +135,7 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                     case "int16Array" :
                         result = fileObject.readInt16Array(offset, len!);
                         break;
+                    // JS-BUG: duplicate case "int32Array" - unreachable, harmless
                     case "int32Array" :
                         result = fileObject.readInt32Array(offset, len!);
                         break;
@@ -233,6 +234,7 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                                 var maximum = fileObject.readInt32(offRanges);
                                 result.ranges.push({ first: minimum, second: maximum });
                             }
+                        // JS-BUG: reads this.interpolation_type / this.global_sequence (the LinedFile, always undefined) instead of result's, so the whole-track range is never added
                         // @ts-expect-error reads this.interpolation_type / this.global_sequence (the LinedFile), not result's; ported as-is
                         } else if (this.interpolation_type !== 0 && this.global_sequence === -1) {
                           result.ranges!.push({ first: 0, second: result.values_nb - 1 });
@@ -364,6 +366,7 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                         var layout = sectionDef.layout!;
                         var resultObj: ParsedObject = {};
 
+                        // JS-BUG: (!layout) instanceof Array is always false, so the check never throws (should be !(layout instanceof Array))
                         // @ts-expect-error !layout is a boolean, so this instanceof is always false; ported as-is
                         if (!layout instanceof Array) {
                             throw "layout is not array";

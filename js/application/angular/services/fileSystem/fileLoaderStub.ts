@@ -16,6 +16,7 @@ interface StubWorkerScope {
 
 export default function (configService: FileLoaderConfig): FileLoaderFunc {
     function fileLoader(filePath: string): Promise<Uint8Array<ArrayBuffer>> {
+        // JS-BUG: URL is hard-coded; configService.getUrlToLoadWoWFile() (and the urlForLoading saved in localStorage) is ignored
         filePath = "http://127.0.0.1:3002/files/" + filePath.toLowerCase();
         //console.log("fileLoaderStub filePath: "+filePath);
         //// Adjust the filePath if it ends with a null character

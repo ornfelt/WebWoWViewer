@@ -31,30 +31,46 @@ the tree is. Re-derive with:
   the `SceneApiResources` loaders: `textureCache.ts` (Texture), `wmoLoader.ts` (WmoFile), `wmoGeomCache.ts`,
   `m2GeomCache.ts`, `skinGeomCache.ts`, `adtGeomCache.ts`.
 
+## JavaScript bugs (ported as-is)
+
+Bugs and suspicious code found in the original JavaScript while porting. The port never fixes them
+(that would change the runtime); they are collected here to go through after the port. Each one is
+also marked in the source with a `// JS-BUG:` comment on the line above - `grep -rn 'JS-BUG'
+js/application/angular` lists them with current line numbers. Columns: where, what, effect.
+
+| # | Where | What | Effect |
+| --- | --- | --- | --- |
+| 1 | `wowRenderJs/math/mathHelper.ts` `sortVec3ArrayAgainstPlane` | `vec3.scale(center, 1 / n)` - two arguments to a three-argument function | `center` becomes NaN, so the portal-vertex sort compares NaN and the order is arbitrary |
+| 2 | `wowRenderJs/math/mathHelper.ts` `createPlaneFromVertexes` | uses undeclared `edgeDir` (local is `edgeDir1`); never returns the plane | ReferenceError if called; nothing calls it |
+| 3 | `wowRenderJs/math/mathHelper.ts` `calcZ` | degenerate-triangle fallback returns `Math.min` of the x coordinates (`[0]`) | wrong height for near-degenerate triangles (should probably be `[2]`) |
+| 4 | `wowRenderJs/math/mathHelper.ts` `getTopAndBottomTriangleFromBsp` | `minPositiveDistanceToCamera` is never updated | `bottomZ` is the last triangle below the camera, not the closest |
+| 5 | `wowRenderJs/math/quickSort.ts` `multiQuickSort` | `var newRight = 1` instead of `left + 1` | wrong grouping when `left != 0`; harmless today (M2Object passes 0) |
+| 6 | `wowRenderJs/cache.ts` `remove` | calls `destroy()` on every cached object | ADTGeom, M2Geom, SkinGeom and the parsed WMO file have no `destroy()` - TypeError when they are unloaded; no caller unloads them today |
+| 7 | `services/chunkedLoader.ts` (load by path) | rejection handler returns `e` | a failed load resolves with the error object as if it were the ChunkedFile; callers then fail on it |
+| 8 | `services/fileSystem/fileLoaderStub.ts` | file server URL hard-coded to `http://127.0.0.1:3002/files/` | `config.getUrlToLoadWoWFile()` and the `urlForLoading` saved in localStorage have no effect |
+| 9 | `services/linedfileLoader.ts` `readType` | duplicate `case "int32Array"` | second case unreachable; harmless |
+| 10 | `services/linedfileLoader.ts` `readType`, `ablock_tbc` | `else if` reads `this.interpolation_type` / `this.global_sequence` (the LinedFile) instead of `result`'s | the whole-track range for TBC blocks without ranges is never added |
+| 11 | `services/linedfileLoader.ts` `readType`, `layout` | `if (!layout instanceof Array)` | always false - the "layout is not array" check never fires |
+
 ## Runtime notes
 
-- `mathHelper.ts` `sortVec3ArrayAgainstPlane`: `vec3.scale(center, 1 / n)` passes two arguments to a
-  three-argument function (centre becomes NaN). `@ts-expect-error`, ported as-is.
-- `mathHelper.ts` `createPlaneFromVertexes`: uses an undeclared `edgeDir` (the local is `edgeDir1`) - would throw
-  a ReferenceError if called; nothing calls it. Three `@ts-expect-error` lines, ported as-is.
-- `linedfileLoader.ts` `readType` case `ablock_tbc`: the `else if` reads `this.interpolation_type` /
-  `this.global_sequence` (the LinedFile, so always undefined) instead of `result`'s. `@ts-expect-error`; the
-  following `result.ranges!.push` is unreachable in practice.
-- `linedfileLoader.ts` case `layout`: `if (!layout instanceof Array)` is always false. `@ts-expect-error`.
-- `linedfileLoader.ts`: `LinedFileObj` is a constructor function; `new` goes through
+Places where typing needed an assertion, a widened type, `@ts-expect-error` or a commented `any`
+(bugs are in the table above, not repeated here).
+
+- `mathHelper.ts`: `@ts-expect-error` on bug 1 and the three `edgeDir` lines of bug 2.
+- `linedfileLoader.ts`: `@ts-expect-error` on bugs 10 and 11; `result.ranges!.push` after bug 10 is
+  unreachable in practice. `LinedFileObj` is a constructor function; `new` goes through
   `LinedFileObj as unknown as new () => LinedFile`. Parsed values are `SectionValue` / `ParsedObject`
   (`{ [field: string]: any }`, schema-driven); parsers assert their file interfaces on the result.
 - `chunkedLoader.ts`: `processFile` calls `processChunk` with a third argument it ignores - the `ChunkedFile`
   interface declares it optional. Chunk handlers take `resultObj: ChunkResultObj` (= `any`, the object differs
-  per parser and chunk). The load-by-path promise resolves with the error value on failure (rejection handler
-  returns `e`), so `Promise<ChunkedFile>` is the success type only.
-- `cache.ts` `remove()`: calls `destroy()` on the cached object unconditionally, via an assertion to
-  `T & Destroyable` - ADTGeom, M2Geom and SkinGeom have no `destroy()`.
+  per parser and chunk). `Promise<ChunkedFile>` is the success type only (bug 7).
+- `cache.ts` `remove()`: `destroy()` is reached through an assertion to `T & Destroyable` (bug 6).
 - `fileLoader-worker.ts`: `messageId` is `!`-asserted (only `loadFile` requests carry one); the init params and
   file path are asserted out of the request union because the JS reads `message` before checking `opcode`.
 - Entry point (group 10): `compare-emit.mjs app_wow.ts=app_wowjs.js` DIFFERS - `app_wow.ts` adds
   `if (!container) { console.error("Viewer container not found!"); return; }` in `window.onload`. Needs the
-  user's decision before `app_wowjs.js` is removed. Its `declare global` moved to `global.d.ts` this run.
+  user's decision before `app_wowjs.js` is removed. Its `declare global` moved to `global.d.ts` in run 1.
 
 ## Run log
 
@@ -62,3 +78,4 @@ the tree is. Re-derive with:
 | --- | --- | --- | --- | --- | --- |
 | setup | toolchain | - | clean | green | - |
 | 1 | groups 1-2: config, fileReadHelper, cache, quickSort, wowTextureRegions, mathHelper, global.d.ts, sceneApi.ts, fileLoaderStub, fileLoader-worker, fileLoader, dbcLoader, chunkedLoader, linedfileLoader | 2,430 | clean | green (dev + prod) | all SAME |
+| 2 | JS bug list + `JS-BUG` markers in groups 1-2 (no code change) | - | clean | green | all SAME |

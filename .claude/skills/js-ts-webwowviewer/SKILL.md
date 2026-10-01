@@ -148,8 +148,8 @@ in the repository.
 Never edit `index.html` (it holds the live GLSL shaders inline and loads `build/main.js`), `glsl/`,
 `js/lib/`, the JSON mock packets under `js/application/*.json`, `README.md`, or anything under
 `node_modules/` or `build/`. Never delete a file other than the `.js` being replaced by its `.ts`.
-If the JavaScript looks wrong, say so in the summary instead of fixing it - a port that fixes a bug
-has changed the runtime.
+If the JavaScript looks wrong, record it (see "JavaScript bugs") and port it as-is - a port that
+fixes a bug has changed the runtime.
 
 ## Modes
 
@@ -208,6 +208,9 @@ grep -rn 'TS-PORT: TODO' "$A" --include='*.ts'
 
 # which types are parked, waiting for a later file to export the real type?
 grep -rn 'TS-PORT: parked' "$A" --include='*.ts'
+
+# which JavaScript bugs have been recorded so far? (must match the ledger's bug table)
+grep -rn 'JS-BUG' "$A" --include='*.ts'
 ```
 
 `PORT_STATUS.md` (below) is a hint that makes this cheaper, not a substitute for it: read it first,
@@ -266,8 +269,9 @@ Next: port js/application/angular/services/map/mdxLoader.js (from the header par
 
 - **Normal stop** - the line target is met. Commit, report and stop.
 - **Blocked** - `node_modules` cannot be installed, the build is broken by code this run did not
-  touch, `compare-emit.mjs` reports a difference you cannot remove without changing the logic, or
-  the JavaScript itself looks wrong. Say what is blocking, leave the tree building if it already
+  touch, or `compare-emit.mjs` reports a difference you cannot remove without changing the logic.
+  JavaScript that merely looks wrong is not a blocker: record it (see "JavaScript bugs") and keep
+  porting. Say what is blocking, leave the tree building if it already
   was, and stop. Commit the files that were finished and verified before the blocker, if any (one
   commit); leave unverified work uncommitted (see "Commits"). Do not reshape the code to get around it and do not silently pick a different
   file to have something to show.
@@ -276,6 +280,7 @@ Next: port js/application/angular/services/map/mdxLoader.js (from the header par
   can replace, then run "Verification" with `compare-emit.mjs --all`.
 - **When it is done** - the last sweep is clean, `find js/application/angular -name '*.js'` lists
   only the files under "Not ported", and `grep -rn 'TS-PORT' js/application/angular` is empty.
+  (`// JS-BUG:` markers stay - they are for the user's bug review, not port work.)
   Then, in that same run, do the switch-over:
   1. `tsconfig.json`: remove `allowJs` (and `checkJs` if present) - nothing JavaScript is compiled
      any more. Keep `include` pointing at `js/application`, and add the files under "Not ported"
@@ -288,6 +293,9 @@ Next: port js/application/angular/services/map/mdxLoader.js (from the header par
      (`ts port: switch over to TypeScript-only build`).
   5. Tell the user the port is complete and list the remaining "Not ported" `.js` files, asking
      whether they want them deleted. Do not delete them yourself.
+  6. Point the user at the "JavaScript bugs" table in `PORT_STATUS.md` (and
+     `grep -rn 'JS-BUG' js/application/angular`) as the list to go through now that the port is
+     done, with the count of entries. Do not fix any of them in the port.
 
   **Do not invent work** after that: no refactors, no new abstractions, no lint setup, no tests,
   no dependency upgrades. A run that says "nothing left to port" is a correct run.
@@ -505,10 +513,19 @@ edit it.
    (none yet - each entry: the .ts file and member typed as `any`, and the later file whose
    exported type it waits for)
 
+   ## JavaScript bugs (ported as-is)
+
+   Bugs and suspicious code found in the original JavaScript while porting. Each one is also marked
+   in the source with a `// JS-BUG:` comment - `grep -rn 'JS-BUG' js/application/angular`.
+
+   | # | Where | What | Effect |
+   | --- | --- | --- | --- |
+
    ## Runtime notes
 
    (none yet - every place where typing needed an assertion, a widened type or a commented `any`
-   because the JavaScript does something the type system cannot express)
+   because the JavaScript does something the type system cannot express; bugs go in the table
+   above, not here)
 
    ## Run log
 
@@ -554,6 +571,8 @@ edit it.
 7. `node .claude/skills/js-ts-webwowviewer/compare-emit.mjs <file>.ts` must print `SAME`. If it
    prints `DIFFERS`, the port changed runtime code: undo that change and type it differently.
 8. Remove the file's `TS-PORT: TODO` markers once every member is typed.
+9. Record every JavaScript bug or suspicious piece of code found while reading the file (see
+   "JavaScript bugs") - a `// JS-BUG:` comment in the `.ts` and a row in the ledger's table.
 
 ## Same runtime
 
@@ -763,6 +782,35 @@ and compare against the same page built from the pre-port commit.
 Fix errors caused by the current run. Do not rewrite unrelated ported code unless it is necessary,
 and say so when it is.
 
+### JavaScript bugs
+
+Porting means reading every line, so it finds bugs: undeclared variables, wrong argument counts,
+copy-paste conditions (`a && a`), unreachable branches, `this` where a local was meant, hard-coded
+values that bypass a setting, results computed and never used. The port never fixes them, but it
+never loses them either - the user goes through the list after the port. For each one:
+
+- **In the source**, a comment on the line above the statement (above its `@ts-expect-error`, if
+  it has one), with the same indentation:
+
+  ```ts
+          // JS-BUG: vec3.scale gets two arguments, so center becomes NaN (should be vec3.scale(center, center, 1 / n))
+          // @ts-expect-error vec3.scale takes (out, a, b); the JavaScript passes only two arguments
+          vec3.scale(center, 1 / thisPortalVertices.length);
+  ```
+
+  One line: what is wrong, and the likely intent when it is clear. Comments are stripped by the
+  emit check, so the marker is free. The marker is `JS-BUG`, not `TS-PORT`, because it is not port
+  work and stays after the port is finished.
+- **In `PORT_STATUS.md`**, a row in the "JavaScript bugs (ported as-is)" table, numbered on from
+  the last row: where (file and function), what, and the effect at runtime - including "harmless"
+  or "nothing calls it" when that is the case, so the user can prioritize. Rows are never removed
+  or renumbered by the port; the user removes them when they fix or dismiss a bug.
+- Check before calling something a bug: read the callers (an odd-looking default may be what every
+  caller relies on) and say how sure you are when it is a guess ("probably should be `[2]`").
+- A bug that also needs `@ts-expect-error` or an assertion to type is described in the bug table;
+  its "Runtime notes" entry only names the typing workaround and refers to the bug number.
+- Bugs in code that is commented out are not recorded.
+
 ## Review mode
 
 Compare the requested scope and report:
@@ -783,6 +831,8 @@ Compare the requested scope and report:
 7. New files beyond `global.d.ts` and `sceneApi.ts`, or either of those emitting JavaScript.
 8. Naming that departs from "Naming".
 9. `tsc` or webpack errors in the reviewed area.
+10. JavaScript bugs: a `// JS-BUG:` marker without a row in the ledger's bug table or the other way
+    round, and anything in scope that looks wrong but has neither.
 
 Output: scope reviewed, what matches, what is missing, runtime differences, type holes, suggested
 next edits. Do not modify files unless the user explicitly asks.
@@ -798,7 +848,8 @@ After the edits, summarize:
 - the new exported types, and in which file
 - every parked type added or resolved, and every `@ts-expect-error` or commented `any` added, with
   why - these are also in `PORT_STATUS.md`
-- anything in the JavaScript that looked wrong and was ported as-is
+- every JavaScript bug recorded this run (number, file, one line), and the total in the ledger's
+  bug table
 - the results of `tsc --noEmit`, `npm run build` (and `build:prod` if run), and `compare-emit.mjs`
   for each touched file
 - that `PORT_STATUS.md` was updated

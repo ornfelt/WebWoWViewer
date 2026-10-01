@@ -65,6 +65,7 @@ class QuickSort {
         if (compareFuncs.length > 1) {
             for (var i = 1; i < compareTimes; i++) {
                 var newLeft = left;
+                // JS-BUG: starts at 1 instead of left + 1; only correct when left == 0 (true for the current caller)
                 var newRight = 1;
                 while (newRight <= right) {
                     var compareResult = false;
