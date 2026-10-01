@@ -19,6 +19,7 @@ function createSkyColor(t: number, col: number): SkyColor {
 }
 
 const skymul = 36.0;
+const TILESIZE = 533.333333333;
 
 /* One light of a lights.lit file */
 class Sky {
@@ -52,7 +53,9 @@ class Sky {
         var fd = br.readFloat32(off);
         var fe = br.readFloat32(off);
 
-        this.pos = vec3.fromValues(fa / skymul, fb / skymul, fc / skymul);
+        // The position is in ADT placement coordinates (x and z from the map corner, y up);
+        // convert it to world coordinates like adtM2Object.createPlacementMatrix() does
+        this.pos = vec3.fromValues(32 * TILESIZE - fc / skymul, 32 * TILESIZE - fa / skymul, fb / skymul);
         this.r1 = fd / skymul;
         this.r2 = fe / skymul;
 
