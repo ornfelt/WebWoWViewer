@@ -194,8 +194,6 @@ function wmoGroupLoader(wmoFilePath, loadPlainVertexes) {
         chunkedFile.processFile(wmoObj);
 
         return wmoObj;
-    }, function error(errorObj) {
-        return errorObj;
     });
 
     return newPromise;
