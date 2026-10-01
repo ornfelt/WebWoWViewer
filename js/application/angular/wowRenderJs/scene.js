@@ -47,6 +47,7 @@ import helmetGeosetVisDataDBC       from './../services/dbc/helmetGeosetVisDataD
 import itemDisplayInfoDBC           from './../services/dbc/itemDisplayInfoDBC.js'
 import itemDBC                      from './../services/dbc/itemDBC.js'
 import mapDBC                       from './../services/dbc/mapDBC.js'
+import liquidTypeDBC                from './../services/dbc/liquidTypeDBC.js'
 
 import Expansion from '../Expansion';
 
@@ -222,6 +223,13 @@ class Scene {
         lightParamsDBC().then(function success(a) {
             self.lightParamsDBC = a;
         });
+
+        /* Liquids: the MH2O and WMO liquid type ids of WotLK */
+        if (window.selectedExpansion === Expansion.WOTLK) {
+          liquidTypeDBC().then(function success(a) {
+              self.liquidTypeDBC = a;
+          });
+        }
 
     }
 
@@ -733,6 +741,11 @@ class Scene {
                 },
                 getLightParamsDBC : function () {
                     return self.lightParamsDBC;
+                },
+
+                /* Liquids */
+                getLiquidTypeDBC : function () {
+                    return self.liquidTypeDBC;
                 }
             },
             objects : {

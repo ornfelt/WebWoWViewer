@@ -4,7 +4,16 @@ const TILESIZE = 533.33333;
 const CHUNKSIZE = TILESIZE / 16.0;
 const ZEROPOINT = 32.0 * TILESIZE;
 
-/* The liquid surface (water, magma) of one MCNK, read from its MCLQ chunk.
+/* the colour the shader adds to the water textures */
+export const waterTint = [0.10915033, 0.21372549, 0.34509805];
+const noTint = [0, 0, 0];
+
+/* LiquidType.dbc liquid classes */
+const LIQUID_CLASS_MAGMA = 2;
+const LIQUID_CLASS_SLIME = 3;
+
+/* A liquid surface (water, ocean, magma, slime): one layer of an MCNK's MCLQ chunk, one MH2O
+ * instance of an MCNK, or the MLIQ chunk of a WMO group (in the WMO's local coordinates).
  * The GPU buffers and the textures are created on the first draw. */
 class Liquid {
     // init
@@ -18,6 +27,10 @@ class Liquid {
         this.texRepeats = 0;
         this.type = 0;
         this.transparent = false;
+        this.wmo = false;
+        this.indoor = false;
+        this.col = vec3.create();
+        this.liquidTypeId = 0;
 
         this.vbo = null;
         this.ebo = null;
@@ -38,22 +51,22 @@ class Liquid {
         this.ydir = 1.0;
 
         if ((flags & 16) != 0) {
-            this.liquidTextureBaseName = "XTextures\\lava\\lava";
+            this.liquidTexturePattern = "XTextures\\lava\\lava.%d.blp";
             this.liquidTextureFirst    = 1;
             this.liquidTextureLast     = 30;
             this.type = 0;
         } else if ((flags & 4) != 0) {
-            this.liquidTextureBaseName = "XTextures\\river\\lake_a";
+            this.liquidTexturePattern = "XTextures\\river\\lake_a.%d.blp";
             this.liquidTextureFirst    = 1;
             this.liquidTextureLast     = 30;
             this.type = 2;
         } else if ((flags & 32) != 0) {
-            this.liquidTextureBaseName = "XTextures\\slime\\slime";
+            this.liquidTexturePattern = "XTextures\\slime\\slime.%d.blp";
             this.liquidTextureFirst    = 1;
             this.liquidTextureLast     = 30;
             this.type = 0;
         } else {
-            this.liquidTextureBaseName = "XTextures\\ocean\\ocean_h";
+            this.liquidTexturePattern = "XTextures\\ocean\\ocean_h.%d.blp";
             this.liquidTextureFirst    = 1;
             this.liquidTextureLast     = 30;
             this.type = 2;
@@ -78,6 +91,115 @@ class Liquid {
         // the GPU buffers stay unset until the first draw
     }
 
+    /* One MH2O instance (WotLK): width x height tiles from (xOffset, yOffset) of the MCNK; br reads the MH2O chunk data */
+    initFromMH2O(br, inst) {
+        this.texRepeats = 4.0;
+        this.ydir = 1.0;
+        // textures and type from LiquidType.dbc on the first draw
+        this.liquidTypeId = inst.liquidType;
+
+        var vCount  = (this.xtiles + 1) * (this.ytiles + 1);
+        var heights = new Array(vCount);
+
+        // vertex formats 0, 1 and 3 start with a height per vertex; format 2 (depth only) and
+        // instances without vertex data are flat at the min height
+        if (inst.ofsVertexData != 0 && inst.vertexFormat != 2) {
+            var off = {offs: inst.ofsVertexData};
+            for (var v = 0; v < vCount; v++) heights[v] = br.readFloat32(off);
+        } else {
+            for (var v = 0; v < vCount; v++) heights[v] = inst.minHeight;
+        }
+
+        // one bit per tile, row by row, low bit first; no bitmap means every tile has liquid
+        var tileFlags = new Uint8Array(this.xtiles * this.ytiles);
+        if (inst.ofsExistsBitmap != 0) {
+            var bits = br.readUint8Array({offs: inst.ofsExistsBitmap}, (tileFlags.length + 7) >> 3);
+            for (var t = 0; t < tileFlags.length; t++) {
+                if (((bits[t >> 3] >> (t & 7)) & 1) == 0) tileFlags[t] = 8;     // hidden tile
+            }
+        }
+
+        this.pendingHeights   = heights;
+        this.pendingTileFlags = tileFlags;
+    }
+
+    /* The MLIQ liquid of a WMO group, as my_wow tbc's Liquid.InitFromWMO: magma / slime / water from
+     * the tile flags, indoor water transparent and coloured by the WMO material (color2). On WotLK a
+     * liquid type id from the group header picks the textures and the type from LiquidType.dbc instead. */
+    initFromWmo(heights, tileFlags, materialColor, indoor, liquidTypeId) {
+        this.texRepeats = 4.0;
+        this.ydir = -1.0;
+        this.wmo = true;
+        this.indoor = indoor;
+
+        this.pendingHeights   = heights;
+        this.pendingTileFlags = tileFlags;
+
+        this.transparent = false;
+        this.col = vec3.fromValues(((materialColor & 0xFF0000) >> 16) / 255.0, ((materialColor & 0xFF00) >> 8) / 255.0, (materialColor & 0xFF) / 255.0);
+
+        if (liquidTypeId != 0) {
+            this.liquidTypeId = liquidTypeId;
+            return;
+        }
+
+        // tmpflag is the flags value for the last drawn tile
+        var tmpflag = 0;
+        for (var t = 0; t < tileFlags.length; t++) {
+            if ((tileFlags[t] & 8) == 0) tmpflag = tileFlags[t];
+        }
+
+        if ((tmpflag & 1) != 0) {
+            this.liquidTexturePattern = "XTextures\\slime\\slime.%d.blp";
+            this.liquidTextureFirst = 1;
+            this.liquidTextureLast  = 30;
+            this.type = 0;
+            this.texRepeats = 2.0;
+        } else if ((tmpflag & 2) != 0) {
+            this.liquidTexturePattern = "XTextures\\lava\\lava.%d.blp";
+            this.liquidTextureFirst = 1;
+            this.liquidTextureLast  = 30;
+            this.type = 0;
+        } else {
+            this.liquidTexturePattern = "XTextures\\river\\lake_a.%d.blp";
+            this.liquidTextureFirst = 1;
+            this.liquidTextureLast  = 30;
+            if (indoor) {
+                this.transparent = true;
+                this.type = 1;
+            } else {
+                this.type = 2; // outdoor water
+            }
+        }
+    }
+
+    /* Textures and type from a LiquidType.dbc record: magma and slime are not coloured, water and ocean
+     * get the water colour. Indoor WMO water is transparent like the tbc tile path, but not coloured by
+     * the material: the color2 of WotLK WMO materials is no liquid colour (white in Daggercap Cave) */
+    initFromLiquidType(liquidType) {
+        // an unknown id draws as plain water
+        var texture = liquidType ? liquidType.texture : "XTextures\\river\\lake_a.%d.blp";
+        var liquidClass = liquidType ? liquidType.type : 0;
+
+        this.liquidTexturePattern = texture;
+        this.liquidTextureFirst = 1;
+        this.liquidTextureLast  = texture.indexOf("%d") >= 0 ? 30 : 1;
+
+        if (liquidClass == LIQUID_CLASS_MAGMA || liquidClass == LIQUID_CLASS_SLIME) {
+            this.type = 0;
+        } else {
+            if (this.wmo && this.indoor) this.transparent = true;
+            this.type = 2;
+        }
+    }
+
+    /* The colour the shader adds to the texture */
+    tintFor(waterColor) {
+        if (this.type == 0) return noTint;      // not coloured: nothing is added to the texture
+        if (this.type == 1) return this.col;
+        return waterColor;
+    }
+
     // Draw
     draw(sceneApi, viewProj, worldTime, waterTint) {
         if (!this.ensureGpuBuffers(sceneApi)) return;
@@ -86,8 +208,8 @@ class Liquid {
         var gl = sceneApi.getGlContext();
 
         var tex = this.textures[Math.floor(worldTime * 30) % this.textures.length];
-        // TODO: don't force this
-        this.transparent = false;
+        // TODO: don't force this (terrain liquid only: WMO liquid keeps its transparency, as in my_wow tbc)
+        if (!this.wmo) this.transparent = false;
 
         if (this.transparent) {
             gl.enable(gl.BLEND);
@@ -110,11 +232,11 @@ class Liquid {
 
         gl.uniformMatrix4fv(shader.shaderUniforms.uVP, false, viewProj);
         gl.uniform1i(shader.shaderUniforms.uTex, 0);
-        gl.uniform3fv(shader.shaderUniforms.uTint, waterTint);
+        gl.uniform3fv(shader.shaderUniforms.uTint, this.tintFor(waterTint));
         gl.uniform1f(shader.shaderUniforms.uTime, worldTime);
         // GLSL ES 1.00 has no uniform initializers, so the default of uWaveAmp is set here
         gl.uniform1f(shader.shaderUniforms.uWaveAmp, 0.08);
-        gl.uniform1f(shader.shaderUniforms.uAlpha, 1.0);
+        gl.uniform1f(shader.shaderUniforms.uAlpha, this.transparent ? 0.9 : 1.0);
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, tex.texture);
@@ -151,11 +273,17 @@ class Liquid {
     ensureTextures(sceneApi) {
         if (this.textures.length > 0) return true;
 
-        if (!this.liquidTextureBaseName) return false;
+        if (!this.liquidTexturePattern && this.liquidTypeId != 0) {
+            var liquidTypes = sceneApi.dbc.getLiquidTypeDBC();
+            if (!liquidTypes) return false;                 // LiquidType.dbc not loaded yet
+            this.initFromLiquidType(liquidTypes[this.liquidTypeId]);
+        }
+
+        if (!this.liquidTexturePattern) return false;
 
         if (!this.texturePromise) {
             this.texturePromise = this.loadTextures(sceneApi,
-                this.liquidTextureBaseName, this.liquidTextureFirst, this.liquidTextureLast);
+                this.liquidTexturePattern, this.liquidTextureFirst, this.liquidTextureLast);
         }
 
         return false;
@@ -171,10 +299,17 @@ class Liquid {
         for (var i = 0; i <= this.xtiles; i++) {
             var p = j * (this.xtiles + 1) + i;
             var h = heights[p];
-            if (h > 100000) h = this.pos[1];
+            if (h > 100000) h = this.wmo ? this.pos[2] : this.pos[1];
 
-            var nx = -(this.pos[2] + this.tilesize * j - ZEROPOINT);
-            var ny = -(this.pos[0] + this.tilesize * i - ZEROPOINT);
+            var nx, ny;
+            if (this.wmo) {
+                // WMO local coordinates (z up): the columns run along x, the rows along y
+                nx = this.pos[0] + this.tilesize * i;
+                ny = this.pos[1] + this.tilesize * j;
+            } else {
+                nx = -(this.pos[2] + this.tilesize * j - ZEROPOINT);
+                ny = -(this.pos[0] + this.tilesize * i - ZEROPOINT);
+            }
             var nz = h;
 
             verts.push(nx, ny, nz, i / this.texRepeats, j / this.texRepeats);
@@ -193,7 +328,7 @@ class Liquid {
         }
 
         this.uploadBuffers(sceneApi, verts, idx);
-        this.transparent = (this.type != 0);
+        if (!this.wmo) this.transparent = (this.type != 0);
     }
 
     uploadBuffers(sceneApi, verts, indices) {
@@ -214,16 +349,23 @@ class Liquid {
 
     // texture loading
 
-    loadTextures(sceneApi, basename, first, last) {
+    /* Not every liquid has all frames (river/fast_a has 16), so the frames that fail to load are skipped */
+    loadTextures(sceneApi, pattern, first, last) {
         var self = this;
         var promises = [];
 
         for (var i = first; i <= last; i++) {
-            promises.push(sceneApi.resources.loadTexture(basename + "." + i + ".blp"));
+            promises.push(sceneApi.resources.loadTexture(pattern.replace("%d", String(i))).then(
+                function success(texture) { return texture; },
+                function error() { return null; }));
         }
 
         return Promise.all(promises).then(function success(loaded) {
-            self.textures = loaded;
+            var textures = [];
+            for (var i = 0; i < loaded.length; i++) {
+                if (loaded[i]) textures.push(loaded[i]);
+            }
+            self.textures = textures;
         });
     }
 }

@@ -27,6 +27,9 @@ function wmoGroupLoader(wmoFilePath, loadPlainVertexes) {
                 /* Skip 14 more bytes */
                 offset.offs += 10;
 
+                // read on its own: the fields above are read 2 bytes early (see the JS-BUG)
+                mogp.groupLiquid     = chunk.readUint32({offs: 0x34});
+
                 groupWMOObject.mogp = mogp;
 
                 return offset;
@@ -156,6 +159,29 @@ function wmoGroupLoader(wmoFilePath, loadPlainVertexes) {
                     var offset = {offs : 0};
                     var len = chunk.chunkLen / 2;
                     groupWMOObject.mobr = chunk.readUint16Array(offset, len);
+                },
+                "MLIQ" : function (groupWMOObject, chunk) {
+                    var offset = {offs : 0};
+                    var liquid = {};
+
+                    liquid.xverts     = chunk.readInt32(offset);
+                    liquid.yverts     = chunk.readInt32(offset);
+                    liquid.xtiles     = chunk.readInt32(offset);
+                    liquid.ytiles     = chunk.readInt32(offset);
+                    liquid.corner     = chunk.readVector3f(offset);
+                    liquid.materialId = chunk.readUint16(offset);
+
+                    // per vertex: 4 bytes of flow (water) or texture coordinates (magma), then the height
+                    var vCount = liquid.xverts * liquid.yverts;
+                    liquid.heights = new Array(vCount);
+                    for (var i = 0; i < vCount; i++) {
+                        offset.offs += 4;
+                        liquid.heights[i] = chunk.readFloat32(offset);
+                    }
+
+                    liquid.tileFlags = chunk.readUint8Array(offset, liquid.xtiles * liquid.ytiles);
+
+                    groupWMOObject.liquid = liquid;
                 }
             }
         }
@@ -216,6 +242,10 @@ function wmoLoader(wmoFilePath){
             wmoObj.BoundBoxCorner2 = chunk.readVector3f(offset);
 
             wmoObj.WMOId = chunk.readInt32(offset);
+
+            // MOHD is 64 bytes: the wmo id comes before the bounding box (read as unk1), so the WMOId above
+            // is really the flags (uint16) and the LOD count (uint16); the flags are read on their own
+            wmoObj.flags = chunk.readUint16({offs: 60});
         },
         "MOGI" : function (wmoObj, chunk) {
             var offset = {offs: 0};

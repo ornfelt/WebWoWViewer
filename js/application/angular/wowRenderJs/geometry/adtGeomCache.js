@@ -1,5 +1,6 @@
 import {mat4} from 'gl-matrix';
 import cacheTemplate from './../cache.js';
+import { waterTint } from './../liquid/liquid.js';
 import adtLoader from './../../services/map/adtLoader.js';
 
 function parseAlphaTextures(adtObj, wdtObj){
@@ -105,8 +106,6 @@ function parseAlphaTextures(adtObj, wdtObj){
     }
     return megaTexture;
 }
-
-const noTint = [0, 0, 0];
 
 class ADTGeom {
     constructor(sceneApi, wdtFile) {
@@ -328,12 +327,11 @@ class ADTGeom {
                 //var tint = [0.04705883, 0.069934644, 0.106535956];
                 //var tint = [0.07058824, 0.11503269, 0.19084968];
                 //var tint = [0.12069716, 0.17167756, 0.23921569];
-                var tint = [0.10915033, 0.21372549, 0.34509805];
+                var tint = waterTint;
 
+                // the liquid picks its own tint from this: none for magma and slime (see Liquid.tintFor)
                 for (var j = 0; j < mcnkObj.liquids.length; j++) {
-                    var liquid = mcnkObj.liquids[j];
-                    // type 0 (magma, slime) is not coloured: nothing is added to its texture
-                    liquid.draw(this.sceneApi, vp, time, liquid.type == 0 ? noTint : tint);
+                    mcnkObj.liquids[j].draw(this.sceneApi, vp, time, tint);
                 }
             }
         }
