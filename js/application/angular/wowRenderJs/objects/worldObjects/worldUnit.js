@@ -589,7 +589,7 @@ class WorldUnit extends WorldObject {
         }
 
         if (this.mountModel && objectModelIsLoaded) {
-            if (this.isMoving || 1) {
+            if (this.isMoving) {
                 var animationId = this.getAnimationIdByMovementFlag();
                 this.mountModel.setAnimationId(animationId, false);
             } else {
