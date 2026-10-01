@@ -391,6 +391,10 @@ export default class AnimationManager {
             } else if (type == 2) {
                 return [value/32767,value/32767, value/32767, value/32767];
             } else if (type == 3) {
+                // TBC stores the texture animation rotation as an int16 array
+                if (Array.isArray(value)) {
+                  return decodeM2ShortQuat(value);
+                }
                 return [value.x,value.y, value.z, value.w];
             } else if (type == 4) {
                 return [value, 0,0,0];
