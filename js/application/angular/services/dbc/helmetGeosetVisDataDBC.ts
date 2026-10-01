@@ -16,8 +16,7 @@ export default function helmetGeosetVisDataDBC(): Promise<{ [id: number]: Helmet
   return new Promise((resolve, reject) => {
     if (helmetGeosetVisDataDBCFile === null) {
       helmetGeosetVisDataDBCFile = {};
-      // JS-BUG: file name starts with a lower-case "h" (the client file is HelmetGeosetVisData.dbc); fails on a case-sensitive file server
-      loadDBC("DBFilesClient/helmetGeosetVisData.dbc")
+      loadDBC("DBFilesClient/HelmetGeosetVisData.dbc")
         .then((dbcObject) => {
           for (let i = 0; i < dbcObject.getRowCount(); i++) {
             const record = {} as HelmetGeosetVisDataRecord;

@@ -55,7 +55,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 11 | `services/linedfileLoader.ts` `readType`, `layout` | `if (!layout instanceof Array)` | always false - the "layout is not array" check never fires |
 | 12 | `services/dbc/charHairGeosetsDBC.ts` | default export is named `characterFacialHairStylesDBC` (copy-paste) | harmless, importers pick their own name |
 | 13 | `services/dbc/creatureModelDataDBC.ts` | default export is named `creatureDisplayInfoExtraDBC` (copy-paste) | harmless, importers pick their own name |
-| 14 | `services/dbc/helmetGeosetVisDataDBC.ts` | loads `DBFilesClient/helmetGeosetVisData.dbc` with a lower-case `h` | load fails on a case-sensitive file server (helmet geoset hiding) |
 | 15 | `services/dbc/lightFloatBandDBC.ts` | `times` read from column `1 + j` - column 1 is `noOfEntries` | `times[0]` is the entry count, every time shifted by one (probably `2 + j`); nothing reads `times` today |
 | 16 | `services/dbc/lightIntBandDBC.ts` | same as 15 | same as 15 |
 | 17 | `services/dbc/lightParamsDBC.ts` | `lightSkyboxID` / `cloudTypeID` read with `readFloat32`; the 3.3.5 layout probably has no `cloudTypeID` column | ids are denormal floats and `glow` / the alpha fields are probably shifted by one column; nothing reads them today |
