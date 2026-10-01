@@ -150,9 +150,6 @@ export default function (filePath: string, arrayBuffer?: ArrayBuffer): ChunkedFi
     } else  {
         return fileLoader(filePath).then(function success(a) {
             return parseArrayBuffer(a);
-        // JS-BUG: the rejection handler returns e, so a failed load resolves with the error as if it were the ChunkedFile
-        }, function error(e) {
-            return e;
         });
     }
 }

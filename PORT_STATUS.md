@@ -46,7 +46,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 2 | `wowRenderJs/math/mathHelper.ts` `createPlaneFromVertexes` | uses undeclared `edgeDir` (local is `edgeDir1`); never returns the plane | ReferenceError if called; nothing calls it |
 | 5 | `wowRenderJs/math/quickSort.ts` `multiQuickSort` | `var newRight = 1` instead of `left + 1` | wrong grouping when `left != 0`; harmless today (M2Object passes 0) |
 | 6 | `wowRenderJs/cache.ts` `remove` | calls `destroy()` on every cached object | ADTGeom, M2Geom, SkinGeom and the parsed WMO file have no `destroy()` - TypeError when they are unloaded; no caller unloads them today |
-| 7 | `services/chunkedLoader.ts` (load by path) | rejection handler returns `e` | a failed load resolves with the error object as if it were the ChunkedFile; callers then fail on it |
 | 8 | `services/fileSystem/fileLoaderStub.ts` | file server URL hard-coded to `http://127.0.0.1:3002/files/` | `config.getUrlToLoadWoWFile()` and the `urlForLoading` saved in localStorage have no effect |
 | 9 | `services/linedfileLoader.ts` `readType` | duplicate `case "int32Array"` | second case unreachable; harmless |
 | 10 | `services/linedfileLoader.ts` `readType`, `ablock_tbc` | `else if` reads `this.interpolation_type` / `this.global_sequence` (the LinedFile) instead of `result`'s | the whole-track range for TBC blocks without ranges is never added |
@@ -138,7 +137,7 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   (`{ [field: string]: any }`, schema-driven); parsers assert their file interfaces on the result.
 - `chunkedLoader.ts`: `processFile` calls `processChunk` with a third argument it ignores - the `ChunkedFile`
   interface declares it optional. Chunk handlers take `resultObj: ChunkResultObj` (= `any`, the object differs
-  per parser and chunk). `Promise<ChunkedFile>` is the success type only (bug 7).
+  per parser and chunk).
 - `cache.ts` `remove()`: `destroy()` is reached through an assertion to `T & Destroyable` (bug 6).
 - `fileLoader-worker.ts`: `messageId` is `!`-asserted (only `loadFile` requests carry one); the init params and
   file path are asserted out of the request union because the JS reads `message` before checking `opcode`.
