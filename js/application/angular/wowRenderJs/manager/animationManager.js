@@ -567,6 +567,7 @@ export default class AnimationManager {
             if (quaternionResult1) {
               var orientMatrix = mat4.create();
 
+              quat.normalize(quaternionResult1, quaternionResult1);
               mat4.fromQuat(orientMatrix, quaternionResult1);
               mat4.multiply(tranformMat, tranformMat, orientMatrix);
             }
