@@ -82,6 +82,12 @@ class ADTObject {
             minZ += mcnk.pos.z;
             maxZ += mcnk.pos.z;
 
+            // the liquid surfaces can lie above (or below) the terrain of the chunk
+            if (mcnk.hasWater) {
+                minZ = Math.min(minZ, mcnk.waterMinHeight);
+                maxZ = Math.max(maxZ, mcnk.waterMaxHeight);
+            }
+
             aabbs[i] = [[minX, minY, minZ], [maxX, maxY, maxZ]];
         }
 
