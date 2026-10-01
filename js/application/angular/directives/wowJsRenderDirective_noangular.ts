@@ -301,16 +301,16 @@ export async function initViewer(containerEl: HTMLElement) {
     //  z: 1474
     //}
 
-    const mapParams: MapParams = {
-      name: 'AV',
-      source: 'http',
-      sceneType: 'map',
-      //mapId: 30,
-      mapName: 'PVPZone01',
-      x: -531,
-      y: 0,
-      z: 267
-    }
+    //const mapParams = {
+    //  name: 'AV',
+    //  source: 'http',
+    //  sceneType: 'map',
+    //  //mapId: 30,
+    //  mapName: 'PVPZone01',
+    //  x: -531,
+    //  y: 0,
+    //  z: 267
+    //}
 
     //const mapParams = {
     //  name: 'WSG',
@@ -418,16 +418,16 @@ export async function initViewer(containerEl: HTMLElement) {
     //    z: -125.34
     //}
 
-    //const mapParams = {
-    //    name: 'Orgrimmar',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    mapId: 1,
-    //    mapName: 'Kalimdor',
-    //    x: 1096.1,
-    //    y: -4549.0,
-    //    z: 135.0
-    //}
+    const mapParams: MapParams = {
+        name: 'Orgrimmar',
+        source: 'http',
+        sceneType: 'map',
+        mapId: 1,
+        mapName: 'Kalimdor',
+        x: 1096.1,
+        y: -4549.0,
+        z: 135.0
+    }
 
     //const mapParams = {
     //    name: 'Darkshire blacksmith',
