@@ -234,8 +234,8 @@ const handlerTable = {
             m2Placement.uniqueId  = chunk.readInt32(offset);
             m2Placement.pos       = chunk.readVector3f(offset);
             m2Placement.rotation  = chunk.readVector3f(offset);
-            //flags               : WORD;
-            m2Placement.scale     = chunk.readInt32(offset);
+            m2Placement.scale     = chunk.readUint16(offset);
+            m2Placement.flags     = chunk.readUint16(offset);
 
             var nameOffset = adtObject.mmid[m2Placement.nameID];
             m2Placement.fileName  = mmdxBuff.readString({offs : nameOffset}, mmdxBuff.getLength() - nameOffset);
