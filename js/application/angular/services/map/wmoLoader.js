@@ -447,8 +447,6 @@ function wmoLoader(wmoFilePath){
         chunkedFile.processFile(wmoObj);
 
         return wmoObj;
-    }, function error(){
-        //debugger;
     });
 
     return newPromise;
