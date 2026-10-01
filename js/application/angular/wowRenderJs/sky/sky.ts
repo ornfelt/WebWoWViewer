@@ -149,7 +149,8 @@ class Sky {
     }
 
     compareTo(s: Sky): number {
-        if (this.global) return 1;
+        if (this.global && s.global) return 0;
+        else if (this.global) return 1;
         else if (s.global) return -1;
         else return (this.r2 < s.r2) ? -1 : ((this.r2 > s.r2) ? 1 : 0);
     }
