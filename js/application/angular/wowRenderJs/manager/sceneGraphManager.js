@@ -379,13 +379,21 @@ class GraphManager {
     * Draw functions
     * */
 
-    drawExterior() {
+    drawExterior(view, proj, time) {
         //1. Draw ADT
 
         if (config.getRenderAdt()) {
             this.sceneApi.shaders.activateAdtShader();
             for (var i = 0; i < this.adtRenderedThisFrame.length; i++) {
                 this.adtRenderedThisFrame[i].draw();
+            }
+        }
+
+        //1.1 Draw liquids
+        if (config.getRenderLiquid()) {
+            // TODO: should activate shader here instead
+            for (var i = 0; i < this.adtRenderedThisFrame.length; i++) {
+                this.adtRenderedThisFrame[i].drawLiquids(view, proj, time);
             }
         }
 
@@ -515,7 +523,8 @@ class GraphManager {
             }
         }
     }
-    draw() {
+    /* view / proj and the liquid clock (seconds) are only used by the liquids */
+    draw(view, proj, liquidTime) {
         this.m2OpaqueRenderedThisFrame = {};
         this.m2TranspRenderedThisFrame = {};
 
@@ -525,7 +534,7 @@ class GraphManager {
             this.sceneApi.shaders.deactivateWMOShader();
 
             if (this.currentWMO.exteriorPortals.length > 0) {
-                this.drawExterior()
+                this.drawExterior(view, proj, liquidTime)
             }
             //6. Draw WMO portals
             if (config.getRenderPortals()) {
@@ -542,7 +551,7 @@ class GraphManager {
                 this.sceneApi.drawCamera()
             }
         } else {
-            this.drawExterior();
+            this.drawExterior(view, proj, liquidTime);
             this.drawM2s();
 
             //6. Draw WMO portals

@@ -134,6 +134,12 @@ class ADTObject {
             this.adtGeom.draw(this.drawChunk);
         }
     }
+
+    drawLiquids(view, proj, time) {
+        if (this.adtGeom) {
+            this.adtGeom.drawLiquids(this.drawChunk, view, proj, time);
+        }
+    }
 }
 
 

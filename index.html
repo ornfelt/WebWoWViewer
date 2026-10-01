@@ -1193,6 +1193,66 @@ void main()
 #endif //COMPILING_FS
     </script>
 
+    <script id="liquid" type="text/plain">
+#ifdef COMPILING_VS
+attribute vec3 aPos;
+attribute vec2 aUV;
+
+uniform mat4 uVP;                       // view-projection
+uniform float uTime;                    // seconds
+// GLSL ES 1.00 has no uniform initializers; Liquid.draw() sets it
+uniform float uWaveAmp;                 // = 0.08 tweak in host
+
+varying vec2 vUV;
+
+// Hash-based pseudo-randomness based on position
+float hash(vec2 p) {
+    return fract(sin(dot(p ,vec2(127.1, 311.7))) * 43758.5453);
+}
+
+void main()
+{
+    // tiny sine-wave in object space (optional)
+    vec3 wPos = aPos;
+    wPos.y += sin((aPos.x + aPos.z) * 0.05 + uTime) * uWaveAmp;
+
+    gl_Position = uVP * vec4(wPos, 1.0);
+
+    vUV = aUV + vec2(uTime * 0.02, 0.0);   // slow scroll
+}
+#endif //COMPILING_VS
+#ifdef COMPILING_FS
+precision mediump float;
+
+varying vec2 vUV;
+
+uniform sampler2D uTex;
+uniform vec3      uTint;     // colour from sky system
+uniform float     uAlpha;    // 1.0 for magma, <1 for water
+
+void main()
+{
+    vec3 tex = texture2D(uTex, vUV).rgb;
+    // This makes it darker
+    //gl_FragColor = vec4(tex * uTint, uAlpha);
+
+    /*  add and clamp to [0,1] exactly like fixed-function  */
+    // GL.Color4(col);                       // (0.11, 0.21, 0.35)
+    // GL.TexEnv( ... , TEXTURE_ENV_MODE, ADD);
+    vec3 outCol = min(tex + uTint, vec3(1.0));
+    gl_FragColor = vec4(outCol, uAlpha);
+
+    // Additive can wash out the texture. We can instead do a simple mix with
+    // some light gray color (blend toward a light color instead of pure add)
+    //vec3 outCol = min(tex + uTint, vec3(1.0));
+    //// now blend 30% toward the tinted color, 70% keep the original texture
+    //const float blend = 0.4;
+    //outCol = mix(tex, outCol, blend);
+    //gl_FragColor = vec4(outCol, uAlpha);
+}
+#endif //COMPILING_FS
+    </script>
+
     <!-- Our final Webpack bundle -->
     <script src="build/main.js"></script>
   </body>

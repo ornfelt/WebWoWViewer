@@ -1,3 +1,4 @@
+import {mat4} from 'gl-matrix';
 import cacheTemplate from './../cache.js';
 import adtLoader from './../../services/map/adtLoader.js';
 
@@ -302,6 +303,32 @@ class ADTGeom {
 
                 var stripLength = stripOffsets[i + 1] - stripOffsets[i];
                 gl.drawElements(gl.TRIANGLE_STRIP, stripLength, gl.UNSIGNED_SHORT, stripOffsets[i] * 2);
+            }
+        }
+    }
+    drawLiquids(drawChunks, view, proj, time) {
+        // build VP once per frame
+        var vp = mat4.create();
+        mat4.multiply(vp, proj, view);
+
+        var mcnkObjs = this.adtFile.mcnkObjs;
+
+        // Loop over all 256 chunks.
+        for (var i = 0; i < 256; i++) {
+            if (!drawChunks[i]) continue;
+
+            var mcnkObj = mcnkObjs[i];
+
+            if (mcnkObj.liquidInfo && mcnkObj.hasWater) {
+                // Hard coded variations...
+                // Should use something like this in future:
+                // col = skies.colorSet[WATER_COLOR_LIGHT];
+                //var tint = [0.04705883, 0.069934644, 0.106535956];
+                //var tint = [0.07058824, 0.11503269, 0.19084968];
+                //var tint = [0.12069716, 0.17167756, 0.23921569];
+                var tint = [0.10915033, 0.21372549, 0.34509805];
+
+                mcnkObj.liquidInfo.draw(this.sceneApi, vp, time, tint);
             }
         }
     }

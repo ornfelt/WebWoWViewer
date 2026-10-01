@@ -168,6 +168,7 @@ export async function initViewer(containerEl) {
         <label><input type="checkbox" id="chkDrawM2"> Draw M2</label><br/>
         <label><input type="checkbox" id="chkDrawWMO"> Draw WMO</label><br/>
         <label><input type="checkbox" id="chkRenderSky"> Render Sky</label><br/>
+        <label><input type="checkbox" id="chkRenderLiquid"> Render Liquid</label><br/>
         <label><input type="checkbox" id="chkDrawPortals"> Draw Portals</label><br/>
         <label><input type="checkbox" id="chkDrawM2BB"> Draw M2 BB</label><br/>
         <label><input type="checkbox" id="chkDrawWmoBB"> Draw WMO BB</label><br/>
@@ -195,6 +196,7 @@ export async function initViewer(containerEl) {
   const chkDrawM2           = containerEl.querySelector('#chkDrawM2');
   const chkDrawWMO           = containerEl.querySelector('#chkDrawWMO');
   const chkRenderSky        = containerEl.querySelector('#chkRenderSky');
+  const chkRenderLiquid     = containerEl.querySelector('#chkRenderLiquid');
   const chkDrawPortals      = containerEl.querySelector('#chkDrawPortals');
   const chkDrawM2BB         = containerEl.querySelector('#chkDrawM2BB');
   const chkDrawWmoBB        = containerEl.querySelector('#chkDrawWmoBB');
@@ -601,6 +603,7 @@ export async function initViewer(containerEl) {
   chkDrawM2.checked           = config.getRenderM2();
   chkDrawWMO.checked           = config.getRenderWMO();
   chkRenderSky.checked        = config.getRenderSky();
+  chkRenderLiquid.checked     = config.getRenderLiquid();
   chkDrawPortals.checked      = config.getRenderPortals();
   chkDrawM2BB.checked         = config.getDrawM2BB();
   chkDrawWmoBB.checked        = config.getDrawWmoBB();
@@ -619,6 +622,7 @@ export async function initViewer(containerEl) {
   chkDrawM2.addEventListener('change', () => { config.setRenderM2(chkDrawM2.checked); });
   chkDrawWMO.addEventListener('change', () => { config.setRenderWMO(chkDrawWMO.checked); });
   chkRenderSky.addEventListener('change', () => { config.setRenderSky(chkRenderSky.checked); });
+  chkRenderLiquid.addEventListener('change', () => { config.setRenderLiquid(chkRenderLiquid.checked); });
   chkDrawPortals.addEventListener('change', () => { config.setRenderPortals(chkDrawPortals.checked); });
   chkDrawM2BB.addEventListener('change', () => { config.setDrawM2BB(chkDrawM2BB.checked); });
   chkDrawWmoBB.addEventListener('change', () => { config.setDrawWmoBB(chkDrawWmoBB.checked); });

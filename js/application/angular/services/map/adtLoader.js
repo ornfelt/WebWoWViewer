@@ -1,5 +1,8 @@
 import chunkedLoader from './../chunkedLoader.js';
 import fileReadHelper from './../fileReadHelper.js';
+import Liquid from './../../wowRenderJs/liquid/liquid.js';
+
+const TILESIZE = 533.33333;
 
 const handlerTable = {
     "MVER" : function (adtObject, chunk) {
@@ -111,7 +114,9 @@ const handlerTable = {
         chunkedFile.processChunkAtOffs(chunk.chunkOffset + ofsLayer, mcnkObj);
         //4. Load MCAL
         chunkedFile.processChunkAtOffsWithSize(chunk.chunkOffset + ofsAlpha, mcnkObj.sizeAlpha, mcnkObj);
-        //5. Load MCRF
+        //5. Load MCLQ
+        chunkedFile.processChunkAtOffsWithSize(chunk.chunkOffset + ofsLiquid, sizeLiquid, mcnkObj);
+        //6. Load MCRF
 
         chunkedFile.processChunkAtOffs(chunk.chunkOffset + ofsRefs, mcnkObj);
     },
@@ -166,6 +171,34 @@ const handlerTable = {
 
         mcnkObj.m2Refs = m2Refs;
         mcnkObj.wmoRefs = wmoRefs;
+    },
+    "MCLQ": function (mcnkObj, chunk, chunkedFile) {
+        var off = {offs: 0};
+
+        // read water height (float)
+        var waterLevel = chunk.readFloat32(off);
+        off.offs -= 4;
+
+        // next 4 bytes tell us if liquid section is empty ("MCSE")
+        var subId = chunk.reverseStr(chunk.readNZTString(off, 4));   // == "MCSE" -> dry chunk
+
+        if (subId == "MCSE") {      // no liquid for this chunk
+            mcnkObj.hasWater = false;
+            mcnkObj.liquidInfo = null;
+            return;
+        }
+
+        // we DO have water
+        mcnkObj.hasWater = true;
+        mcnkObj.waterLevel = waterLevel;
+
+        off.offs += 4;
+
+        // From wow coords:
+        var normCoords = [TILESIZE * 32 - mcnkObj.pos.y, mcnkObj.pos.z, TILESIZE * 32 - mcnkObj.pos.x];
+
+        mcnkObj.liquidInfo = new Liquid(8, 8, [normCoords[0], mcnkObj.waterLevel, normCoords[2]]);
+        mcnkObj.liquidInfo.initFromTerrain(chunk, off, mcnkObj.flags);
     },
     "MTEX" : function (adtObject, chunk) {
         var offset = {offs: 0};
