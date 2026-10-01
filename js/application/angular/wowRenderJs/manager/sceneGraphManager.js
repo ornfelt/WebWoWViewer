@@ -219,8 +219,8 @@ class GraphManager {
 
             for (var i = adt_x-1; i <= adt_x+1; i++) {
                 for (var j = adt_y-1; j <= adt_y+1; j++) {
-                    if ((i < 0) || (i > 64)) continue;
-                    if ((j < 0) || (j > 64)) continue;
+                    if ((i < 0) || (i >= 64)) continue;
+                    if ((j < 0) || (j >= 64)) continue;
                     var adtObject = this.adtObjectsMap[i][j];
                     if (adtObject) {
                         var result = adtObject.checkFrustumCulling(this.position, frustumPlanes, lookAtMat4, num_planes, m2ObjectsCandidates, wmoCandidates);
