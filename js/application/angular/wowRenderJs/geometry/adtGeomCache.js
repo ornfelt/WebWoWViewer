@@ -87,6 +87,17 @@ function parseAlphaTextures(adtObj, wdtObj){
                             } */
                         }
                     }
+
+                    // Without FLAG_DO_NOT_FIX_ALPHA_MAP (0x8000) the 4-bit map holds 63x63 values:
+                    // the last column and row repeat the ones before them
+                    if ((mcnkObj.flags & 0x8000) == 0) {
+                        for (var row = 0; row < 64; row++) {
+                            currentLayer[(row * 64 + 63) * 4 + j] = currentLayer[(row * 64 + 62) * 4 + j];
+                        }
+                        for (var col = 0; col < 64; col++) {
+                            currentLayer[(63 * 64 + col) * 4 + j] = currentLayer[(62 * 64 + col) * 4 + j];
+                        }
+                    }
                 }
             }
         }
