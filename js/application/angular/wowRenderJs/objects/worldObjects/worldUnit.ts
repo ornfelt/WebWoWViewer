@@ -5,6 +5,7 @@ import CharacterComponents from '../../algorithms/characterComponents'
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
 import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix';
 import Expansion from '../../../Expansion';
+import textureHelper from '../../../services/textureHelper';
 import type { CharacterFacialHairStylesRecord } from '../../../services/dbc/characterFacialHairStylesDBC';
 import type { CharHairGeosetsRecord } from '../../../services/dbc/charHairGeosetsDBC';
 import type { CharSectionsRecord } from '../../../services/dbc/charSectionsDBC';
@@ -402,7 +403,43 @@ class WorldUnit extends WorldObject {
           //var modelFilename = "World\\Khazmodan\\Ironforge\\Passivedoodads\\Trees\\Wintertree02.Mdx";
           //var modelFilename = "World\\Dungeon\\Cave\\Passivedoodads\\Icicles\\Caveicicle1.Mdl";
 
-          var modelFilename = "creature\\ragnaros\\ragnaros.mdx";
+          var modelFilename = "creature\\Cow\\cow.mdx";
+
+          if (value == 11121)
+            modelFilename = "creature\\ragnaros\\ragnaros.mdx";
+          else if (value == 8570)
+            modelFilename = "creature\\dragon\\dragononyxia.mdx";
+          else if (value == 21135)
+            modelFilename = "Creature\\Illidan\\Illidan.mdx";
+          else if (value == 5645)
+            modelFilename = "creature\\drake\\drake.mdx";
+          else if (value == 24978)
+            modelFilename = "creature/northrendpenguin/northrendpenguin.m2";
+          else if (value == 26563)
+            modelFilename = "creature/skeletonnaked/skeletonnaked.m2";
+          else if (value == 112)
+            modelFilename = "creature/orcmalewarriorlight/orcmalewarriorlight.m2";
+          else if (value == 856)
+            modelFilename = "creature/sheep/sheep.m2";
+          else if (value == 164)
+            modelFilename = "creature/humanmaleguard/humanmaleguard.m2";
+          else if (value == 19708)
+            modelFilename = "creature/bloodelfguard/bloodelfmale_guard.m2";
+          else if (value == 1021)
+            modelFilename = "creature/tempdeathguard/deathguard.m2";
+          else if (value == 11380)
+            modelFilename = "creature/dragon/dragonnefarian.m2";
+          else if (value == 17890)
+            modelFilename = "creature/ridingphoenix/ridingphoenix.m2";
+          else if (value == 16314)
+            modelFilename = "creature/netherdrake/netherdrake.m2";
+          else if (value == 18812)
+            modelFilename = "creature/felorcnetherdrake/felorcnetherdrake.m2";
+          else if (value == 20539)
+            modelFilename = "creature/netherdrake/netherdrakeoutland.m2";
+          else if (value == 24725)
+            modelFilename = "creature/netherdrake/netherdrakeelite.m2";
+
           //var modelFilename = "creature\\druidbear\\druidbear.mdx";
           //var modelFilename = "creature\\dragon\\dragononyxia.mdx";
           //var modelFilename = "creature\\drake\\drake.mdx";
@@ -437,21 +474,7 @@ class WorldUnit extends WorldObject {
           this.displayIDScale = displayIDScale;
 
           var replaceTextures: string[] = [];
-
-          if (modelFilename === "creature\\ragnaros\\ragnaros.mdx")
-            replaceTextures[11] = "Creature\\Ragnaros\\RagnarosSkin.blp";
-          else if (modelFilename === "creature\\SkeletonNaked\\SkeletonNaked.mdx")
-            replaceTextures[11] = "creature\\SkeletonNaked\\SkeletonNakedSkin_White.blp";
-          else if (modelFilename === "creature\\druidbear\\druidbear.mdx")
-            replaceTextures[11] = "creature\\druidbear\\druidbearskin.blp";
-          else if (modelFilename === "creature\\drake\\drake.mdx") {
-            replaceTextures[11] = "Creature\\Drake\\DrakeSkin1.blp";
-            replaceTextures[12] = "Creature\\Drake\\DrakeSkin2.blp";
-            replaceTextures[13] = "Creature\\Drake\\DrakeSkin3.blp";
-          }
-
-          // TODO: needs more (compare with WOTLK)
-          //replaceTextures[11] = "creature\\dragon\\dragononyxia3.blp";
+          textureHelper.populateReplaceTextures(modelFilename, replaceTextures);
 
           // ...
 
