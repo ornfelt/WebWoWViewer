@@ -297,9 +297,11 @@ class Scene {
         creatureDisplayInfoDBC().then(function success(a) {
             self.creatureDisplayInfoDBC = a;
         });
-        creatureDisplayInfoExtraDBC().then(function success(a) {
-            self.creatureDisplayInfoExtraDBC = a;
-        });
+        if (window.selectedExpansion !== Expansion.CLASSIC) {
+          creatureDisplayInfoExtraDBC().then(function success(a) {
+              self.creatureDisplayInfoExtraDBC = a;
+          });
+        }
         creatureModelDataDBC().then(function success(a) {
             self.creatureModelDataDBC = a;
         });
