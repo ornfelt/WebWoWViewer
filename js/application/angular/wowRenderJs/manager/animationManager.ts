@@ -1,6 +1,7 @@
 import {vec4, mat4, vec3, quat} from 'gl-matrix';
 import type {ReadonlyVec4} from 'gl-matrix';
 import Expansion from '../../Expansion';
+import config from '../../services/config';
 import type { Vector3f, Vector4f } from '../../services/fileReadHelper';
 import type { M2Animation, M2Bone, M2File, M2TexAnim, M2Track } from '../../services/map/mdxLoader';
 
@@ -272,7 +273,8 @@ export default class AnimationManager {
         }
 
         //var cycleAnims = true;
-        var cycleAnims = false;
+        //var cycleAnims = false;
+        var cycleAnims = config.getCycleAnimations();
 
         if (this.currentAnimationTime >= currentAnimationRecord.length) {
             if (cycleAnims) {
@@ -281,7 +283,11 @@ export default class AnimationManager {
               //this.currentAnimationTime = 0;
               // CYCLE
               this.currentAnimationIndex = (this.currentAnimationIndex + 1) % m2File.animations.length;
+              this.firstCalc = true;
               this.currentAnimationTime = 0;
+              // skip the animations without frames (one round at most, in case none has frames)
+              for (var tries = 0; tries < m2File.animations.length && m2File.animations[this.currentAnimationIndex].length == 0; tries++)
+                  this.currentAnimationIndex = (this.currentAnimationIndex + 1) % m2File.animations.length;
               //console.log("this.currentAnimationTime: ", this.currentAnimationTime);
               console.log(`New animation ID: ${this.currentAnimationIndex} / ${m2File.animations.length - 1}`);
             }

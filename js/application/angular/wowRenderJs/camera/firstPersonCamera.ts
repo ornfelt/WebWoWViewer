@@ -10,6 +10,7 @@ function  degToRad(degrees: number): number {
 }
 
 const moveSpeed = 3;
+const freeflyZoomStep = 3;
 
 class Camera {
     camera: vec3;
@@ -56,6 +57,10 @@ class Camera {
 
     addDepthDiff(val: number) {
         this.depthDiff = this.depthDiff + val;
+    }
+    // move forward / backward by wheel notches (scroll up -> zoom in)
+    zoom(wheelDelta: number) {
+        this.addDepthDiff(wheelDelta * freeflyZoomStep);
     }
     addHorizontalViewDir(val: number) {
         var ah = this.ah;

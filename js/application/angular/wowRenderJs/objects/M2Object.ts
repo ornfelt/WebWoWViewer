@@ -654,7 +654,10 @@ abstract class MDXObject {
             cameraVec4[2] > aabb[0][2] && cameraVec4[2] < aabb[1][2]
         ) return true;
 
-        //2. Check aabb is inside camera frustum
+        //2. Check the bounding sphere is within the draw distance
+        if (!mathHelper.checkDrawDistance(cameraVec4, aabb, config.getDrawDistance())) return false;
+
+        //3. Check aabb is inside camera frustum
         var result = mathHelper.checkFrustum(frustumPlanes, aabb, num_planes);
         return result;
     }

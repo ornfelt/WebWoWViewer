@@ -27,6 +27,9 @@ var doubleCameraDebug: boolean = false;
 
 var drawDepthBuffer: boolean = false;
 
+var drawDistance: number = 400;
+var cycleAnimations: boolean = false;
+
 var cameraM2: M2Object | null = null;
 
 var savedUrlForLoading: string | null | undefined;
@@ -164,6 +167,18 @@ export default {
     },
     setDrawDepthBuffer : function (value: boolean) {
         drawDepthBuffer = value;
+    },
+    getDrawDistance : function () {
+        return drawDistance;
+    },
+    setDrawDistance : function (value: number) {
+        drawDistance = value;
+    },
+    getCycleAnimations : function () {
+        return cycleAnimations;
+    },
+    setCycleAnimations : function (value: boolean) {
+        cycleAnimations = value;
     },
     getCameraM2 : function () {
         return cameraM2;
