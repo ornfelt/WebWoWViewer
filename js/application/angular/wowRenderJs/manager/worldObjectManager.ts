@@ -347,9 +347,8 @@ class WorldObjectManager {
                                 }
                             }
                             //Main hand
-                            // JS-BUG: reads PLAYER_VISIBLE_ITEM_15_0, the back slot again (probably meant 16_0) - nothing reads mainHandItemId today
-                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_15_0")) {
-                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_15_0'];
+                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_16_0")) {
+                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_16_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
                                         (newWorldUnit as WorldPlayer).setMainHandItem(itemData[kk].value);
@@ -357,12 +356,20 @@ class WorldObjectManager {
                                 }
                             }
                             //Off hand
-                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_16_0")) {
-                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_16_0'];
+                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_17_0")) {
+                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_17_0'];
                                 for (var kk =0 ; kk < itemData.length; kk++) {
                                     if (itemData[kk].index == 0) {
-                                        // JS-BUG: the off-hand slot calls setMainHandItem (probably setOffHandItem, and slot 17_0) - nothing reads offHandItemId / mainHandItemId today
-                                        (newWorldUnit as WorldPlayer).setMainHandItem(itemData[kk].value);
+                                        (newWorldUnit as WorldPlayer).setOffHandItem(itemData[kk].value);
+                                    }
+                                }
+                            }
+                            //Tabard
+                            if (updateFields.hasOwnProperty("PLAYER_VISIBLE_ITEM_19_0")) {
+                                var itemData = updateFields['PLAYER_VISIBLE_ITEM_19_0'];
+                                for (var kk =0 ; kk < itemData.length; kk++) {
+                                    if (itemData[kk].index == 0) {
+                                        (newWorldUnit as WorldPlayer).setTabardItem(itemData[kk].value);
                                     }
                                 }
                             }
