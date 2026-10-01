@@ -836,6 +836,8 @@ class Scene {
         }
     }
     initLowresTerrain () {
+        // Free the previous map's low-res terrain
+        if (this.lowresTerrain) this.lowresTerrain.dispose();
         this.lowresTerrain = new LowresTerrain(this.sceneApi, this.currentMapName);
     }
     initBoxVBO (){

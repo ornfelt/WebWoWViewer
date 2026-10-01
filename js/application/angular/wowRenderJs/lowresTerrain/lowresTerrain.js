@@ -14,9 +14,12 @@ class LowresTerrain {
         // the indices are the same for every tile
         this.ebo = null;
         this.indexCnt = 0;
+        // set by dispose(): a WDL that finishes loading afterwards is dropped
+        this.disposed = false;
 
         var path = "World/Maps/" + mapBasename + "/" + mapBasename + ".wdl";
         fileLoader(path).then(function success(data) {
+            if (self.disposed) return;
             self.load(data);
         }, function error(e) {
             console.log("[WDL] could not load " + path, e);
@@ -127,6 +130,19 @@ class LowresTerrain {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    }
+
+    /* Deletes the buffers of every tile and the shared index buffer */
+    dispose() {
+        var gl = this.sceneApi.getGlContext();
+        for (var i = 0; i < this.tileVbos.length; i++)
+            gl.deleteBuffer(this.tileVbos[i]);
+        if (this.ebo) gl.deleteBuffer(this.ebo);
+
+        this.tileVbos = [];
+        this.ebo = null;
+        this.indexCnt = 0;
+        this.disposed = true;
     }
 
     drawAll(lookAtMat4, perspectiveMatrix, color) {
