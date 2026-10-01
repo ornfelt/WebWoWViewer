@@ -104,8 +104,6 @@ export default function (filePath, arrayBuffer) {
     } else  {
         return fileLoader(filePath).then(function success(a) {
             return parseArrayBuffer(a);
-        }, function error(e) {
-            return e;
         });
     }
 }
