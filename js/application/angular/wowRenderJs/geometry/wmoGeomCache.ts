@@ -1,9 +1,34 @@
-import cacheTemplate from './../cache.js';
+import cacheTemplate from './../cache';
+import type { Cache } from './../cache';
 
-import {wmoGroupLoader} from './../../services/map/wmoLoader.js'
+import {wmoGroupLoader} from './../../services/map/wmoLoader'
+import type { WmoBspNode, WmoGroupFile, WmoMaterial } from './../../services/map/wmoLoader';
+import type { SceneApi } from './../sceneApi';
+import type { Texture } from './../texture/textureCache';
+
+/* appendBuffer() takes plain float arrays and the MOCV byte arrays (whose .buffer it copies) */
+type VertexBuffer = ArrayLike<number> & { buffer?: ArrayBufferLike };
 
 class WmoGeom {
-    constructor (wmoGroupFile, sceneApi) {
+    gl: WebGLRenderingContext;
+    sceneApi: SceneApi;
+    combinedVBO: WebGLBuffer | null;
+    indexVBO: WebGLBuffer | null;
+    wmoGroupFile: WmoGroupFile;
+    /* per render batch, per texture unit; a slot stays empty until its texture has loaded */
+    textureArray: Texture[][];
+    momt!: WmoMaterial[];
+    positionOffset!: number;
+    normalOffset!: number;
+    textOffset!: number;
+    textOffset2!: number;
+    colorOffset!: number;
+    colorOffset2!: number;
+    mobrVBO!: WebGLBuffer;
+    /* never assigned - only destroy() reads it (see the JS-BUG there) */
+    texture?: WebGLTexture | null;
+
+    constructor (wmoGroupFile: WmoGroupFile, sceneApi: SceneApi) {
         this.gl = sceneApi.getGlContext();
         this.sceneApi = sceneApi;
 
@@ -13,12 +38,12 @@ class WmoGeom {
 
         this.textureArray = [];
     }
-    loadTextures (momt){
+    loadTextures (momt: WmoMaterial[]){
         this.momt = momt;
         this.textureArray.length = this.wmoGroupFile.renderBatches.length;
 
         for (var i = 0; i < this.wmoGroupFile.renderBatches.length ; i++){
-            var textIndex;
+            var textIndex: number;
             var renderBatch = this.wmoGroupFile.renderBatches[i];
             if ((renderBatch.flags & 0x2) > 0) {
                 textIndex = renderBatch.unk[11]*256+renderBatch.unk[10]
@@ -30,7 +55,7 @@ class WmoGeom {
             this.loadTexture(i, 1, momt[textIndex].textureName2);
         }
     }
-    loadTexture(index, textUnit, filename){
+    loadTexture(index: number, textUnit: number, filename: string){
         var self = this;
         if(!filename) return;
 
@@ -47,7 +72,8 @@ class WmoGeom {
         var gl = this.gl;
         var wmoGroupObject = this.wmoGroupFile;
 
-        var appendBuffer = function(buffer1, buffer2, buffer3, buffer4, buffer5, buffer6) {
+        var appendBuffer = function(buffer1: VertexBuffer, buffer2: VertexBuffer, buffer3: VertexBuffer, buffer4: VertexBuffer | undefined,
+                                    buffer5: VertexBuffer | undefined, buffer6: VertexBuffer | undefined) {
             var combinedBufferLen = buffer1.length*4 + buffer2.length*4 + buffer3.length*4 ;
             if (buffer4) {
                 combinedBufferLen += buffer4.length * 4;
@@ -97,6 +123,8 @@ class WmoGeom {
         this.textOffset = this.normalOffset + wmoGroupObject.normals.length;
         this.textOffset2 = this.textOffset + wmoGroupObject.textCoords.length;
         this.colorOffset = this.textOffset2 + wmoGroupObject.textCoords2.length;
+        // JS-BUG: precedence - the ?: applies to (colorOffset + condition), so colorOffset2 is colorVerticles.length/4 without the colorOffset base (probably meant colorOffset + (cond ? length/4 : 0))
+        // @ts-expect-error number + (Uint8Array | boolean | undefined); ported as-is
         this.colorOffset2 = this.colorOffset  + (wmoGroupObject.colorVerticles && wmoGroupObject.colorVerticles.length > 0 )? (wmoGroupObject.colorVerticles.length/4) : 0;
 
         this.indexVBO = gl.createBuffer();
@@ -106,7 +134,7 @@ class WmoGeom {
         if (wmoGroupObject.mobr) {
             this.mobrVBO = gl.createBuffer();
             gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.mobrVBO);
-            var bpsIndicies = new Array(wmoGroupObject.mobr.length*3);
+            var bpsIndicies: number[] = new Array(wmoGroupObject.mobr.length*3);
             for (var i = 0; i < wmoGroupObject.mobr.length; i++) {
                 bpsIndicies[i*3 + 0] = wmoGroupObject.indicies[3*wmoGroupObject.mobr[i]+0];
                 bpsIndicies[i*3 + 1] = wmoGroupObject.indicies[3*wmoGroupObject.mobr[i]+1];
@@ -118,9 +146,11 @@ class WmoGeom {
         }
     };
 
-    draw (ambientColor, bspNodeList){
+    draw (ambientColor?: number[], bspNodeList?: WmoBspNode[] | null){
         var gl = this.gl;
         if (!this.momt) {
+            // JS-BUG: loadTextures() without momt throws a TypeError on momt[textIndex]; unreachable today (WmoGroupObject calls loadTextures(momt) before the first draw)
+            // @ts-expect-error loadTextures takes the momt array; ported as-is
             this.loadTextures()
         }
 
@@ -182,7 +212,7 @@ class WmoGeom {
         for (var j = 0; j < wmoGroupObject.renderBatches.length; j++) {
             var renderBatch = wmoGroupObject.renderBatches[j];
 
-            var texIndex;
+            var texIndex: number;
             if ((renderBatch.flags & 0x2) > 0) {
                 texIndex = renderBatch.unk[11]*256+renderBatch.unk[10];
             } else {
@@ -242,7 +272,7 @@ class WmoGeom {
                 var triangleCount = renderBatch.count / 3;
                 var finalTriangle = currentTriangle+triangleCount;
 
-                var mobrPiece = [];
+                var mobrPiece: number[] = [];
                 for (var k = 0; k < bspNodeList.length; k++) {
                     mobrPiece = mobrPiece.concat(this.wmoGroupFile.mobr.slice(bspNodeList[k].firstFace, bspNodeList[k].firstFace+bspNodeList[k].numFaces-1));
                 }
@@ -278,6 +308,7 @@ class WmoGeom {
 
     destroy() {
         var gl = this.gl;
+        // JS-BUG: copied from Texture.destroy - WmoGeom never sets texture, so this deletes nothing and the VBOs (combinedVBO, indexVBO, mobrVBO) are never freed
         if (this.texture) {
             gl.deleteTexture(this.texture);
         }
@@ -288,23 +319,27 @@ class WmoGeom {
 
 
 class WmoGeomCache {
-    constructor (sceneApi) {
-        this.cache = cacheTemplate(function loadGroupWmo(fileName) {
+    cache: Cache<WmoGeom, WmoGroupFile>;
+
+    constructor (sceneApi: SceneApi) {
+        this.cache = cacheTemplate(function loadGroupWmo(fileName: string) {
             /* Must return promise */
             return wmoGroupLoader(fileName, true);
-        }, function process(wmoGroupFile) {
+        }, function process(wmoGroupFile: WmoGroupFile) {
 
             var wmoGeomObj = new WmoGeom(wmoGroupFile, sceneApi);
             wmoGeomObj.createVBO();
             return wmoGeomObj;
         });
     }
-    loadWmoGeom (fileName){
+    loadWmoGeom (fileName: string){
         return this.cache.get(fileName);
     };
-    unLoadWmoGeom (fileName) {
+    unLoadWmoGeom (fileName: string) {
         this.cache.remove(fileName)
     }
 }
+
+export type { WmoGeom };
 
 export default WmoGeomCache;

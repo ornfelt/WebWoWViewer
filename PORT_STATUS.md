@@ -5,17 +5,16 @@ the tree is. Re-derive with:
 `find js/application/angular -name '*.js'` (unported) and
 `grep -rn 'TS-PORT' js/application/angular` (partially typed / parked).
 
-**Last run:** run 5 - group 3 (DBC tables) and group 4 up to wmoLoader (wdt, adt, blp, skin, wmo)
-**Next:** group 4 - services/map/mdxLoader.js (the last parser), then group 5 - Caches
+**Last run:** run 6 - group 4 finished (mdxLoader) and group 5 (Caches)
+**Next:** group 6 - Math, camera, managers (portalCullingAlgo first)
 
 ## Porting order
 
 - [x] 1. Foundation - Expansion, config, fileReadHelper, cache, quickSort, wowTextureRegions, mathHelper (+ global.d.ts, sceneApi.ts)
 - [x] 2. File loading - fileLoaderStub, fileLoader-worker, fileLoader, dbcLoader, chunkedLoader, linedfileLoader
 - [x] 3. DBC tables - services/dbc/*
-- [ ] 4. Format parsers - wdt, adt, blp, skin, wmo, mdx
-  - wdt, adt, blp, skin, wmo done; mdxLoader.js not started
-- [ ] 5. Caches - adt/skin/m2/wmo geometry caches, wmoMainCache, textureCache
+- [x] 4. Format parsers - wdt, adt, blp, skin, wmo, mdx
+- [x] 5. Caches - adt/skin/m2/wmo geometry caches, wmoMainCache, textureCache
 - [ ] 6. Math, camera, managers - portalCullingAlgo, bsp, BspTree, firstPersonCamera, characterComponents, textureCompositionManager, instanceManager, animationManager
 - [ ] 7. Scene objects - M2Object, adtM2Object, wmoM2Object, worldM2Object, adtObject, wmoObject
 - [ ] 8. World objects - worldObject, worldUnit, worldPlayer, worldGameObject, worldObjectManager
@@ -25,11 +24,12 @@ the tree is. Re-derive with:
 ## Parked types
 
 - `services/config.ts` - `cameraM2` and `setCameraM2(value)`: waits for `wowRenderJs/objects/M2Object.ts` (M2Object).
-- `wowRenderJs/sceneApi.ts` - every `SceneApiObjects` member: `wowRenderJs/manager/sceneGraphManager.ts`;
-  the `SceneApiResources` loaders: `textureCache.ts` (Texture), `wmoGeomCache.ts`, `m2GeomCache.ts`,
-  `skinGeomCache.ts`, `adtGeomCache.ts`.
+- `wowRenderJs/sceneApi.ts` - every `SceneApiObjects` member: `wowRenderJs/manager/sceneGraphManager.ts`.
+- `wowRenderJs/geometry/m2GeomCache.ts` - `drawMesh(materialData)`: waits for `wowRenderJs/objects/M2Object.ts`
+  (its material type); `setupUniforms(lights)`: waits for `wowRenderJs/manager/animationManager.ts` (its light type).
 - Resolved in run 5: `mathHelper.ts` BSP types (`WmoBspNode`, `WmoGroupFile`), `SceneApi.getCurrentWdt()` (`WdtFile`),
   `SceneApi.resources.loadWmoMain()` (`WmoFile | undefined`), every `SceneApiDbc` getter (its `*Record` table).
+- Resolved in run 6: the `SceneApiResources` loaders (`Texture`, `WmoGeom`, `M2Geom`, `SkinGeom`, `ADTGeom`).
 
 ## JavaScript bugs (ported as-is)
 
@@ -67,6 +67,22 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 25 | `services/map/wmoLoader.ts` `MOVT`, `MONR`, `MOTV` | non-plain branch calls `readVector3f` / `readVector2f` with a count; they read one vector | would store a single vector; unreachable (wmoGeomCache always passes `loadPlainVertexes = true`) |
 | 26 | `services/map/wmoLoader.ts` `wmoGroupLoader` | rejection handler returns `errorObj` | a failed group load resolves with the error (like 7) |
 | 27 | `services/map/wmoLoader.ts` `wmoLoader` | rejection handler returns nothing | a failed root load resolves with `undefined`; `SceneApi.loadWmoMain` is typed `Promise<WmoFile \| undefined>` |
+| 28 | `services/map/mdxLoader.ts` `mdx_ver274` | the layout has no cameras, attachments, attachLookups, animationLookup, keyBoneLookup, boneLookupTable or lights sections | `animationManager` reads `animationLookup` / `keyBoneLookup` unconditionally - TypeError for version-274 models |
+| 29 | `services/map/mdxLoader.ts` `mdx_ver262`, `mdx_ver256` | the lookup sections count by `nAttachLookup` / `nAnimationLookup` / `nKeyBoneLookup` / `nBoneLookupTable`, which these headers do not have (the tables are the unnamed `nC` / `nF` / ... fields) | the four lookups are always `[]` for TBC / classic models, and `nAnimationLookup` is `undefined`, so `animationManager.setAnimationId` probably never finds an animation by id for them |
+| 30 | `services/map/mdxLoader.ts` `mdxChunked['12DM']` | `$.extend` - jQuery is neither imported nor loaded | ReferenceError; unreachable today (bug 32) |
+| 31 | `services/map/mdxLoader.ts` `parseOldFile` | when `timeStart > timeEnd`, `timeEnd -= timeStartTemp` instead of `timeEnd = timeStartTemp` (the code's own TODO doubts it) | `timeEnd` becomes negative and `length` is `-timeStart` for those TBC / classic animations (probably meant a swap) |
+| 32 | `services/map/mdxLoader.ts` `BaseMdxChunkedLoader.getHandler` | returns `handlerTable[...]`, which is not declared (probably meant `mdxChunked`) | ReferenceError on the first chunk; unreachable today (bug 33) |
+| 33 | `services/map/mdxLoader.ts` default export (MD21 branch) | `chunkedLoader` is not imported | every MD21 (chunked, Legion+) model rejects with a ReferenceError |
+| 34 | `services/map/mdxLoader.ts` default export | rejection handler returns `errorObj` | a failed load resolves with the error as if it were the M2File (like 7) |
+| 35 | `wowRenderJs/geometry/adtGeomCache.ts` `ADTGeom` constructor | initialises `combinedVBO`, while `createVBO()` / `draw()` use `combinedVbo` | harmless, the field is never read |
+| 36 | `wowRenderJs/geometry/adtGeomCache.ts` `ADTGeom.draw` | `stripLength` is 0 for `i == 0` | the first chunk of every ADT is never drawn (probably a leftover debug hack) |
+| 37 | `wowRenderJs/geometry/skinGeomCache.ts` `fixShaderIdBasedOnLayer` | every write goes to `shader_id`, a new property, not `shaderId` | nothing else reads `shader_id`, so the layer-based shader fixes never reach the renderer (probably meant `shaderId`) |
+| 38 | `wowRenderJs/geometry/skinGeomCache.ts` `fixShaderIdBasedOnLayer` | `renderFlag != 6` and `renderFlag != 1` compare the render flag object with a number | always true, so those branches ignore the second blend mode (probably meant `blend != 6` / `blend != 1`) |
+| 39 | `wowRenderJs/geometry/skinGeomCache.ts` `SkinGeomCache` | `skinLoader(fileName, true)` - skinLoader takes only the path (copied from wmoGroupLoader) | harmless, the argument is ignored |
+| 40 | `wowRenderJs/geometry/m2GeomCache.ts` `drawMesh` | `renderFlag.flags & 0x1 > 0` parses as `flags & (0x1 > 0)` | `flags & true` equals `flags & 1`, so it happens to work - harmless |
+| 41 | `wowRenderJs/geometry/wmoGeomCache.ts` `createVBO` | `colorOffset + (cond) ? a : 0` - the `?:` takes the whole sum as its condition | `colorOffset2` is `colorVerticles.length / 4` without the `colorOffset` base, so the second MOCV color attribute reads from the wrong offset (probably meant `colorOffset + (cond ? a : 0)`) |
+| 42 | `wowRenderJs/geometry/wmoGeomCache.ts` `draw` | calls `loadTextures()` without the `momt` it needs | TypeError on `momt[textIndex]`; unreachable today (WmoGroupObject calls `loadTextures(momt)` first) |
+| 43 | `wowRenderJs/geometry/wmoGeomCache.ts` `destroy` | copied from `Texture.destroy` - deletes `this.texture`, which `WmoGeom` never sets | nothing is freed; the group's VBOs leak when the cache unloads it |
 
 ## Runtime notes
 
@@ -103,6 +119,21 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   is SAME. `document.getElementById('viewer-container')!` - the JS assumes the container exists.
   `app_wowjs.js` was removed with `git rm` after the user confirmed (run 4); compare against history with
   `compare-emit.mjs app_wow.ts=app_wowjs.js`.
+- `mdxLoader.ts`: `@ts-expect-error` on bugs 30, 32 and 33. The parse is definition-driven, so `M2File` lists the
+  union of the four layouts with the layout-specific members optional, and `M2Track<V>` is the shared shape of
+  the three ablock variants. `anim.timeStart!` / `anim.timeEnd!` in `parseOldFile` - the `hasOwnProperty` checks
+  do not narrow. `mdxChunked` is typed but never used (bug 32).
+- `adtGeomCache.ts`: `mcnkObj.alphaArray!` - the JS assumes MCAL is present whenever the chunk has layers;
+  `textureName!` - added by `addTextureNames()` after the parse.
+- `textureCache.ts`: `textureGPUFormat!` - guarded by `canUseCompressed`, which TS does not narrow through.
+- `skinGeomCache.ts`: `@ts-expect-error` on both lines of bug 38 and on bug 39. `fixShaderIdBasedOnLayer` asserts
+  the header to `SkinHeader & { texs: SkinGeomTex[] }` for `shader_id` (bug 37); `lowerLayerSkin!` - set by the
+  layer-0 texture before it is read; `blendOverrides!` - read only in the WotLK blend-override branch.
+- `m2GeomCache.ts`: `@ts-expect-error` on bug 40. Matrix parameters are gl-matrix `mat4` and go to
+  `uniformMatrix4fv` as `Float32List` (gl-matrix's `mat4` includes a plain iterable). `instExt!` - only used when
+  `instanceCount != -1`.
+- `wmoGeomCache.ts`: `@ts-expect-error` on bugs 41 and 42. `appendBuffer` takes a local `VertexBuffer` type
+  (float arrays and the MOCV byte arrays).
 
 ## Run log
 
@@ -114,3 +145,4 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
 | 3 | app_wow.ts rebuilt from app_wowjs.js (entry point; app_wowjs.js not yet removed) | 360 | clean | green | SAME |
 | 4 | removed app_wowjs.js (entry point now app_wow.ts only) | - | clean | green | SAME |
 | 5 | group 3: services/dbc/* (18); group 4: wdtLoader, adtLoader, blpLoader, skinLoader, wmoLoader; parked types resolved in sceneApi.ts, mathHelper.ts | 2,610 | clean | green | all SAME |
+| 6 | group 4: mdxLoader; group 5: adtGeomCache, skinGeomCache, m2GeomCache, wmoGeomCache, wmoMainCache, textureCache; parked loaders resolved in sceneApi.ts | 3,790 | clean | green | all SAME |

@@ -161,18 +161,27 @@
 //export default TextureWoWCache;
 
 
-import cacheTemplate from './../cache.js';
-import blpLoader from './../../services/map/blpLoader.js';
+import cacheTemplate from './../cache';
+import type { Cache } from './../cache';
+import blpLoader from './../../services/map/blpLoader';
+import type { BlpFile, BlpMipmap, BlpTextureFormat } from './../../services/map/blpLoader';
+import type { SceneApi } from './../sceneApi';
 // Remove: import decodeDxt from 'decode-dxt';
 
 class Texture {
-    constructor(sceneApi) {
+    sceneApi: SceneApi;
+    texture: WebGLTexture | null;
+    hasAlpha: boolean;
+    /* set by TextureWoWCache after loadFromMipmaps() */
+    fileName!: string;
+
+    constructor(sceneApi: SceneApi) {
         this.sceneApi = sceneApi;
         this.texture = null;
         this.hasAlpha = false;
     }
 
-    loadFromMipmaps(mipmaps, textureFormat, hasAlpha) {
+    loadFromMipmaps(mipmaps: BlpMipmap[], textureFormat: BlpTextureFormat | undefined, hasAlpha: boolean) {
         const gl = this.sceneApi.getGlContext();
         const anisFilterExt = this.sceneApi.extensions.getAnisotropicExt();
         const ext = this.sceneApi.extensions.getComprTextExt();
@@ -182,7 +191,7 @@ class Texture {
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
         // Figure out which compressed GPU format to use
-        let textureGPUFormat = null;
+        let textureGPUFormat: number | null = null;
         if (ext) {
             switch (textureFormat) {
                 case "S3TC_RGB_DXT1":
@@ -216,7 +225,7 @@ class Texture {
                         gl.compressedTexImage2D(
                             gl.TEXTURE_2D,
                             k,
-                            textureGPUFormat,
+                            textureGPUFormat!,
                             mipmaps[k].width,
                             mipmaps[k].height,
                             0,
@@ -274,14 +283,16 @@ class Texture {
 }
 
 class TextureWoWCache {
-    constructor(sceneApi) {
+    cache: Cache<Texture, BlpFile>;
+
+    constructor(sceneApi: SceneApi) {
         this.cache = cacheTemplate(
             /* loadFn */
-            function loadBlpFile(fileName) {
+            function loadBlpFile(fileName: string) {
                 return blpLoader(fileName);
             },
             /* processFn */
-            (blpFile) => {
+            (blpFile: BlpFile) => {
                 const textureObj = new Texture(sceneApi);
                 textureObj.loadFromMipmaps(
                     blpFile.mipmaps,
@@ -294,15 +305,17 @@ class TextureWoWCache {
         );
     }
 
-    loadTexture(fileName) {
+    loadTexture(fileName: string) {
         const filenameLower = fileName.toLowerCase();
         return this.cache.get(filenameLower);
     }
 
-    unLoadTexture(fileName) {
+    unLoadTexture(fileName: string) {
         this.cache.remove(fileName);
     }
 }
+
+export type { Texture };
 
 export default TextureWoWCache;
 

@@ -1,8 +1,18 @@
-import cacheTemplate from './../cache.js';
-import adtLoader from './../../services/map/adtLoader.js';
+import cacheTemplate from './../cache';
+import adtLoader from './../../services/map/adtLoader';
+import type { AdtFile } from './../../services/map/adtLoader';
+import type { WdtFile } from './../../services/map/wdtLoader';
+import type { SceneApi } from './../sceneApi';
+import type { Texture } from './../texture/textureCache';
 
-function parseAlphaTextures(adtObj, wdtObj){
-    var megaTexture = [];
+/* createTriangleStrip(): one index strip for all chunks, and where each chunk's part starts */
+export interface AdtTriangleStrip {
+    strips: number[];
+    stripOffsets: number[];
+}
+
+function parseAlphaTextures(adtObj: AdtFile, wdtObj: WdtFile): number[][] {
+    var megaTexture: number[][] = [];
     var xStride = 64*4; // (width of alphaTex) * (max number of textures per chunk)
     //megaTexture[xStride*256*64-1] = 0;
     // Debug
@@ -12,10 +22,10 @@ function parseAlphaTextures(adtObj, wdtObj){
 
     for (var i = 0; i < adtObj.mcnkObjs.length; i++) {
         var mcnkObj = adtObj.mcnkObjs[i];
-        var alphaArray = mcnkObj.alphaArray;
+        var alphaArray = mcnkObj.alphaArray!;
         var layers = mcnkObj.textureLayers;
 
-        var currentLayer = new Array(((64*4) * 64));
+        var currentLayer: number[] = new Array(((64*4) * 64));
         megaTexture.push(currentLayer);
 
         if (!layers) continue;
@@ -95,11 +105,27 @@ function parseAlphaTextures(adtObj, wdtObj){
 }
 
 class ADTGeom {
-    constructor(sceneApi, wdtFile) {
+    sceneApi: SceneApi;
+    gl: WebGLRenderingContext;
+    wdtFile: WdtFile;
+    /* set to null here and never used: createVBO() and draw() use combinedVbo (see the JS-BUG in the constructor) */
+    combinedVBO: WebGLBuffer | null;
+    /* per chunk, per layer; a slot stays empty until its texture has loaded */
+    textureArray: Texture[][];
+    adtFile!: AdtFile;
+    alphaTextures!: WebGLTexture[];
+    triangleStrip!: AdtTriangleStrip;
+    indexOffset!: number;
+    heightOffset!: number;
+    combinedVbo!: WebGLBuffer;
+    stripVBO!: WebGLBuffer;
+
+    constructor(sceneApi: SceneApi, wdtFile: WdtFile) {
         this.sceneApi = sceneApi;
         this.gl = sceneApi.getGlContext();
 
         this.wdtFile = wdtFile;
+        // JS-BUG: initialises combinedVBO, but createVBO() and draw() use combinedVbo - harmless, the two never meet
         this.combinedVBO = null;
         this.textureArray = new Array(255);
         for (var i = 0; i < 256; i++) {
@@ -107,7 +133,7 @@ class ADTGeom {
         }
     }
 
-    assign(adtFile) {
+    assign(adtFile: AdtFile) {
         this.adtFile = adtFile;
     }
     loadTextures() {
@@ -121,7 +147,7 @@ class ADTGeom {
             if (mcnkObj.textureLayers && (mcnkObj.textureLayers.length > 0)) {
                 for (var j = 0; j < mcnkObj.textureLayers.length; j++) {
                     //if (mcnkObj.textureLayers[j].textureID < 0)
-                    this.loadTexture(i, j, mcnkObj.textureLayers[j].textureName);
+                    this.loadTexture(i, j, mcnkObj.textureLayers[j].textureName!);
                 }
             }
         }
@@ -136,7 +162,7 @@ class ADTGeom {
         var texHeight = alphaTexSize;
 
         var megaAlphaTexture = parseAlphaTextures(this.adtFile, this.wdtFile);
-        var alphaTextures = [];
+        var alphaTextures: WebGLTexture[] = [];
         for (var i = 0; i < mcnkObjs.length; i++) {
             var alphaTexture = gl.createTexture();
 
@@ -155,7 +181,7 @@ class ADTGeom {
 
         this.alphaTextures = alphaTextures;
     }
-    loadTexture(index, layerInd, filename) {
+    loadTexture(index: number, layerInd: number, filename: string) {
         var self = this;
         this.sceneApi.resources.loadTexture(filename).then(function success(textObject) {
             self.textureArray[index][layerInd] = textObject;
@@ -165,20 +191,20 @@ class ADTGeom {
     createTriangleStrip() {
         var mcnkObjs = this.adtFile.mcnkObjs;
 
-        function isHole(hole, i, j) {
+        function isHole(hole: number, i: number, j: number) {
             var holetab_h = [0x1111, 0x2222, 0x4444, 0x8888];
             var holetab_v = [0x000F, 0x00F0, 0x0F00, 0xF000];
 
             return (hole & holetab_h[i] & holetab_v[j]) != 0;
         }
 
-        function indexMapBuf(x, y) {
+        function indexMapBuf(x: number, y: number) {
             var result = ((y + 1) >>> 1) * 9 + (y >>> 1) * 8 + x;
             return result;
         }
 
-        var strips = [];
-        var stripOffsets = [];
+        var strips: number[] = [];
+        var stripOffsets: number[] = [];
 
         for (var i = 0; i < mcnkObjs.length; i++) {
             var mcnkObj = mcnkObjs[i];
@@ -219,7 +245,7 @@ class ADTGeom {
         var m2Object = this.adtFile;
 
         /* 1. help index + Heights + texCoords +  */
-        var vboArray = [];
+        var vboArray: number[] = [];
 
         /* 1.1 help index */
         this.indexOffset = vboArray.length;
@@ -246,7 +272,7 @@ class ADTGeom {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.stripVBO);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(this.triangleStrip.strips), gl.STATIC_DRAW);
     }
-    draw(drawChunks) {
+    draw(drawChunks: boolean[]) {
         var gl = this.gl;
         var stripOffsets = this.triangleStrip.stripOffsets;
         var shaderUniforms = this.sceneApi.shaders.getShaderUniforms();
@@ -289,6 +315,7 @@ class ADTGeom {
                     gl.bindTexture(gl.TEXTURE_2D, blackPixelTexture);
                 }
 
+                // JS-BUG: chunk 0 always gets a strip length of 0, so the first chunk of every ADT is never drawn (probably a leftover debug hack)
                 var stripLength = (i == 0) ? 0 : stripOffsets[i + 1] - stripOffsets[i];
                 gl.drawElements(gl.TRIANGLE_STRIP, stripLength, gl.UNSIGNED_SHORT, stripOffsets[i] * 2);
             }
@@ -297,13 +324,16 @@ class ADTGeom {
 }
 
 class AdtGeomCache {
-    constructor (sceneApi) {
+    loadAdt!: (fileName: string) => Promise<ADTGeom>;
+    unLoadAdt!: (fileName: string) => void;
+
+    constructor (sceneApi: SceneApi) {
         var self = this;
 
-        var cache = cacheTemplate(function loadAdtFile(fileName) {
+        var cache = cacheTemplate(function loadAdtFile(fileName: string) {
             /* Must return promise */
             return adtLoader(fileName);
-        }, function process(adtFile) {
+        }, function process(adtFile: AdtFile) {
             var adtGeomObj = new ADTGeom(sceneApi, sceneApi.getCurrentWdt());
             adtGeomObj.assign(adtFile);
             adtGeomObj.createTriangleStrip();
@@ -317,14 +347,16 @@ class AdtGeomCache {
             return adtGeomObj;
         });
 
-        self.loadAdt = function (fileName) {
+        self.loadAdt = function (fileName: string) {
             return cache.get(fileName);
         };
 
-        self.unLoadAdt = function (fileName) {
+        self.unLoadAdt = function (fileName: string) {
             cache.remove(fileName)
         }
     }
 }
+
+export type { ADTGeom };
 
 export default AdtGeomCache;

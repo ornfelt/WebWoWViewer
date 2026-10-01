@@ -18,6 +18,11 @@ import type { LightIntBandRecord } from '../services/dbc/lightIntBandDBC';
 import type { LightParamsRecord } from '../services/dbc/lightParamsDBC';
 import type { WdtFile } from '../services/map/wdtLoader';
 import type { WmoFile } from '../services/map/wmoLoader';
+import type { ADTGeom } from './geometry/adtGeomCache';
+import type { M2Geom } from './geometry/m2GeomCache';
+import type { SkinGeom } from './geometry/skinGeomCache';
+import type { WmoGeom } from './geometry/wmoGeomCache';
+import type { Texture } from './texture/textureCache';
 
 export interface SceneApiExtensions {
     getInstancingExt(): ANGLE_instanced_arrays | undefined;
@@ -79,18 +84,18 @@ export interface SceneApiObjects {
 }
 
 export interface SceneApiResources {
-    loadTexture(fileName: string): Promise<any>; // TS-PORT: parked until wowRenderJs/texture/textureCache.ts exports Texture
+    loadTexture(fileName: string): Promise<Texture>;
     unLoadTexture(fileName: string): void;
     /* wmoLoader resolves with undefined when the load fails */
     loadWmoMain(fileName: string): Promise<WmoFile | undefined>;
     unloadWmoMain(fileName: string): void;
-    loadWmoGeom(fileName: string): Promise<any>; // TS-PORT: parked until wowRenderJs/geometry/wmoGeomCache.ts exports WmoGeom
+    loadWmoGeom(fileName: string): Promise<WmoGeom>;
     unloadWmoGeom(fileName: string): void;
-    loadM2Geom(fileName: string): Promise<any>; // TS-PORT: parked until wowRenderJs/geometry/m2GeomCache.ts exports M2Geom
+    loadM2Geom(fileName: string): Promise<M2Geom>;
     unloadM2Geom(fileName: string): void;
-    loadSkinGeom(fileName: string): Promise<any>; // TS-PORT: parked until wowRenderJs/geometry/skinGeomCache.ts exports SkinGeom
+    loadSkinGeom(fileName: string): Promise<SkinGeom>;
     unloadSkinGeom(fileName: string): void;
-    loadAdtGeom(fileName: string): Promise<any>; // TS-PORT: parked until wowRenderJs/geometry/adtGeomCache.ts exports ADTGeom
+    loadAdtGeom(fileName: string): Promise<ADTGeom>;
     unloadAdtGeom(fileName: string): void;
 }
 

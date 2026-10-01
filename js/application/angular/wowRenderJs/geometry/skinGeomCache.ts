@@ -1,20 +1,39 @@
-import cacheTemplate from './../cache.js';
-import skinLoader from './../../services/map/skinLoader.js'
+import cacheTemplate from './../cache';
+import type { Cache } from './../cache';
+import skinLoader from './../../services/map/skinLoader'
+import type { SkinFile, SkinHeader, SkinTex } from './../../services/map/skinLoader';
+import type { M2File } from './../../services/map/mdxLoader';
+import type { SceneApi } from './../sceneApi';
 import Expansion from '../../Expansion';
 
+/* fixShaderIdBasedOnLayer() writes shader_id, a property next to shaderId (see the JS-BUG there) */
+export interface SkinGeomTex extends SkinTex {
+    shader_id?: number;
+}
+
+/* calcBBForSkinSections(): [[minX, minY, minZ], [maxX, maxY, maxZ]] per submesh */
+export type SubMeshBB = number[][];
+
 class SkinGeom {
-    constructor(sceneApi) {
+    gl: WebGLRenderingContext;
+    indexVBO: WebGLBuffer | null;
+    fixedAlready: boolean;
+    skinFile!: SkinFile;
+    indicies!: number[];
+    subMeshBBs!: SubMeshBB[];
+
+    constructor(sceneApi: SceneApi) {
         this.gl = sceneApi.getGlContext();
 
         this.indexVBO = null;
         this.fixedAlready = false;
     }
 
-    assign(skinFile) {
+    assign(skinFile: SkinFile) {
         this.skinFile = skinFile;
     };
 
-    fixShaderIdBasedOnBlendOverride(m2File) {
+    fixShaderIdBasedOnBlendOverride(m2File: M2File) {
         var skinFileData = this.skinFile.header;
         for (var i = 0; i < skinFileData.texs.length; i++){
             var skinTextureDefinition = skinFileData.texs[i];
@@ -44,7 +63,7 @@ class SkinGeom {
 
                 var newShaderId = 0;
                 for (var j = 0; j <= op_count; j++) {
-                    var blendMapVal = m2File.blendOverrides[currShaderId + j];
+                    var blendMapVal = m2File.blendOverrides![currShaderId + j];
                     if (j == 0 && blendingMode == 0) {
                         blendMapVal = 0;
                     }
@@ -65,13 +84,13 @@ class SkinGeom {
             }
         }
     }
-    fixShaderIdBasedOnLayer(m2File) {
-        var skinFileData = this.skinFile.header;
+    fixShaderIdBasedOnLayer(m2File: M2File) {
+        var skinFileData = this.skinFile.header as SkinHeader & { texs: SkinGeomTex[] };
 
         var reducingIsNeeded = false;
         var prevRenderFlagIndex = -1;
 
-        var lowerLayerSkin = null;
+        var lowerLayerSkin: SkinGeomTex | null = null;
         var someFlags = 0;
         for (var i = 0; i < skinFileData.nTex; i++) {
             var texDef = skinFileData.texs[i];
@@ -87,7 +106,8 @@ class SkinGeom {
             if (texDef.layer == 0) {
 
                 if ((texDef.op_count >= 1) && (renderFlag.blend == 0)) {
-                    texDef.shader_id &= 0xFF8F;
+                    // JS-BUG: every write in this method goes to shader_id, not shaderId - nothing outside this method reads shader_id, so the layer fixes never reach the shaders (probably meant shaderId)
+                    texDef.shader_id! &= 0xFF8F;
                 }
                 lowerLayerSkin = texDef;
             }
@@ -96,12 +116,12 @@ class SkinGeom {
                 var blendingMode = renderFlag.blend;
                 if ((blendingMode == 2 || blendingMode == 1)
                     && (texDef.op_count == 1)
-                    && ((((renderFlag.flags & 0xff) ^ (m2File.renderFlags[lowerLayerSkin.renderFlagIndex].flags & 0xff)) & 1) == 0)
-                    && texDef.textureIndex == lowerLayerSkin.textureIndex)
+                    && ((((renderFlag.flags & 0xff) ^ (m2File.renderFlags[lowerLayerSkin!.renderFlagIndex].flags & 0xff)) & 1) == 0)
+                    && texDef.textureIndex == lowerLayerSkin!.textureIndex)
                 {
-                    if (m2File.transLookup[lowerLayerSkin.transpIndex] == m2File.transLookup[texDef.transpIndex]) {
+                    if (m2File.transLookup[lowerLayerSkin!.transpIndex] == m2File.transLookup[texDef.transpIndex]) {
                         texDef.shader_id = 0x8000;
-                        lowerLayerSkin.shader_id = 0x8001;
+                        lowerLayerSkin!.shader_id = 0x8001;
                         someFlags = (someFlags&0xFF00) | 3;
                         continue;
                     }
@@ -121,12 +141,14 @@ class SkinGeom {
                 if ((someFlags >> 8) == 1) {
                     //Line 119
                     var blend = renderFlag.blend;
+                    // JS-BUG: compares the renderFlag object with 6, which is always unequal (probably meant blend != 6)
+                    // @ts-expect-error renderFlag is an M2RenderFlag object, compared with a number; ported as-is
                     if ((blend != 4) && (renderFlag != 6) || (texDef.op_count != 1) || (m2File.textUnitLookup[texDef.textureUnitNum] <= 2)) {
 
-                    } else  if (m2File.transLookup[lowerLayerSkin.transpIndex] == m2File.transLookup[texDef.transpIndex]) {
+                    } else  if (m2File.transLookup[lowerLayerSkin!.transpIndex] == m2File.transLookup[texDef.transpIndex]) {
                         //Line 124
                         texDef.shader_id = 0x8000;
-                        lowerLayerSkin.shader_id = renderFlag.blend != 4 ? 14 : 0x8002;
+                        lowerLayerSkin!.shader_id = renderFlag.blend != 4 ? 14 : 0x8002;
                         //lowerLayerSkin.op_count = 2;
                         //TODO: Implement packing of textures
 
@@ -140,14 +162,16 @@ class SkinGeom {
                     }
                     var blend = renderFlag.blend;
 
+                    // JS-BUG: compares the renderFlag object with 1, which is always unequal (probably meant blend != 1)
+                    // @ts-expect-error renderFlag is an M2RenderFlag object, compared with a number; ported as-is
                     if ((blend != 2) && (renderFlag != 1)
                         || (texDef.op_count != 1)
-                        || ((((renderFlag.flags & 0xff) ^ (m2File.renderFlags[lowerLayerSkin.renderFlagIndex].flags & 0xff)) & 1) == 0)
-                        || ((texDef.textureIndex & 0xff) != (lowerLayerSkin.textureIndex&0xff))) {
+                        || ((((renderFlag.flags & 0xff) ^ (m2File.renderFlags[lowerLayerSkin!.renderFlagIndex].flags & 0xff)) & 1) == 0)
+                        || ((texDef.textureIndex & 0xff) != (lowerLayerSkin!.textureIndex&0xff))) {
 
-                    } else  if (m2File.transLookup[lowerLayerSkin.transpIndex] == m2File.transLookup[texDef.transpIndex]) {
+                    } else  if (m2File.transLookup[lowerLayerSkin!.transpIndex] == m2File.transLookup[texDef.transpIndex]) {
                         texDef.shader_id = 0x8000;
-                        lowerLayerSkin.shader_id = ((lowerLayerSkin.shader_id == 0x8002? 2 : 0) - 0x7FFF) & 0xFFFF;
+                        lowerLayerSkin!.shader_id = ((lowerLayerSkin!.shader_id == 0x8002? 2 : 0) - 0x7FFF) & 0xFFFF;
                         someFlags = (someFlags & 0xFF) | (3 << 8);
                         continue;
                     }
@@ -176,7 +200,7 @@ class SkinGeom {
         }
     }
 
-    fixData(m2File) {
+    fixData(m2File: M2File) {
         if (!this.fixedAlready) {
             this.fixShaderIdBasedOnBlendOverride(m2File);
             this.fixShaderIdBasedOnLayer(m2File);
@@ -185,12 +209,12 @@ class SkinGeom {
         }
     }
 
-    calcBBForSkinSections(m2File) {
+    calcBBForSkinSections(m2File: M2File) {
         var skinFile = this.skinFile.header;
         var vertexes = m2File.vertexesDebug;
         var indicies = this.indicies;
 
-        var subMeshBBs = new Array(skinFile.subMeshes.length);
+        var subMeshBBs: SubMeshBB[] = new Array(skinFile.subMeshes.length);
         for (var i = 0; i < skinFile.subMeshes.length; i++) {
             var submesh = skinFile.subMeshes[i];
 
@@ -232,7 +256,7 @@ class SkinGeom {
 
 
         var skinFileHeader = this.skinFile.header;
-        var indicies = new Array(skinFileHeader.triangles.length);
+        var indicies: number[] = new Array(skinFileHeader.triangles.length);
 
         for (var i = 0; i < indicies.length; i++) {
             indicies[i] = skinFileHeader.indexes[skinFileHeader.triangles[i]];
@@ -245,11 +269,15 @@ class SkinGeom {
 }
 
 class SkinGeomCache {
-    constructor (sceneApi){
-        this.cache = cacheTemplate(function loadGroupWmo(fileName) {
+    cache: Cache<SkinGeom, SkinFile>;
+
+    constructor (sceneApi: SceneApi){
+        this.cache = cacheTemplate(function loadGroupWmo(fileName: string) {
             /* Must return promise */
+            // JS-BUG: skinLoader takes only the file path; the extra true (copied from wmoGroupLoader) is ignored - harmless
+            // @ts-expect-error skinLoader takes one argument; ported as-is
             return skinLoader(fileName, true);
-        }, function process(skinFile) {
+        }, function process(skinFile: SkinFile) {
 
             var skinGeomObj = new SkinGeom(sceneApi);
             skinGeomObj.assign(skinFile);
@@ -257,13 +285,15 @@ class SkinGeomCache {
             return skinGeomObj;
         });
     }
-    loadSkin (fileName){
+    loadSkin (fileName: string){
         return this.cache.get(fileName);
     };
 
-    unLoadSkin(fileName) {
+    unLoadSkin(fileName: string) {
         this.cache.remove(fileName)
     }
 }
+
+export type { SkinGeom };
 
 export default SkinGeomCache;

@@ -1,9 +1,23 @@
-import cacheTemplate from './../cache.js';
-import mdxLoader from './../../services/map/mdxLoader.js';
+import cacheTemplate from './../cache';
+import mdxLoader from './../../services/map/mdxLoader';
+import type { M2File } from './../../services/map/mdxLoader';
+import type { mat4 } from 'gl-matrix';
+import type { SceneApi } from './../sceneApi';
+import type { SkinGeom } from './skinGeomCache';
+import type { Texture } from './../texture/textureCache';
 
 
 class M2Geom {
-    constructor(sceneApi) {
+    sceneApi: SceneApi;
+    gl: WebGLRenderingContext;
+    combinedVBO: WebGLBuffer | null;
+    vao: WebGLVertexArrayObjectOES | null;
+    /* indexed like m2File.textureDefinition; a slot stays empty until its texture has loaded */
+    textureArray: Texture[];
+    m2File!: M2File;
+    vertexVBO!: WebGLBuffer;
+
+    constructor(sceneApi: SceneApi) {
         this.sceneApi = sceneApi;
         this.gl = sceneApi.getGlContext();
         this.combinedVBO = null;
@@ -11,7 +25,7 @@ class M2Geom {
         this.textureArray = []
     }
 
-    assign(m2File) {
+    assign(m2File: M2File) {
         this.m2File = m2File;
     }
 
@@ -34,7 +48,7 @@ class M2Geom {
         }
     }
 
-    loadTexture(index, filename) {
+    loadTexture(index: number, filename: string) {
         var self = this;
         this.sceneApi.resources.loadTexture(filename).then(function success(textObject) {
             self.textureArray[index] = textObject;
@@ -53,7 +67,7 @@ class M2Geom {
         /* Index is taken from skin object */
     }
 
-    createVAO(skinObject){
+    createVAO(skinObject: SkinGeom){
         var gl = this.gl;
         var vao_ext = this.sceneApi.extensions.getVaoExt();
 
@@ -71,7 +85,7 @@ class M2Geom {
         }
     }
 
-    setupPlacementAttribute(placementVBO) {
+    setupPlacementAttribute(placementVBO: WebGLBuffer) {
         var gl = this.gl;
         var shaderAttributes = this.sceneApi.shaders.getShaderAttributes();
 
@@ -87,7 +101,7 @@ class M2Geom {
     }
 
 
-    setupAttributes(skinObject) {
+    setupAttributes(skinObject: SkinGeom) {
         var gl = this.gl;
         var shaderAttributes = this.sceneApi.shaders.getShaderAttributes();
 
@@ -117,12 +131,13 @@ class M2Geom {
     }
 
 
-    setupUniforms(placementMatrix, boneMatrix, diffuseColor, drawTransparent, lights) {
+    setupUniforms(placementMatrix: mat4 | null, boneMatrix: Float32Array | null, diffuseColor: Float32Array | null, drawTransparent: boolean,
+                  lights: any[]) { // TS-PORT: parked until wowRenderJs/manager/animationManager.ts exports its light type
         var gl = this.gl;
         var uniforms = this.sceneApi.shaders.getShaderUniforms();
         var m2File = this.m2File;
         if (placementMatrix) {
-            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, placementMatrix);
+            gl.uniformMatrix4fv(uniforms.uPlacementMat, false, placementMatrix as Float32List);
         }
 
         if (boneMatrix) {
@@ -195,7 +210,9 @@ class M2Geom {
         }
     }
 
-   drawMesh(materialData, skinObject, meshColor, transparency, textureMatrix1, textureMatrix2, pixelShaderIndex, originalFogColor, instanceCount) {
+   drawMesh(materialData: any, // TS-PORT: parked until wowRenderJs/objects/M2Object.ts exports its material type
+            skinObject: SkinGeom, meshColor: Float32Array, transparency: number, textureMatrix1: mat4, textureMatrix2: mat4,
+            pixelShaderIndex: number, originalFogColor: number[], instanceCount: number) {
         var gl = this.gl;
         var m2File = this.m2File;
         var instExt = this.sceneApi.extensions.getInstancingExt();
@@ -206,8 +223,8 @@ class M2Geom {
         var shaderAttributes = this.sceneApi.shaders.getShaderAttributes();
         var fogChanged = false;
 
-        gl.uniformMatrix4fv(uniforms.uTextMat1, false, textureMatrix1);
-        gl.uniformMatrix4fv(uniforms.uTextMat2, false, textureMatrix2);
+        gl.uniformMatrix4fv(uniforms.uTextMat1, false, textureMatrix1 as Float32List);
+        gl.uniformMatrix4fv(uniforms.uTextMat2, false, textureMatrix2 as Float32List);
         gl.uniform4fv(uniforms.uColor, meshColor);
         gl.uniform1f(uniforms.uTransparency, transparency);
         gl.uniform1i(uniforms.uPixelShader, pixelShaderIndex);
@@ -289,6 +306,8 @@ class M2Geom {
 
 
 
+                // JS-BUG: precedence - parsed as flags & (0x1 > 0), i.e. flags & true, which happens to equal flags & 1 - harmless
+                // @ts-expect-error a boolean (0x1 > 0) as the right operand of &; ported as-is
                 if ((renderFlag.flags & 0x1 > 0)|| (renderFlag.blend == 5) || (renderFlag.blend == 6)) {
                     gl.uniform1i(uniforms.uUseDiffuseColor, 0)
                 } else {
@@ -362,7 +381,7 @@ class M2Geom {
                     //var error = gl.getError(); // Drop error flag
                     gl.drawElements(gl.TRIANGLES, skinData.subMeshes[meshIndex].nTriangles, gl.UNSIGNED_SHORT, skinData.subMeshes[meshIndex].StartTriangle * 2);
                 } else {
-                    instExt.drawElementsInstancedANGLE(gl.TRIANGLES, skinData.subMeshes[meshIndex].nTriangles, gl.UNSIGNED_SHORT, skinData.subMeshes[meshIndex].StartTriangle * 2, instanceCount);
+                    instExt!.drawElementsInstancedANGLE(gl.TRIANGLES, skinData.subMeshes[meshIndex].nTriangles, gl.UNSIGNED_SHORT, skinData.subMeshes[meshIndex].StartTriangle * 2, instanceCount);
                 }
                 if (materialData.texUnit2Texture != null) {
                     gl.activeTexture(gl.TEXTURE1);
@@ -388,13 +407,16 @@ class M2Geom {
 }
 
 class M2GeomCache {
-    constructor(sceneApi) {
+    loadM2!: (fileName: string) => Promise<M2Geom>;
+    unLoadM2!: (fileName: string) => void;
+
+    constructor(sceneApi: SceneApi) {
         var self = this;
 
-        var cache = cacheTemplate(function loadGroupWmo(fileName) {
+        var cache = cacheTemplate(function loadGroupWmo(fileName: string) {
             /* Must return promise */
             return mdxLoader(fileName);
-        }, function process(m2File) {
+        }, function process(m2File: M2File) {
 
             var m2GeomObj = new M2Geom(sceneApi);
             m2GeomObj.assign(m2File);
@@ -405,14 +427,16 @@ class M2GeomCache {
         });
 
 
-        self.loadM2 = function (fileName) {
+        self.loadM2 = function (fileName: string) {
             return cache.get(fileName);
         };
 
-        self.unLoadM2 = function (fileName) {
+        self.unLoadM2 = function (fileName: string) {
             cache.remove(fileName)
         }
     }
 }
+
+export type { M2Geom };
 
 export default M2GeomCache;

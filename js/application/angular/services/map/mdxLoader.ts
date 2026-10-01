@@ -1,7 +1,279 @@
-import linedFileLoader from './../linedfileLoader.js';
+import linedFileLoader from './../linedfileLoader';
+import type { LinedFile, SectionDefinition } from './../linedfileLoader';
+import type { Vector3f, Vector4f } from './../fileReadHelper';
+import type { Chunk, SectionHandler } from './../chunkedLoader';
+
+/* An animated value: an "ablock" (WotLK) or "ablock_tbc" / "ablock_tbc2" (TBC, classic) - see linedfileLoader.
+ * The TBC variants carry their raw counts and offsets as well; only the shared members are listed here. */
+export interface M2Track<V> {
+    interpolation_type: number;
+    global_sequence: number;
+    timestampsPerAnimation: number[][];
+    valuesPerAnimation: V[][];
+}
+
+export interface M2VertexDebug {
+    pos: Vector3f;
+    bonesWeight: Uint8Array;
+    bones: Uint8Array;
+    normal: Vector3f;
+    textureX: number;
+    textureY: number;
+    unk1: number;
+    unk2: number;
+}
+
+export interface M2TextureDefinition {
+    texType: number;
+    flags: number;
+    filenameLen: number;
+    ofsFilename: number;
+    textureName: string;
+}
+
+export interface M2Animation {
+    animation_id: number;
+    sub_animation_id: number;
+    /* read by the 264 / 274 layouts; parseOldFile computes it for the TBC / classic layouts */
+    length: number;
+    /* TBC / classic layouts only */
+    timeStart?: number;
+    /* TBC / classic layouts only */
+    timeEnd?: number;
+    moving_speed: number;
+    /* classic layout only */
+    loopType?: number;
+    flags: number;
+    /* not in the classic layout */
+    probability?: number;
+    /* not in the classic layout */
+    _padding?: number;
+    minimum_repetitions: number;
+    maximum_repetitions: number;
+    blend_time: number;
+    boundingCorner1: Vector3f;
+    boundingCorner2: Vector3f;
+    bound_radius: number;
+    next_animation: number;
+    aliasNext: number;
+}
+
+export interface M2Color {
+    color: M2Track<Vector3f>;
+    alpha: M2Track<number>;
+}
+
+export interface M2Transparency {
+    values: M2Track<number>;
+}
+
+export interface M2Camera {
+    type: number;
+    fov: number;
+    far_clip: number;
+    near_clip: number;
+    positions: M2Track<Vector3f>;
+    position_base: Vector3f;
+    target_position: M2Track<Vector3f>;
+    target_position_base: Vector3f;
+    roll: M2Track<number>;
+}
+
+export interface M2Bone {
+    key_bone_id: number;
+    flags: number;
+    parent_bone: number;
+    submesh_id: number;
+    /* not in the classic layout */
+    unk1?: number;
+    /* not in the classic layout */
+    unk2?: number;
+    translation: M2Track<Vector3f>;
+    /* uint16Array (264), int16Array (274, TBC) or vector4f (classic) */
+    rotation: M2Track<number[] | Vector4f>;
+    scale: M2Track<Vector3f>;
+    pivot: Vector3f;
+}
+
+export interface M2TexAnim {
+    translation: M2Track<Vector3f>;
+    /* vector4f (264, classic) or int16Array (274, TBC) */
+    rotation: M2Track<number[] | Vector4f>;
+    scale: M2Track<Vector3f>;
+}
+
+export interface M2RenderFlag {
+    flags: number;
+    blend: number;
+}
+
+export interface M2Attachment {
+    id: number;
+    bone: number;
+    unk: number;
+    pos: Vector3f;
+    animate_attached: M2Track<number>;
+}
+
+export interface M2Light {
+    type: number;
+    bone: number;
+    position: Vector3f;
+    ambient_color: M2Track<Vector3f>;
+    ambient_intensity: M2Track<number>;
+    diffuse_color: M2Track<Vector3f>;
+    diffuse_intensity: M2Track<number>;
+    attenuation_start: M2Track<number>;
+    attenuation_end: M2Track<number>;
+    unknown: M2Track<number>;
+}
+
+/* The parsed M2 header (mdx_ver264 / mdx_ver274 / mdx_ver262 / mdx_ver256) plus fileName.
+ * Members only some layouts read are optional; the sections a layout lacks are left unset, and the
+ * sections whose count field a layout lacks come out as empty arrays. */
+export interface M2File {
+    MNameLen: number;
+    MNameOffs: number;
+    ModelType: number;
+    nGlobalSequences: number;
+    ofsGlobalSequences: number;
+    nAnimations: number;
+    ofsAnimations: number;
+    /* 264 only */
+    nAnimationLookup?: number;
+    /* 264 only */
+    ofsAnimationLookup?: number;
+    /* not in 264 */
+    nC?: number;
+    /* not in 264 */
+    ofsC?: number;
+    /* TBC / classic only */
+    nD?: number;
+    /* TBC / classic only */
+    ofsD?: number;
+    nBones: number;
+    ofsBones: number;
+    /* 264 only */
+    nKeyBoneLookup?: number;
+    /* 264 only */
+    ofsKeyBoneLookup?: number;
+    /* not in 264 */
+    nF?: number;
+    /* not in 264 */
+    ofsF?: number;
+    nVertexes: number;
+    ofsVertexes: number;
+    nViews: number;
+    /* TBC / classic only */
+    ofsViews?: number;
+    nColors: number;
+    ofsColors: number;
+    nTextures: number;
+    ofsTextures: number;
+    nTransparency: number;
+    ofsTransparency: number;
+    /* TBC / classic only */
+    nI?: number;
+    /* TBC / classic only */
+    ofsI?: number;
+    nTexAnims: number;
+    ofsTexAnims: number;
+    nTexReplace: number;
+    ofsTexReplace: number;
+    nRenderFlags: number;
+    ofsRenderFlags: number;
+    /* 264 only */
+    nBoneLookupTable?: number;
+    /* 264 only */
+    ofsBoneLookupTable?: number;
+    /* not in 264 */
+    nGroupBoneIDs?: number;
+    /* not in 264 */
+    ofsGroupBoneIDs?: number;
+    nTexLookup: number;
+    ofsTexLookup: number;
+    nTexUnits: number;
+    ofsTexUnits: number;
+    nTransLookup: number;
+    ofsTransLookup: number;
+    nTexAnimLookup: number;
+    ofsTexAnimLookup: number;
+    BoundingCorner1: Vector3f;
+    BoundingCorner2: Vector3f;
+    BoundingRadius: number;
+    Corner1: Vector3f;
+    Corner2: Vector3f;
+    Radius: number;
+    nBoundingTriangles: number;
+    ofsBoundingTriangles: number;
+    nBoundingVertices: number;
+    ofsBoundingVertices: number;
+    nBoundingNormals: number;
+    ofsBoundingNormals: number;
+    nAttachments: number;
+    ofsAttachments: number;
+    /* 264 only */
+    nAttachLookup?: number;
+    /* 264 only */
+    ofsAttachLookup?: number;
+    /* not in 264 */
+    nP?: number;
+    /* not in 264 */
+    ofsP?: number;
+    nNumEvents: number;
+    ofsNumEvents: number;
+    nLights: number;
+    ofsLights: number;
+    nCameras: number;
+    ofsCameras: number;
+    nCameraLookup: number;
+    ofsCameraLookup: number;
+    nRibbonEmitters: number;
+    ofsRibbonEmitters: number;
+    nParticleEmitters: number;
+    ofsParticleEmitters: number;
+    /* 264 only */
+    nBlendOverrides?: number;
+    /* 264 only */
+    ofsBlendOverrides?: number;
+
+    vertexes: Uint8Array;
+    vertexesDebug: M2VertexDebug[];
+    textureDefinition: M2TextureDefinition[];
+    globalSequences: number[];
+    animations: M2Animation[];
+    texLookup: number[];
+    colors: M2Color[];
+    transparencies: M2Transparency[];
+    /* not in the 274 layout */
+    cameras?: M2Camera[];
+    bones: M2Bone[];
+    texAnimLookup: number[];
+    /* 264 only, and only when (ModelType & 0x8) > 0 */
+    blendOverrides?: number[];
+    texAnims: M2TexAnim[];
+    transLookup: number[];
+    texReplace: number[];
+    textUnitLookup: number[];
+    renderFlags: M2RenderFlag[];
+    /* not in the 274 layout */
+    attachments?: M2Attachment[];
+    /* not in the 274 layout */
+    attachLookups?: number[];
+    /* not in the 274 layout */
+    animationLookup?: number[];
+    /* not in the 274 layout */
+    keyBoneLookup?: number[];
+    /* not in the 274 layout */
+    boneLookupTable?: number[];
+    /* not in the 274 layout */
+    lights?: M2Light[];
+
+    fileName: string;
+}
 
 // WOTLK
-const mdx_ver264 = {
+const mdx_ver264: SectionDefinition = {
     name : "header",
     type : "layout",
     layout : [
@@ -428,7 +700,7 @@ const mdx_ver264 = {
     ]
 };
 
-const mdx_ver274 = {
+const mdx_ver274: SectionDefinition = {
     name : "header",
     type : "layout",
     layout : [
@@ -713,6 +985,7 @@ const mdx_ver274 = {
             count : "nTexUnits",
             type: "uint16"
         },
+        // JS-BUG: the 274 layout has no cameras, attachments, lookups or lights sections, but animationManager reads animationLookup / keyBoneLookup unconditionally (TypeError for 274 models)
         {
             name : "renderFlags",
             offset: "ofsRenderFlags",
@@ -727,7 +1000,7 @@ const mdx_ver274 = {
 };
 
 // TBC
-const mdx_ver262 = {
+const mdx_ver262: SectionDefinition = {
     name : "header",
     type : "layout",
     layout : [
@@ -1074,6 +1347,7 @@ const mdx_ver262 = {
                 }
             ]
         },
+        // JS-BUG: this header has no nAttachLookup / nAnimationLookup / nKeyBoneLookup / nBoneLookupTable (they are the unnamed nC / nF / ... fields), so these four lookups always come out empty
         {
             name: "attachLookups",
             offset: "ofsAttachLookup",
@@ -1147,7 +1421,7 @@ const mdx_ver262 = {
 };
 
 // Classic
-const mdx_ver256 = {
+const mdx_ver256: SectionDefinition = {
     name : "header",
     type : "layout",
     layout : [
@@ -1493,6 +1767,7 @@ const mdx_ver256 = {
                 }
             ]
         },
+        // JS-BUG: this header has no nAttachLookup / nAnimationLookup / nKeyBoneLookup / nBoneLookupTable (they are the unnamed nC / nF / ... fields), so these four lookups always come out empty
         {
             name: "attachLookups",
             offset: "ofsAttachLookup",
@@ -1565,7 +1840,7 @@ const mdx_ver256 = {
     ]
 };
 
-const mdxTablePerVersion = {
+const mdxTablePerVersion: { [version: string]: SectionDefinition } = {
     "256" : mdx_ver256,
     "260" : mdx_ver262,
     "261" : mdx_ver262,
@@ -1576,7 +1851,7 @@ const mdxTablePerVersion = {
     "274" : mdx_ver274
 };
 
-const mdxChunked = {
+const mdxChunked: { [chunkIdent: string]: (mdxObj: M2File, chunk: Chunk) => void } = {
     'DIFA' : function (mdxObj, chunk) {
 
     },
@@ -1596,11 +1871,13 @@ const mdxChunked = {
         var resultMDXObject = parseOldFile(fileObj);
         console.log("wtf");
 
+        // JS-BUG: $ (jQuery) is neither imported nor loaded, so this throws a ReferenceError (probably meant Object.assign(mdxObj, resultMDXObject))
+        // @ts-expect-error $ is not declared anywhere; ported as-is
         $.extend(mdxObj, resultMDXObject);
     }
 };
 
-function parseOldFile(fileObject){
+function parseOldFile(fileObject: LinedFile): M2File {
     var offset = {offs : 0};
     var fileIdent =  fileObject.readNZTString(offset, 4);
     var fileVersion = fileObject.readInt32(offset); //is this really version?
@@ -1616,9 +1893,9 @@ function parseOldFile(fileObject){
     }
 
     /* Parse the header */
-    var resultMDXObject = {};
+    var resultMDXObject = {} as M2File;
     try {
-        resultMDXObject = fileObject.parseSectionDefinition(resultMDXObject, mdxDescription, fileObject, offset);
+        resultMDXObject = fileObject.parseSectionDefinition(resultMDXObject, mdxDescription, fileObject, offset) as M2File;
 
         if (Array.isArray(resultMDXObject.animations)) {
             resultMDXObject.animations.forEach((anim) => {
@@ -1628,13 +1905,14 @@ function parseOldFile(fileObject){
                 ) {
                     // Create length property
                     // TODO: is this correct?
-                    if (anim.timeStart > anim.timeEnd)
+                    if (anim.timeStart! > anim.timeEnd!)
                     {
-                        var timeStartTemp = anim.timeStart;
+                        var timeStartTemp = anim.timeStart!;
                         anim.timeStart = anim.timeEnd;
-                        anim.timeEnd -= timeStartTemp;
+                        // JS-BUG: a swap would assign timeStartTemp; subtracting makes timeEnd (old end - old start) negative and length -(old start) (the TODO above doubts it too)
+                        anim.timeEnd! -= timeStartTemp;
                     }
-                    anim.length = anim.timeEnd - anim.timeStart;
+                    anim.length = anim.timeEnd! - anim.timeStart!;
                 }
             });
         }
@@ -1649,14 +1927,16 @@ function parseOldFile(fileObject){
 
 
 class BaseMdxChunkedLoader {
-    getHandler(sectionName) {
+    getHandler(sectionName: string): SectionHandler | undefined {
+        // JS-BUG: handlerTable is not declared anywhere (probably meant mdxChunked), so every call throws a ReferenceError
+        // @ts-expect-error handlerTable is not declared anywhere; ported as-is
         return handlerTable[sectionName];
     }
 }
 const mdxChunkedLoader = new BaseMdxChunkedLoader();
 
 
-export default function(filePath) {
+export default function(filePath: string): Promise<M2File> {
     // Debug
     //console.log(`loading file: ${filePath}`);
     var promise = linedFileLoader(filePath);
@@ -1677,7 +1957,9 @@ export default function(filePath) {
         }
 
         if (fileIdent == 'MD21') {
-            var resultMDXObject = {};
+            var resultMDXObject = {} as M2File;
+            // JS-BUG: chunkedLoader is not imported, so every MD21 model fails here with a ReferenceError (the promise rejects)
+            // @ts-expect-error chunkedLoader is not imported in this module; ported as-is
             var chunkedFile = chunkedLoader(filePath, fileObject.getArrayBuffer());
             chunkedFile.setSectionReaders(mdxChunkedLoader);
             chunkedFile.processFile(resultMDXObject);
@@ -1697,8 +1979,9 @@ export default function(filePath) {
         resultMDXObject.fileName = filePath;
         return resultMDXObject;
     },
-    function error(errorObj){
-        return errorObj;
+    // JS-BUG: the rejection handler returns errorObj, so a failed load resolves with the error as if it were the M2File
+    function error(errorObj: unknown): M2File {
+        return errorObj as M2File;
     });
 
     return newPromise;
