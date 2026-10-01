@@ -933,12 +933,11 @@ export default class AnimationManager {
 
             // Support for blend
             if (blendAnimationRecord != null) {
-                // JS-BUG: evaluates the current animation again (time, animationRecord, animationIndex) instead of the blend animation, so alpha is not blended
                 alpha = this.getTimedValue(
                     2,
-                    time,
-                    animationRecord.length,
-                    animationIndex,
+                    blendAnimationTime,
+                    blendAnimationRecord.length,
+                    blendAnimationIndex,
                     colors[i].alpha);
 
                 if (alpha) {
