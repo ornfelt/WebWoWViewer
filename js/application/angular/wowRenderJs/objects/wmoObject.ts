@@ -263,8 +263,8 @@ class WmoObject {
         var filename = this.fileName;
         var wmoMailPromise = self.sceneApi.resources.loadWmoMain(filename);
         wmoMailPromise.then(function success(wmoObj){
-            self.wmoObj = wmoObj!;
-            self.wmoGroupArray = new Array(wmoObj!.nGroups);
+            self.wmoObj = wmoObj;
+            self.wmoGroupArray = new Array(wmoObj.nGroups);
 
             self.createPortalsVBO();
             self.createBoundingBox();
@@ -272,8 +272,8 @@ class WmoObject {
 
             /* 1. Load wmo group files */
             var template = filename.substr(0, filename.lastIndexOf("."));
-            for (var i = 0; i < wmoObj!.nGroups; i++) {
-                var groupInfo = wmoObj!.groupInfos[i];
+            for (var i = 0; i < wmoObj.nGroups; i++) {
+                var groupInfo = wmoObj.groupInfos[i];
 
                 var numStr = i.toString();
                 for (var j = numStr.length; j < 3; j++) numStr = '0'+numStr;

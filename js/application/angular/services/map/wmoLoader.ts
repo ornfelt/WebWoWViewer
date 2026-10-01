@@ -396,7 +396,7 @@ function wmoGroupLoader(wmoFilePath: string, loadPlainVertexes: boolean): Promis
 
     return newPromise;
 }
-function wmoLoader(wmoFilePath: string): Promise<WmoFile | undefined> {
+function wmoLoader(wmoFilePath: string): Promise<WmoFile> {
     var wmo_ver17: WmoHandlerTable = {
         "MOHD" : function(wmoObj: WmoFile, chunk: Chunk) {
             var offset = {offs: 0};
@@ -645,9 +645,6 @@ function wmoLoader(wmoFilePath: string): Promise<WmoFile | undefined> {
         chunkedFile.processFile(wmoObj);
 
         return wmoObj;
-    // JS-BUG: the rejection handler returns nothing, so a failed load resolves with undefined instead of rejecting
-    }, function error(): undefined {
-        //debugger;
     });
 
     return newPromise;

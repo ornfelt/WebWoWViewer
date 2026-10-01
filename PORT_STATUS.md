@@ -61,7 +61,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 23 | `services/map/wmoLoader.ts` `MOGP` | the uint16 after `numBatchesC` is not read | `Indeces`, `Unk1`, `groupID`, `Unk2`, `Unk3` read 2 bytes early; none is used today |
 | 24 | `services/map/wmoLoader.ts` `MOPY` | `chunk.length` - a chunk has no `length` | `n` is NaN; unused, harmless |
 | 25 | `services/map/wmoLoader.ts` `MOVT`, `MONR`, `MOTV` | non-plain branch calls `readVector3f` / `readVector2f` with a count; they read one vector | would store a single vector; unreachable (wmoGeomCache always passes `loadPlainVertexes = true`) |
-| 27 | `services/map/wmoLoader.ts` `wmoLoader` | rejection handler returns nothing | a failed root load resolves with `undefined`; `SceneApi.loadWmoMain` is typed `Promise<WmoFile \| undefined>` |
 | 28 | `services/map/mdxLoader.ts` `mdx_ver274` | the layout has no cameras, attachments, attachLookups, animationLookup, keyBoneLookup, boneLookupTable or lights sections | `animationManager` reads `animationLookup` / `keyBoneLookup` unconditionally - TypeError for version-274 models |
 | 29 | `services/map/mdxLoader.ts` `mdx_ver262`, `mdx_ver256` | the lookup sections count by `nAttachLookup` / `nAnimationLookup` / `nKeyBoneLookup` / `nBoneLookupTable`, which these headers do not have (the tables are the unnamed `nC` / `nF` / ... fields) | the four lookups are always `[]` for TBC / classic models, and `nAnimationLookup` is `undefined`, so `animationManager.setAnimationId` probably never finds an animation by id for them |
 | 30 | `services/map/mdxLoader.ts` `mdxChunked['12DM']` | `$.extend` - jQuery is neither imported nor loaded | ReferenceError; unreachable today (bug 32) |
@@ -211,7 +210,7 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   `attachments!` (absent only for the 274 layout, bug 28), `mdxTextureIndex2!` / `3!` (an undefined index reads undefined).
 - `adtObject.ts`: `m2Array!` / `wmoArray!` - filled through `self`, which TS does not narrow.
 - `wmoObject.ts`: fields assigned through `self` in the constructor are declared with `!` (also in `wmoM2Object.ts`).
-  `wmoObj!` in `loadMainFile` (bug 27). `portalVerticles!` / `portalInfos!` / `portalRelations!` here and in
+  `portalVerticles!` / `portalInfos!` / `portalRelations!` here and in
   `portalCullingAlgo.ts` - only used for WMOs with portals. `modf.bb2!` (set together with `bb1`), `slice(0) as [vec4,
   vec4]`, `wmoDoodads[i]!` and `aabb!` (in `updateWorldGroupBBWithM2`). `@ts-expect-error` on bugs 70, 72, 73, 74, 75
   (three lines) and 76; `portalCullingAlgo.ts` now also needs it on both lines of bug 44.

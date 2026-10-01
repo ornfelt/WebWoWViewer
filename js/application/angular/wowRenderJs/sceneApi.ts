@@ -94,8 +94,7 @@ export interface SceneApiObjects {
 export interface SceneApiResources {
     loadTexture(fileName: string): Promise<Texture>;
     unLoadTexture(fileName: string): void;
-    /* wmoLoader resolves with undefined when the load fails */
-    loadWmoMain(fileName: string): Promise<WmoFile | undefined>;
+    loadWmoMain(fileName: string): Promise<WmoFile>;
     unloadWmoMain(fileName: string): void;
     loadWmoGeom(fileName: string): Promise<WmoGeom>;
     unloadWmoGeom(fileName: string): void;

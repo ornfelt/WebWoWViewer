@@ -6,8 +6,7 @@ import type { WmoFile } from './../../services/map/wmoLoader';
 import type { SceneApi } from './../sceneApi';
 
 class WmoMainCache {
-    /* wmoLoader resolves with undefined when the load fails */
-    cache: Cache<WmoFile | undefined, WmoFile | undefined>;
+    cache: Cache<WmoFile, WmoFile>;
 
     constructor(sceneApi: SceneApi) {
         var self = this;
@@ -15,7 +14,7 @@ class WmoMainCache {
         this.cache = cacheTemplate(function loadGroupWmo(fileName: string) {
             /* Must return promise */
             return wmoLoader(fileName);
-        }, function (a: WmoFile | undefined) {
+        }, function (a: WmoFile) {
             return a;
         });
     }
