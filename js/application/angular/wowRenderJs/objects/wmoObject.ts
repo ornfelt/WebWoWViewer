@@ -945,9 +945,8 @@ class WmoGroupObject {
                     nodeId = nodes[nodeId].children2;
                 }
             }
-            // JS-BUG: the push is inside the descent loop, so every inner node on the way down is added as a candidate, not only the leaf (probably meant after the loop)
-            candidateGroups.push({'topBottom' : topBottom, groupId : this.groupId, bspList : bspLeafList, nodeId: nodeId});
         }
+        candidateGroups.push({'topBottom' : topBottom, groupId : this.groupId, bspList : bspLeafList, nodeId: nodeId});
     }
 }
 
