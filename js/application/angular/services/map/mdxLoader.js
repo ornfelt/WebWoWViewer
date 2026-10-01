@@ -1627,12 +1627,11 @@ function parseOldFile(fileObject){
                     anim.hasOwnProperty("timeEnd")
                 ) {
                     // Create length property
-                    // TODO: is this correct?
                     if (anim.timeStart > anim.timeEnd)
                     {
                         var timeStartTemp = anim.timeStart;
                         anim.timeStart = anim.timeEnd;
-                        anim.timeEnd -= timeStartTemp;
+                        anim.timeEnd = timeStartTemp;
                     }
                     anim.length = anim.timeEnd - anim.timeStart;
                 }
