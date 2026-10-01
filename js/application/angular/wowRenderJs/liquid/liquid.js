@@ -47,6 +47,11 @@ class Liquid {
             this.liquidTextureFirst    = 1;
             this.liquidTextureLast     = 30;
             this.type = 2;
+        } else if ((flags & 32) != 0) {
+            this.liquidTextureBaseName = "XTextures\\slime\\slime";
+            this.liquidTextureFirst    = 1;
+            this.liquidTextureLast     = 30;
+            this.type = 0;
         } else {
             this.liquidTextureBaseName = "XTextures\\ocean\\ocean_h";
             this.liquidTextureFirst    = 1;
