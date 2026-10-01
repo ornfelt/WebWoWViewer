@@ -1203,6 +1203,9 @@ uniform float uTime;                    // seconds
 // GLSL ES 1.00 has no uniform initializers; Liquid.draw() sets it
 uniform float uWaveAmp;                 // = 0.08 tweak in host
 
+// 8 wave periods per 50 s liquid clock period (~1 rad/s), so the wave stays seamless when the clock wraps
+const float WAVE_SPEED = 8.0 * 6.28318530718 / 50.0;
+
 varying vec2 vUV;
 
 // Hash-based pseudo-randomness based on position
@@ -1214,7 +1217,7 @@ void main()
 {
     // tiny sine-wave on the height axis (z is up), travelling over the surface (x, y)
     vec3 wPos = aPos;
-    wPos.z += sin((aPos.x + aPos.y) * 0.05 + uTime) * uWaveAmp;
+    wPos.z += sin((aPos.x + aPos.y) * 0.05 + uTime * WAVE_SPEED) * uWaveAmp;
 
     gl_Position = uVP * vec4(wPos, 1.0);
 
