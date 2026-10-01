@@ -61,7 +61,6 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 17 | `services/dbc/lightParamsDBC.ts` | `lightSkyboxID` / `cloudTypeID` read with `readFloat32`; the 3.3.5 layout probably has no `cloudTypeID` column | ids are denormal floats and `glow` / the alpha fields are probably shifted by one column; nothing reads them today |
 | 18 | `services/dbc/wmoAreaTableDBC.ts` | a copy of `lightDBC`: loads `Light.dbc` and builds light records | not WMOAreaTable data at all; nothing imports it |
 | 19 | `services/map/adtLoader.ts` `MVER` handler | throws with undeclared `filename` | ReferenceError instead of the message; unreachable (handler only runs for MVER) |
-| 20 | `services/map/adtLoader.ts` `MDDF` | `scale` read with `readInt32` over the uint16 scale + uint16 flags | a doodad with any MDDF flag set gets a huge scale (`adtM2Object` divides by 1024) |
 | 21 | `services/map/blpLoader.ts` palette path | always reads 8-bit alpha after the indices, whatever `alphaChannelBitDepth` is | palettised BLPs without alpha come out fully transparent; 1- and 4-bit alpha misread |
 | 22 | `services/map/skinLoader.ts` | rejection handler returns `errorObj` | a failed load resolves with the error as if it were the SkinFile (like 7) |
 | 23 | `services/map/wmoLoader.ts` `MOGP` | the uint16 after `numBatchesC` is not read | `Indeces`, `Unk1`, `groupID`, `Unk2`, `Unk3` read 2 bytes early; none is used today |
