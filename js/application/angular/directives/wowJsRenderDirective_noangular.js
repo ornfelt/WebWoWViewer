@@ -50,6 +50,16 @@ function attachEvents(canvas, camera) {
       case '\t': camera.stopMovingDown();     break;
     }
   }
+  // stop all movement, for when the key releases can no longer reach keyUp
+  function releaseKeys() {
+    camera.stopMovingForward();
+    camera.stopMovingBackwards();
+    camera.stopStrafingLeft();
+    camera.stopStrafingRight();
+    camera.stopMovingUp();
+    camera.stopMovingDown();
+    camera.setShiftHeld(false);
+  }
 
   function mouseDown(event) {
     if (event.button === 0) {
@@ -116,7 +126,13 @@ function attachEvents(canvas, camera) {
 
   // only move camera if lastDownTarget = canvas
   let lastDownTarget = null;
-  document.addEventListener('mousedown', (e) => { lastDownTarget = e.target; });
+  document.addEventListener('mousedown', (e) => {
+    // the keys held so far are not released through keyUp once the canvas is left
+    if (lastDownTarget === canvas && e.target !== canvas) {
+      releaseKeys();
+    }
+    lastDownTarget = e.target;
+  });
   document.addEventListener('keydown', (e) => {
     if (lastDownTarget === canvas) {
       keyDown(e);
@@ -127,6 +143,8 @@ function attachEvents(canvas, camera) {
       keyUp(e);
     }
   });
+  // the key releases do not reach the page while the window is not focused
+  window.addEventListener('blur', releaseKeys);
 
   // touch
   let isPitchGoingOn = false;
