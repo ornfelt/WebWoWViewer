@@ -272,7 +272,7 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   `ChunkResultObj` (chunkedLoader), `ParsedObject` (linedfileLoader), `processPacket(packet)` (worldObjectManager).
 - After the port (user request): the unused AngularJS directives `wowJsRenderDirective.js` and `fileDownload.js` were deleted, and
   `package.json` gained `check:ts-only` (fails if any `.js` file exists under `js/application`), run with `tsc --noEmit` by the
-  `prebuild` and `prebuild:prod` hooks.
+  `prebuild`, `prebuild:prod`, `prestart` and `preserver` hooks.
 
 ## Run log
 
