@@ -88,7 +88,7 @@ class Sky {
 
                     var idx = Math.floor(k / 2) * 18 + i;
 
-                    if (ll[i] == 0) {
+                    if (ll[i] <= 0) {
                         this.mmin[idx] = -1;
                     } else {
                         this.mmin[idx] = buf[0];
