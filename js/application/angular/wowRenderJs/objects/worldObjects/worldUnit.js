@@ -634,7 +634,9 @@ class WorldUnit extends WorldObject {
         //this.mountModel.setAnimationId(5);
 
         /* Update bone matrices */
-        this.objectModel.objectUpdate(deltaTime, cameraPos, viewMat);
+        if (this.objectModel) {
+            this.objectModel.objectUpdate(deltaTime, cameraPos, viewMat);
+        }
 
         if (objectModelIsLoaded && objectModelHasBones && this.helmet) {
             /* Update helm model */
