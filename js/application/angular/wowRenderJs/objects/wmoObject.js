@@ -457,7 +457,7 @@ class WmoObject {
         }
     }
 
-    /* Draws the liquids of the groups drawn this frame; called after the opaque geometry, as indoor water is transparent */
+    /* Draws the liquids of the groups drawn this frame; called after the opaque geometry, as water is transparent */
     drawLiquids(view, proj, time) {
         if (!this.placementMatrix) return;
 
