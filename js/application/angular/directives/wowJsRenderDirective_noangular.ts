@@ -591,10 +591,16 @@ export async function initViewer(containerEl: HTMLElement) {
         //newWorldUnit.setSpeedTurnRate(3.1415927410125732);
 
         // Movement path (points)
+        //const vectorArray = [
+        //  [-1663, 5098, 27],
+        //  [-1600, 5100, 30],
+        //  [-1650, 5150, 35]
+        //];
+        // stand at the origin, where the camera starts
         const vectorArray = [
-          [-1663, 5098, 27],
-          [-1600, 5100, 30],
-          [-1650, 5150, 35]
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0]
         ];
 
         newWorldUnit.setMovingData(1000, 8000, 0, vectorArray); // curr_time, total_time, movementflag
@@ -604,20 +610,27 @@ export async function initViewer(containerEl: HTMLElement) {
         //newWorldUnit.setPosition(vec3.fromValues(-1663, 5098, 27));
         //newWorldUnit.setRotation(0.0);
 
-        // TODO: should look up DisplayId via name instead...
         const normalizedModelName = mapParams.modelName!.toLowerCase().replace(/\\/g, '/').replace(/\/{2,}/g, '/').replace(".mdx", ".m2");
 
+        // the hard-coded display ids, or the display id looked up by the model path (any model, see createModelFromModelPath)
+        const useHardcodedDisplayId = false;
+
         // Penguin
-        if (normalizedModelName === "creature/northrendpenguin/northrendpenguin.m2") {
+        if (useHardcodedDisplayId && normalizedModelName === "creature/northrendpenguin/northrendpenguin.m2") {
           newWorldUnit.setDisplayId(24978);
           newWorldUnit.setNativeDisplayId(24978);
-        } else if (normalizedModelName === "creature/drake/drake.m2") {
+        } else if (useHardcodedDisplayId && normalizedModelName === "creature/drake/drake.m2") {
           newWorldUnit.setDisplayId(5645);
           newWorldUnit.setNativeDisplayId(5645);
-        } else {
-          // Default to ragnaros
+        } else if (useHardcodedDisplayId && normalizedModelName === "creature/ragnaros/ragnaros.m2") {
           newWorldUnit.setDisplayId(11121);
           newWorldUnit.setNativeDisplayId(11121);
+        } else {
+          newWorldUnit.setDisplayId(-1);
+          newWorldUnit.setNativeDisplayId(-1);
+          newWorldUnit.modelPathInput = mapParams.modelName!;
+          if (mapParams.chosenModelIndex !== undefined)
+            newWorldUnit.chosenModelIndex = mapParams.chosenModelIndex;
         }
 
         newWorldUnit.setScale(1.0);
