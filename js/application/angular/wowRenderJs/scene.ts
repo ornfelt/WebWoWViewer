@@ -1721,6 +1721,8 @@ class Scene {
             playerAnimState.isStrafingRight = this.camera.isStrafingRight;
             playerAnimState.isJumping = this.camera.isJumping;
             playerAnimState.isFalling = this.camera.isFalling;
+            playerAnimState.isTurningLeft = this.camera.isTurningLeft;
+            playerAnimState.isTurningRight = this.camera.isTurningRight;
 
             // Evaluate desired animation
             var desiredAnim = playerAnimState.evaluate();

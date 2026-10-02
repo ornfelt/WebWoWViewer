@@ -9,6 +9,9 @@ export const AnimationType = {
     Fall: 'Fall',
     Idle: 'Idle',
     JumpStart: 'JumpStart',
+    // turning in place (web: A / D turn the character in player mode); AnimationData.dbc names
+    ShuffleLeft: 'ShuffleLeft',
+    ShuffleRight: 'ShuffleRight',
 } as const;
 export type AnimationTypeValue = typeof AnimationType[keyof typeof AnimationType];
 
@@ -26,6 +29,8 @@ class PlayerAnimationState {
     isStrafingRight: boolean;
     isJumping: boolean;
     isFalling: boolean;
+    isTurningLeft: boolean;
+    isTurningRight: boolean;
 
     // Current animation being played (avoids re-setting every frame)
     currentAnim: AnimationTypeValue;
@@ -37,6 +42,8 @@ class PlayerAnimationState {
         this.isStrafingRight = false;
         this.isJumping = false;
         this.isFalling = false;
+        this.isTurningLeft = false;
+        this.isTurningRight = false;
 
         this.currentAnim = AnimationType.Idle;
     }
@@ -50,7 +57,7 @@ class PlayerAnimationState {
     evaluate(): AnimationTypeValue | null {
         var desired: AnimationTypeValue;
 
-        // Priority: jump > fall > movement > idle
+        // Priority: jump > fall > movement > turning in place > idle
         if (this.isJumping) {
             desired = AnimationType.JumpStart;
         } else if (this.isFalling) {
@@ -65,6 +72,10 @@ class PlayerAnimationState {
                 desired = AnimationType.StrafeRight;
             else
                 desired = AnimationType.Run; // fallback
+        } else if (this.isTurningLeft) {
+            desired = AnimationType.ShuffleLeft;
+        } else if (this.isTurningRight) {
+            desired = AnimationType.ShuffleRight;
         } else {
             desired = AnimationType.Idle;
         }
