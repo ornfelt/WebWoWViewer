@@ -5,6 +5,7 @@ import WorldPlayer from '../wowRenderJs/objects/worldObjects/worldPlayer';
 import {vec3} from 'gl-matrix'
 import type firstPersonCamera from '../wowRenderJs/camera/firstPersonCamera';
 import MathHelper from '../wowRenderJs/math/mathHelper';
+import CollisionWorld from '../wowRenderJs/collision/collisionWorld';
 import Expansion from '../Expansion';
 import mapParamsRepository, { MapKey, mapKeyGroups } from '../mapParamsRepository';
 import type { MapKeyValue, MapParams } from '../mapParamsRepository';
@@ -55,6 +56,8 @@ interface KeyBindTargets {
  */
 function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBinds: KeyBindTargets) {
   let mleftPressed = false;
+  // right drag (player mode only): orbit + the character turns with the camera
+  let mrightPressed = false;
   let lastMouseX = 0, lastMouseY = 0;
   let pointerIsLocked = false;
 
@@ -94,7 +97,13 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
       case 'A': camera.startStrafingLeft();    break;
       case 'D': camera.startStrafingRight();   break;
       //case 'Q':
-      case ' ': camera.startMovingUp();        break;
+      // bind space: jump (player mode) or fly up (free roam)
+      case ' ':
+        if (camera.collisionActive)
+          camera.requestJump();
+        else
+          camera.startMovingUp();
+        break;
       //case 'E':
       case '\t': camera.startMovingDown();     break;
 
@@ -150,9 +159,17 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
     camera.setShiftHeld(false);
   }
 
+  // left drag: orbit the camera (player mode: around the character, which keeps its facing);
+  // right drag (player mode): orbit + the character turns with the camera, as in my_web_wow
   function mouseDown(event: MouseEvent) {
     if (event.button === 0) {
       mleftPressed = true;
+      camera.freeLook = true; // orbit only, don't turn character
+    } else if (event.button === 2 && camera.collisionActive) {
+      mrightPressed = true;
+      camera.turnWithCamera = true; // character follows camera
+    }
+    if (mleftPressed || mrightPressed) {
       lastMouseX = event.pageX;
       lastMouseY = event.pageY;
     }
@@ -160,11 +177,15 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
   function mouseUp(event: MouseEvent) {
     if (event.button === 0) {
       mleftPressed = false;
+      camera.freeLook = false;
+    } else if (event.button === 2) {
+      mrightPressed = false;
+      camera.turnWithCamera = false;
     }
   }
   function mouseMove(event: PrefixedMouseEvent) {
     if (!pointerIsLocked) {
-      if (mleftPressed) {
+      if (mleftPressed || mrightPressed) {
         camera.addHorizontalViewDir((event.pageX - lastMouseX) / 4.0);
         camera.addVerticalViewDir((event.pageY - lastMouseY) / 4.0);
         lastMouseX = event.pageX;
@@ -179,6 +200,9 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
   }
   function mouseOut() {
     mleftPressed = false;
+    mrightPressed = false;
+    camera.freeLook = false;
+    camera.turnWithCamera = false;
   }
 
   // pointer lock
@@ -189,6 +213,8 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
   );
   if (havePointerLock) {
     canvas.addEventListener('click', () => {
+      // the player mode rotates only while dragging, as in my_web_wow
+      if (camera.collisionActive) return;
       canvas.requestPointerLock =
         canvas.requestPointerLock ||
         canvas.mozRequestPointerLock ||
@@ -212,6 +238,10 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
   canvas.addEventListener('mousedown', mouseDown, false);
   canvas.addEventListener('mouseup', mouseUp, false);
   canvas.addEventListener('mouseout', mouseOut, false);
+  // right drag turns the character in player mode, instead of opening the context menu
+  canvas.addEventListener('contextmenu', (e) => {
+    if (camera.collisionActive) e.preventDefault();
+  });
 
   // bind mouse wheel: zoom, one step per wheel event (scroll up -> zoom in)
   function mouseWheel(event: WheelEvent) {
@@ -308,7 +338,8 @@ export async function initViewer(containerEl: HTMLElement) {
         <details id="secControls" class="settings-section">
           <summary>Controls</summary>
           W - forward, S - backward, A - left, D - right,<br/>
-          Space - up, Tab - down, Shift - faster, Mouse - move camera<br/>
+          Space - up (jump in player mode), Tab - down, Shift - faster, Mouse - move camera<br/>
+          Player mode: left drag - orbit, right drag - orbit + turn character<br/>
           B - M2, Z - ADT, O - WMO, I - WMO BB, K - depth,<br/>
           Q - liquid, E - sky, F - draw distance, F6 - hide this panel,<br/>
           L - lowres terrain, C - cycle anims, Wheel - zoom,<br/>
@@ -349,6 +380,9 @@ export async function initViewer(containerEl: HTMLElement) {
           <summary>Camera / animations</summary>
           <label>Draw Distance = <span id="draw-distance"></span><br/>
             <input type="range" id="sliderDrawDistance" min="100" max="2000" step="1"></label><br/>
+          <label><input type="radio" name="cameraMode" id="radFreeRoam"> Free roam camera</label><br/>
+          <label title="Third-person camera following a character that runs on the map's collision triangles (mpq server collision api)"><input type="radio" name="cameraMode" id="radPlayerCharacter" disabled> Player character</label>
+            (collision: <span id="collision-status">loading</span>)<br/>
           <label><input type="checkbox" id="chkCycleAnimations"> Cycle Anims</label><br/>
           <label><input type="checkbox" id="chkDoubleCamera"> Double Camera Debug</label><br/>
           <label><input type="checkbox" id="chkUseSecondCamera" disabled> Use Debug Camera</label><br/>
@@ -397,6 +431,9 @@ export async function initViewer(containerEl: HTMLElement) {
   const chkDoubleCamera     = containerEl.querySelector<HTMLInputElement>('#chkDoubleCamera')!;
   const chkUseSecondCamera  = containerEl.querySelector<HTMLInputElement>('#chkUseSecondCamera')!;
   const chkCycleAnimations  = containerEl.querySelector<HTMLInputElement>('#chkCycleAnimations')!;
+  const radFreeRoam         = containerEl.querySelector<HTMLInputElement>('#radFreeRoam')!;
+  const radPlayerCharacter  = containerEl.querySelector<HTMLInputElement>('#radPlayerCharacter')!;
+  const collisionStatusEl   = containerEl.querySelector<HTMLSpanElement>('#collision-status')!;
   const chkUseRandomTextures = containerEl.querySelector<HTMLInputElement>('#chkUseRandomTextures')!;
   const sliderDrawDistance  = containerEl.querySelector<HTMLInputElement>('#sliderDrawDistance')!;
   const drawDistanceEl      = containerEl.querySelector<HTMLSpanElement>('#draw-distance')!;
@@ -420,7 +457,7 @@ export async function initViewer(containerEl: HTMLElement) {
 
   // Kalimdor
   //const defaultMapKey = MapKey.CavernsOfTimeMap;
-  const defaultMapKey = MapKey.OrgrimmarMap;
+  //const defaultMapKey = MapKey.OrgrimmarMap;
   //const defaultMapKey = MapKey.DarnassusMap;
 
   // TBC
@@ -436,7 +473,7 @@ export async function initViewer(containerEl: HTMLElement) {
   // PVP
   //const defaultMapKey = MapKey.AlteracValleyMap;
   //const defaultMapKey = MapKey.WarsongGulchMap;
-  //const defaultMapKey = MapKey.ArathiBasinMap;
+  const defaultMapKey = MapKey.ArathiBasinMap; // has collision triangles (player mode)
   //const defaultMapKey = MapKey.EyeOfTheStormMap;
   //const defaultMapKey = MapKey.StrandOfTheAncientsMap;
 
@@ -512,6 +549,21 @@ export async function initViewer(containerEl: HTMLElement) {
   // Create Scene
   const sceneObj = new Scene(canvas);
 
+  // Camera mode: free roam, or the player character (only when the map has collision triangles)
+  function updateCameraMode() {
+    radPlayerCharacter.disabled = !sceneObj.camera.collisionAvailable;
+    radPlayerCharacter.checked = sceneObj.camera.collisionActive;
+    radFreeRoam.checked = !sceneObj.camera.collisionActive;
+  }
+  function setPlayerMode(enabled: boolean) {
+    sceneObj.setPlayerMode(enabled);
+    // the player mode rotates only while dragging
+    if (sceneObj.camera.collisionActive && document.pointerLockElement === canvas) {
+      document.exitPointerLock();
+    }
+    updateCameraMode();
+  }
+
   const mapParams: MapParams = mapParamsRepository.get(mapKey);
 
   // Map selection: every preset, grouped as in MapKey; the ones the expansion cannot load are disabled
@@ -551,9 +603,25 @@ export async function initViewer(containerEl: HTMLElement) {
 
   // Load
 
+    // collision triangles (the player mode) are loaded for maps only
+    if (mapParams.sceneType != 'map') {
+        collisionStatusEl.textContent = 'maps only';
+    }
     if (mapParams.sceneType == 'map') {
         sceneObj.loadMap(mapParams.mapName!, adt_x, adt_y);
         sceneObj.setCameraPos(mapParams.x!, mapParams.y!, mapParams.z!);
+
+        // Load exported collision triangles for collision-based movement + gravity (the player mode)
+        CollisionWorld.load(mapParams.mapName).then((world) => {
+          sceneObj.camera.collision = world;
+          updateCameraMode();
+          if (!world.empty) {
+            collisionStatusEl.textContent = world.triangleCount + ' triangles';
+            setPlayerMode(true);
+          } else {
+            collisionStatusEl.textContent = 'none for this map';
+          }
+        });
     } else if (mapParams.sceneType == 'wmo') { 
         sceneObj.loadWMOFile({
             fileName : mapParams.fileName!,
@@ -719,6 +787,7 @@ export async function initViewer(containerEl: HTMLElement) {
   chkUseRandomTextures.checked = config.getUseRandomTextures();
   sliderDrawDistance.value    = String(config.getDrawDistance());
   drawDistanceEl.textContent  = String(config.getDrawDistance());
+  updateCameraMode();
 
   // Attach event handlers for camera
   attachEvents(canvas, sceneObj.camera, {
@@ -771,6 +840,8 @@ export async function initViewer(containerEl: HTMLElement) {
   });
   chkCycleAnimations.addEventListener('change', () => { config.setCycleAnimations(chkCycleAnimations.checked); });
   chkUseRandomTextures.addEventListener('change', () => { config.setUseRandomTextures(chkUseRandomTextures.checked); });
+  radFreeRoam.addEventListener('change', () => { setPlayerMode(false); });
+  radPlayerCharacter.addEventListener('change', () => { setPlayerMode(true); });
   sliderDrawDistance.addEventListener('input', () => {
     config.setDrawDistance(Number(sliderDrawDistance.value));
     drawDistanceEl.textContent = sliderDrawDistance.value;
