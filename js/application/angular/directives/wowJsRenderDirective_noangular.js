@@ -238,7 +238,14 @@ export async function initViewer(containerEl) {
       <canvas id="wow-canvas" style="flex: none; display:block;"></canvas>
 
       <div id="settings-panel" style="flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; padding: 0 10px; color: white;">
-        <div>map = <select id="selMap" style="max-width: 100%;"></select></div>
+        <style>
+          #selMap, #selMap optgroup, #selMap option { background: #222; color: white; }
+          #selMap option:disabled { color: #777; }
+        </style>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span style="white-space: nowrap;">map =</span>
+          <select id="selMap" style="flex: 1 1 auto; min-width: 0; border: 1px solid #888; border-radius: 2px; padding: 1px 2px;"></select>
+        </div>
         <div>expansion = <span id="expansion"></span></div>
         <div>camera = (<span id="cam-pos"></span>)</div>
         <div>lookAt = (<span id="cam-look"></span>)</div>
@@ -437,12 +444,15 @@ export async function initViewer(containerEl) {
       const reason = invalidMapReason(key);
       option.value = key;
       option.textContent = mapParamsRepository.get(key).name + (reason !== null ? ` (${reason})` : '');
+      // the full name on hover, for the names the dropdown cuts off
+      option.title = option.textContent;
       option.disabled = reason !== null;
       optGroup.appendChild(option);
     }
     selMap.appendChild(optGroup);
   }
   selMap.value = mapKey;
+  selMap.title = mapParams.name;
   expansionEl.textContent = window.selectedExpansion;
 
   // Disable lowres terrain and sky rendering if not running map mode
