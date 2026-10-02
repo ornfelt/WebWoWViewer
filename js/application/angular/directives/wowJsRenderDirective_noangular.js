@@ -3,6 +3,7 @@ import config from './../services/config.js';
 import WorldUnit from '../wowRenderJs/objects/worldObjects/worldUnit.js';
 import WorldPlayer from '../wowRenderJs/objects/worldObjects/worldPlayer.js';
 import {vec3} from 'gl-matrix'
+import MathHelper from '../wowRenderJs/math/mathHelper.js';
 import Expansion from '../Expansion.js';
 import mapParamsRepository, { MapKey, mapKeyGroups } from '../mapParamsRepository.js';
 
@@ -73,6 +74,9 @@ function attachEvents(canvas, camera, keyBinds) {
 
       case 'Q': toggle(keyBinds.chkRenderLiquid, 'RenderLiquid'); break;
       case 'E': toggle(keyBinds.chkRenderSky, 'RenderSky');       break;
+
+      // bind c: toggle CycleAnimations
+      case 'C': toggle(keyBinds.chkCycleAnimations, 'CycleAnimations'); break;
     }
   }
   function keyUp(event) {
@@ -241,51 +245,75 @@ export async function initViewer(containerEl) {
         <style>
           #selMap, #selMap optgroup, #selMap option { background: #222; color: white; }
           #selMap option:disabled { color: #777; }
+          #settings-panel .settings-section { margin-top: 8px; }
+          #settings-panel .settings-section > summary { cursor: pointer; font-weight: bold; margin-bottom: 2px; }
         </style>
         <div style="display: flex; align-items: center; gap: 4px;">
           <span style="white-space: nowrap;">map =</span>
           <select id="selMap" style="flex: 1 1 auto; min-width: 0; border: 1px solid #888; border-radius: 2px; padding: 1px 2px;"></select>
         </div>
-        <div>expansion = <span id="expansion"></span></div>
-        <div>camera = (<span id="cam-pos"></span>)</div>
+        <div>expansion = <span id="expansion"></span> | build = <span id="build"></span> | fps = <span id="fps"></span></div>
+        <div>camera (wow) = (<span id="cam-pos"></span>)</div>
+        <div>camera (world) = (<span id="cam-pos-world"></span>)</div>
+        <div>camera (wc) = (<span id="cam-pos-wc"></span>)</div>
         <div>lookAt = (<span id="cam-look"></span>)</div>
         <div>Group # = <span id="group-num"></span></div>
         <div>BSP Node = <span id="bsp-node"></span></div>
-        <p>
-          Controls: W - forward, S - backward, A - left, D - right,<br/>
+
+        <details id="secControls" class="settings-section">
+          <summary>Controls</summary>
+          W - forward, S - backward, A - left, D - right,<br/>
           Space - up, Tab - down, Shift - faster, Mouse - move camera<br/>
           B - M2, Z - ADT, O - WMO, I - WMO BB, K - depth,<br/>
           Q - liquid, E - sky, F - draw distance, F6 - hide this panel,<br/>
-          L - lowres terrain, Wheel - zoom,<br/>
+          L - lowres terrain, C - cycle anims, Wheel - zoom,<br/>
           F1-F5 - wireframe ADT, liquid, M2, WMO, sky
-        </p>
+        </details>
 
-        <label><input type="checkbox" id="chkDrawAdt"> Draw ADT</label><br/>
-        <label><input type="checkbox" id="chkDrawM2"> Draw M2</label><br/>
-        <label><input type="checkbox" id="chkDrawWMO"> Draw WMO</label><br/>
-        <label><input type="checkbox" id="chkRenderSky"> Render Sky</label><br/>
-        <label><input type="checkbox" id="chkRenderLiquid"> Render Liquid</label><br/>
-        <label><input type="checkbox" id="chkRenderLowresTerrain"> Render Lowres Terrain</label><br/>
-        <label><input type="checkbox" id="chkRenderAdtPolygons"> ADT Polygons</label><br/>
-        <label><input type="checkbox" id="chkRenderLiquidPolygons"> Liquid Polygons</label><br/>
-        <label><input type="checkbox" id="chkRenderMd2Polygons"> M2 Polygons</label><br/>
-        <label><input type="checkbox" id="chkRenderWmoPolygons"> WMO Polygons</label><br/>
-        <label><input type="checkbox" id="chkRenderSkyPolygons"> Sky Polygons</label><br/>
-        <label><input type="checkbox" id="chkDrawPortals"> Draw Portals</label><br/>
-        <label><input type="checkbox" id="chkDrawM2BB"> Draw M2 BB</label><br/>
-        <label><input type="checkbox" id="chkDrawWmoBB"> Draw WMO BB</label><br/>
-        <label><input type="checkbox" id="chkDrawBSP"> Draw BSP</label><br/>
-        <label><input type="checkbox" id="chkDrawDepth"> Draw Depth</label><br/>
-        <label><input type="checkbox" id="chkUsePortalCulling"> Portal Culling</label><br/>
-        <label><input type="checkbox" id="chkDoubleCamera"> Double Camera Debug</label><br/>
-        <label><input type="checkbox" id="chkUseSecondCamera" disabled> Use Debug Camera</label><br/>
-        <label><input type="checkbox" id="chkCycleAnimations"> Cycle Anims</label><br/>
-        <label>Draw Distance = <span id="draw-distance"></span><br/>
-          <input type="range" id="sliderDrawDistance" min="100" max="2000" step="1"></label><br/><br/>
+        <details id="secRendering" class="settings-section" open>
+          <summary>Rendering</summary>
+          <label><input type="checkbox" id="chkDrawAdt"> Draw ADT</label><br/>
+          <label><input type="checkbox" id="chkDrawM2"> Draw M2</label><br/>
+          <label><input type="checkbox" id="chkDrawWMO"> Draw WMO</label><br/>
+          <label><input type="checkbox" id="chkRenderSky"> Render Sky</label><br/>
+          <label><input type="checkbox" id="chkRenderLiquid"> Render Liquid</label><br/>
+          <label><input type="checkbox" id="chkRenderLowresTerrain"> Render Lowres Terrain</label><br/>
+          <label><input type="checkbox" id="chkUsePortalCulling"> Portal Culling</label>
+        </details>
 
-        <button id="btnCopyDebug">Copy main camera -> debug camera</button><br/><br/>
-        <button id="btnLoadPackets">Parse packets</button><br/>
-        <button id="btnLoadAllPackets">Parse all packets</button><br/>
+        <details id="secWireframe" class="settings-section">
+          <summary>Wireframe polygons</summary>
+          <label><input type="checkbox" id="chkRenderAdtPolygons"> ADT Polygons</label><br/>
+          <label><input type="checkbox" id="chkRenderLiquidPolygons"> Liquid Polygons</label><br/>
+          <label><input type="checkbox" id="chkRenderMd2Polygons"> M2 Polygons</label><br/>
+          <label><input type="checkbox" id="chkRenderWmoPolygons"> WMO Polygons</label><br/>
+          <label><input type="checkbox" id="chkRenderSkyPolygons"> Sky Polygons</label>
+        </details>
+
+        <details id="secDebug" class="settings-section">
+          <summary>Bounding boxes / debug</summary>
+          <label><input type="checkbox" id="chkDrawPortals"> Draw Portals</label><br/>
+          <label><input type="checkbox" id="chkDrawM2BB"> Draw M2 BB</label><br/>
+          <label><input type="checkbox" id="chkDrawWmoBB"> Draw WMO BB</label><br/>
+          <label><input type="checkbox" id="chkDrawBSP"> Draw BSP</label><br/>
+          <label><input type="checkbox" id="chkDrawDepth"> Draw Depth</label>
+        </details>
+
+        <details id="secCamera" class="settings-section" open>
+          <summary>Camera / animations</summary>
+          <label>Draw Distance = <span id="draw-distance"></span><br/>
+            <input type="range" id="sliderDrawDistance" min="100" max="2000" step="1"></label><br/>
+          <label><input type="checkbox" id="chkCycleAnimations"> Cycle Anims</label><br/>
+          <label><input type="checkbox" id="chkDoubleCamera"> Double Camera Debug</label><br/>
+          <label><input type="checkbox" id="chkUseSecondCamera" disabled> Use Debug Camera</label><br/>
+          <button id="btnCopyDebug">Copy main camera -> debug camera</button>
+        </details>
+
+        <details id="secPackets" class="settings-section">
+          <summary>Packets</summary>
+          <button id="btnLoadPackets">Parse packets</button><br/>
+          <button id="btnLoadAllPackets">Parse all packets</button>
+        </details>
       </div>
     </div>
   `;
@@ -294,6 +322,10 @@ export async function initViewer(containerEl) {
   const canvas = containerEl.querySelector('#wow-canvas');
   const selMap = containerEl.querySelector('#selMap');
   const expansionEl = containerEl.querySelector('#expansion');
+  const buildEl = containerEl.querySelector('#build');
+  const fpsEl = containerEl.querySelector('#fps');
+  const camPosWorldEl = containerEl.querySelector('#cam-pos-world');
+  const camPosWcEl = containerEl.querySelector('#cam-pos-wc');
   const camPosEl = containerEl.querySelector('#cam-pos');
   const camLookEl = containerEl.querySelector('#cam-look');
   const groupNumEl = containerEl.querySelector('#group-num');
@@ -454,6 +486,8 @@ export async function initViewer(containerEl) {
   selMap.value = mapKey;
   selMap.title = mapParams.name;
   expansionEl.textContent = window.selectedExpansion;
+  // webpack replaces process.env.NODE_ENV with the build mode
+  buildEl.textContent = process.env.NODE_ENV ?? '';
 
   // Disable lowres terrain and sky rendering if not running map mode
   if (mapParams.sceneType != 'map' || mapKey === MapKey.NagrandArena) {
@@ -652,6 +686,7 @@ export async function initViewer(containerEl) {
     chkRenderWmoPolygons,
     chkRenderSkyPolygons,
     chkRenderSky,
+    chkCycleAnimations,
     sliderDrawDistance,
   });
 
@@ -693,6 +728,24 @@ export async function initViewer(containerEl) {
     config.setUseSecondCamera(chkUseSecondCamera.checked);
   });
 
+  // Settings sections: remember which ones are open
+  for (const section of containerEl.querySelectorAll('.settings-section')) {
+    const storageKey = 'settingsSection.' + section.id;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved !== null) section.open = saved === '1';
+    } catch (e) {
+      console.log(e);
+    }
+    section.addEventListener('toggle', () => {
+      try {
+        localStorage.setItem(storageKey, section.open ? '1' : '0');
+      } catch (e) {
+        console.log(e);
+      }
+    });
+  }
+
   // Map selection => reload with the chosen map
   selMap.addEventListener('change', () => {
     const url = new URL(window.location.href);
@@ -718,6 +771,9 @@ export async function initViewer(containerEl) {
   const targetFPS = 60;
   const targetFrameTime = 1000 / targetFPS;
   let lastTimeStamp = undefined;
+  // the frames drawn since the fps was last shown, which it is once a second
+  let fpsFrameCount = 0;
+  let fpsLastTime = Date.now();
 
   function renderLoop(currentTime) {
     const delta = currentTime - lastFrameTime;
@@ -737,9 +793,19 @@ export async function initViewer(containerEl) {
 
       // Update text
       camPosEl.textContent  = cameraVecs.cameraVec3.map(n => n.toFixed(2)).join(', ');
+      camPosWorldEl.textContent = MathHelper.toWorld(cameraVecs.cameraVec3).map(n => n.toFixed(2)).join(', ');
+      camPosWcEl.textContent    = MathHelper.toWc(cameraVecs.cameraVec3).map(n => n.toFixed(2)).join(', ');
       camLookEl.textContent = cameraVecs.lookAtVec3.map(n => n.toFixed(2)).join(', ');
       groupNumEl.textContent = updateResult.interiorGroupNum || 0;
       bspNodeEl.textContent  = updateResult.nodeId || 0;
+
+      fpsFrameCount++;
+      const fpsElapsed = now - fpsLastTime;
+      if (fpsElapsed >= 1000) {
+        fpsEl.textContent = (fpsFrameCount / (fpsElapsed / 1000)).toFixed(2);
+        fpsFrameCount = 0;
+        fpsLastTime = now;
+      }
     }
     requestAnimationFrame(renderLoop);
   }

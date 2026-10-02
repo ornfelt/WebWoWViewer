@@ -1,6 +1,15 @@
 import {vec4, vec3, mat4} from 'gl-matrix';
 
 class MathHelper {
+    /* wow space -> world / GL space, as my_web_wow's Vector3Extensions.ToWorld */
+    static toWorld(wow) {
+        const zeroPoint = 32.0 * 533.33333;
+        return vec3.fromValues(zeroPoint - wow[1], wow[2], zeroPoint - wow[0]);
+    }
+    /* wow space -> wc space (swap y / z, negate y), as Vector3Extensions.ToWc */
+    static toWc(wow) {
+        return vec3.fromValues(wow[0], wow[2], -wow[1]);
+    }
     static getFrustumClipsFromMatrix(mat) {
         var planes = new Array(6);
         // Right clipping plane.
