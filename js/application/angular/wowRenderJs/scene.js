@@ -12,7 +12,10 @@
 //import textureCompositionShader from 'textureCompositionShader.glsl';
 
 import GraphManager from './manager/sceneGraphManager.js'
-import WorldObjectManager from './manager/worldObjectManager.js'
+import WorldObjectManager, { localPlayerGuid } from './manager/worldObjectManager.js'
+import PlayerAnimationState from './manager/playerAnimationState.js'
+import { setAnimationSafe } from './manager/animationBridge.js'
+import WorldPlayer from './objects/worldObjects/worldPlayer.js'
 import config from './../services/config.js'
 
 import wdtLoader from './../services/map/wdtLoader.js';
@@ -1517,9 +1520,30 @@ class Scene {
         // Update objects
         var updateRes = this.graphManager.update(deltaTime);
         try {
-            this.worldObjectManager.update(deltaTime, cameraPos, lookAtMat4);
+            this.worldObjectManager.update(deltaTime, cameraPos, lookAtMat4, this.camera);
         } catch(e) {
             console.log(e)
+        }
+
+        // Sync movement flags from camera to animation state
+        if (this.playerAnimState) {
+            var playerAnimState = this.playerAnimState;
+            playerAnimState.isMovingForward = this.camera.isMovingForward;
+            playerAnimState.isMovingBackward = this.camera.isMovingBackward;
+            playerAnimState.isStrafingLeft = this.camera.isStrafingLeft;
+            playerAnimState.isStrafingRight = this.camera.isStrafingRight;
+            playerAnimState.isJumping = this.camera.isJumping;
+            playerAnimState.isFalling = this.camera.isFalling;
+
+            // Evaluate desired animation
+            var desiredAnim = playerAnimState.evaluate();
+            if (desiredAnim !== null) {
+                // Apply to the player's model
+                var player = this.worldObjectManager.objectMap[localPlayerGuid];
+                if (player && player.objectModel && player.objectModel.loaded && this.animationDataDBC) {
+                    setAnimationSafe(player.objectModel.animationManager, desiredAnim, this.animationDataDBC);
+                }
+            }
         }
 
         this.graphManager.checkCulling(perspectiveMatrixForCulling, lookAtMat4);
@@ -1728,6 +1752,25 @@ class Scene {
     setCameraPos (x, y, z) {
         this.mainCamera = [x,y,z];
         //this.camera.setCameraPos(x,y,z);
+    }
+    /* switch between the free roam camera and the player character (needs collision triangles), spawning the character the first time */
+    setPlayerMode(enabled) {
+        this.camera.setPlayerMode(enabled);
+        if (this.camera.collisionActive && !this.worldObjectManager.objectMap[localPlayerGuid]) {
+            this.spawnPlayerCharacter();
+        }
+    }
+    /* the player character, as my_web_wow's hardcoded Player1 (display id 26563, scale 1); worldObjectManager places it */
+    spawnPlayerCharacter() {
+        var newWorldPlayer = new WorldPlayer(this.sceneApi);
+        this.worldObjectManager.objectMap[localPlayerGuid] = newWorldPlayer;
+        newWorldPlayer.setDisplayId(26563);
+        newWorldPlayer.setNativeDisplayId(26563);
+        newWorldPlayer.setScale(1.0);
+        newWorldPlayer.manualAnimation = true;
+        newWorldPlayer.complete();
+
+        this.playerAnimState = new PlayerAnimationState();
     }
     setFogStart(value) {
         this.uFogStart  = value;

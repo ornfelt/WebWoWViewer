@@ -17,6 +17,9 @@ import packetList from '../../../rag_no_mount.json'
 //let packetList = [];
 import {vec3} from 'gl-matrix'
 
+/* the objectMap key of the player character (Scene.spawnPlayerCharacter), apart from the packet GUIDs */
+export const localPlayerGuid = -1;
+
 
 class WorldObjectManager {
     constructor(sceneApi){
@@ -27,7 +30,7 @@ class WorldObjectManager {
         this.playPackets = false;
     }
 
-    update(deltaTime, cameraPos, viewMat) {
+    update(deltaTime, cameraPos, viewMat, camera) {
         /* 1. Load the next portion of packets */
         if (this.playPackets) {
             this.serverTime += deltaTime;
@@ -43,6 +46,37 @@ class WorldObjectManager {
                 } else {
                     break;
                 }
+            }
+        }
+
+        /* Place the player character (before the models update, which builds the placement matrix from it) */
+        var player = this.objectMap[localPlayerGuid];
+        if (player) {
+            if (camera.collisionActive) {
+                // Player mode / third-person: the player position drives collision and the
+                // camera sits behind/above it, so the model goes at the player position.
+                // The facing follows the camera only when right-mouse steering.
+                player.setPosition(vec3.clone(camera.playerPosition));
+                player.setRotation(camera.characterYaw);
+            } else {
+                // Free roam: in front of the camera (consider horizontal and vertical camera angle)
+                var yawRad = -camera.ah * (Math.PI / 180);
+                // flip pitch sign (if model moves down when camera goes up and vice versa):
+                var pitchRad = -camera.av * (Math.PI / 180);
+
+                // Compute 3D forward direction (same math as Camera.tick)
+                var dist = 20;
+                var cosPitch = Math.cos(pitchRad);
+                var forwardX = Math.cos(yawRad) * cosPitch * dist;
+                var forwardY = Math.sin(yawRad) * cosPitch * dist;
+                var forwardZ = Math.sin(pitchRad) * dist;
+
+                player.setPosition(vec3.fromValues(
+                    cameraPos[0] + forwardX,
+                    cameraPos[1] + forwardY,
+                    cameraPos[2] + forwardZ - 6
+                ));
+                player.setRotation(yawRad);
             }
         }
 

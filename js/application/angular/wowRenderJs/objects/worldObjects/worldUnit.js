@@ -125,6 +125,7 @@ class WorldUnit extends WorldObject {
 
         this.modelPathInput = '';
         this.chosenModelIndex = 0;
+        this.manualAnimation = false;
     }
     setSpeedWalk(value){
         this.speedWalk = value;
@@ -748,7 +749,9 @@ class WorldUnit extends WorldObject {
             }
             //this.objectModel.animation
         } else if (objectModelIsLoaded){
-            if (this.isMoving) {
+            if (this.manualAnimation) {
+                // set from outside
+            } else if (this.isMoving) {
                 var animationId = this.getAnimationIdByMovementFlag()
                 this.objectModel.setAnimationId(animationId, false);
             } else {

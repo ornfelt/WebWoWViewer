@@ -7,6 +7,35 @@ function  degToRad(degrees) {
 const moveSpeed = 3;
 const freeflyZoomStep = 3;
 
+// ---- Collision / gravity (my_web_wow's Camera.cs) ----
+const gravity = 19.29;          // yards/s^2 (matches the gfx source project)
+const maxFallSpeed = 100;       // terminal velocity (yards/s)
+const jumpSpeed = 7.95;         // initial jump velocity (yards/s)
+const wallRadius = 0.5;         // sphere radius for wall collision
+const wallProbeH = 1.0;         // height above feet to cast wall rays (avoids the floor)
+const groundSnap = 3.0;         // max step up / step down to stay grounded
+const snapTol = 0.5;            // tolerance when deciding we're on the ground
+const underMapMargin = 5.0;     // below (minZ - this) => "under the map"
+const spawnSearchDown = 2000;   // how far below the free roam camera to look for the ground when the player mode starts
+
+// Max walkable steepness: cos(50deg). Slopes steeper than this can't be climbed.
+const wallClimb = 0.64278764;
+
+// Movement is slower when collision-based movement is active.
+const collisionSpeedScale = 0.3;
+
+// Third-person orbit camera around the player (yaw + pitch from the mouse).
+const orbitDistanceDefault = 18.0; // default distance from the player
+const orbitDistanceMin = 5.0;      // closest zoom
+const orbitDistanceMax = 50.0;     // farthest zoom
+const zoomStep = 2.5;              // orbit-distance change per wheel notch
+const orbitPitchBias = 18.0;       // extra downward pitch so it sits above by default
+const lookUp = 2.0;                // look at a point slightly above the feet
+
+// Pitch (av) limits in collision mode so the camera stops instead of flipping over the top.
+const orbitAvMin = -75.0;
+const orbitAvMax = 65.0;
+
 class Camera {
     constructor () {
         this.camera = [0, 0, 0];
@@ -29,6 +58,93 @@ class Camera {
         this.isShiftHeld = false;
         this.movingForward = false;
         this.movingBackward = false;
+
+        // Optional collision world (exported triangles, in wow space). The player mode needs it; without it the
+        // camera keeps its free roam behavior.
+        this.collision = null;
+        // The player mode toggle (web only: my_web_wow is always in player mode when it has triangles).
+        this.usePlayerMode = false;
+        // In player mode `camera` holds the PLAYER position (feet, on the ground); the rendered camera is
+        // computed behind and above it (third person).
+
+        // Persistent fall state for gravity (wow space, +Z is up), and whether the player is resting on a
+        // collision triangle, airborne from a jump (ascending) or airborne and descending (falling).
+        this.verticalVelocity = 0;
+        this.grounded = false;
+        this.isJumping = false;
+        this.isFalling = false;
+        // Third-person zoom (distance from the player), adjusted by the mouse wheel.
+        this.orbitDistance = orbitDistanceDefault;
+        // Facing of the character model (radians, matching -ah * pi/180). Only follows the
+        // camera while right-mouse is held (see turnWithCamera).
+        this.characterYaw = 0;
+        // Set by the input handler while the RIGHT mouse button is held: the character turns
+        // to follow the camera direction (WoW right-click steering).
+        this.turnWithCamera = false;
+        // Set while the LEFT mouse button is held: free-look. The camera orbits but the
+        // character keeps its facing (and moving does not re-orient it).
+        this.freeLook = false;
+        // Last third-person eye we emitted; used to ignore the per-frame echo that Scene
+        // feeds back through setCameraPos (so it doesn't overwrite the player position).
+        this.lastEye = [NaN, NaN, NaN];
+    }
+
+    /* true when collision triangles are loaded for the map, so the player mode can be used */
+    get collisionAvailable() {
+        return this.collision !== null && !this.collision.empty;
+    }
+    /* true when collision data is available and drives movement (the player mode is on) */
+    get collisionActive() {
+        return this.usePlayerMode && this.collisionAvailable;
+    }
+    /* player (collision) position in wow space; the same as the camera position in free roam */
+    get playerPosition() {
+        return this.camera;
+    }
+
+    /* true if the player is actively moving forward / backward / strafing */
+    get isMovingForward() {
+        return this.MDDepthPlus > 0;
+    }
+    get isMovingBackward() {
+        return this.MDDepthMinus > 0;
+    }
+    get isStrafingLeft() {
+        return this.MDHorizontalMinus > 0;
+    }
+    get isStrafingRight() {
+        return this.MDHorizontalPlus > 0;
+    }
+    /* true if any movement key is pressed */
+    get isMoving() {
+        return this.isMovingForward || this.isMovingBackward || this.isStrafingLeft || this.isStrafingRight;
+    }
+
+    /*
+     * Switches between the free roam camera and the player character (web only; the player mode needs
+     * collision triangles). The player starts on the ground below the free roam camera, facing the camera
+     * direction; leaving the player mode keeps the third-person eye as the free roam camera.
+     */
+    setPlayerMode(enabled) {
+        if (enabled && !this.collisionAvailable) return;
+        if (enabled === this.usePlayerMode) return;
+
+        this.usePlayerMode = enabled;
+        this.verticalVelocity = 0;
+        this.grounded = false;
+        this.isJumping = false;
+        this.isFalling = false;
+
+        if (enabled) {
+            // the scene feeds the free roam camera back through setCameraPos on the next frame; ignore it
+            this.lastEye = vec3.clone(this.camera);
+
+            var ground = this.collision.groundBelow(this.camera, groundSnap, spawnSearchDown);
+            if (ground !== null) {
+                this.camera = [this.camera[0], this.camera[1], ground.groundZ];
+            }
+            this.characterYaw = degToRad(-this.ah);
+        }
     }
 
     get currentSpeed() {
@@ -38,9 +154,16 @@ class Camera {
     addDepthDiff(val) {
         this.depthDiff = this.depthDiff + val;
     }
-    // move forward / backward by wheel notches (scroll up -> zoom in)
+    // Mouse-wheel zoom. In player mode it changes the third-person orbit distance (clamped);
+    // in free roam it moves forward / backward by wheel notches. Positive = scroll up (zoom in).
     zoom(wheelDelta) {
-        this.addDepthDiff(wheelDelta * freeflyZoomStep);
+        if (this.collisionActive) {
+            this.orbitDistance -= wheelDelta * zoomStep; // scroll up -> zoom in
+            if (this.orbitDistance < orbitDistanceMin) this.orbitDistance = orbitDistanceMin;
+            else if (this.orbitDistance > orbitDistanceMax) this.orbitDistance = orbitDistanceMax;
+        } else {
+            this.addDepthDiff(wheelDelta * freeflyZoomStep);
+        }
     }
     addHorizontalViewDir(val) {
         var ah = this.ah;
@@ -130,6 +253,11 @@ class Camera {
         dir = vec3.rotateZ(dir, dir, [0, 0, 0], degToRad(-this.ah));
         vec3.normalize(dir,dir);
 
+        /* Collision-based movement + gravity (player mode, only when triangles are loaded) */
+        if (this.collisionActive) {
+            return this.tickWithCollision(timeDelta, horizontalDiff, depthDiff, verticalDiff);
+        }
+
         var lookat = [];
 
         /* Calc camera position */
@@ -162,8 +290,152 @@ class Camera {
             cameraVec3: camera
         }
     }
+    /*
+     * Resolves this tick's movement against the loaded collision triangles and applies gravity.
+     * In this mode `camera` holds the PLAYER position (feet, on the ground); the rendered camera
+     * (the returned cameraVec3) is placed behind and above it.
+     */
+    tickWithCollision(timeDelta, horizontalDiff, depthChange, verticalDiff) {
+        var world = this.collision;
+        var dt = Math.min(timeDelta / 1000, 0.05); // seconds, clamped so fast falls can't tunnel
+
+        // Collision-based movement is slower than free roam.
+        horizontalDiff *= collisionSpeedScale;
+        depthChange *= collisionSpeedScale;
+        verticalDiff *= collisionSpeedScale;
+
+        // Clamp pitch so the orbit camera stops at the top/bottom instead of flipping over.
+        if (this.av < orbitAvMin) this.av = orbitAvMin;
+        else if (this.av > orbitAvMax) this.av = orbitAvMax;
+
+        // Character facing: follows the camera yaw ONLY while right-mouse steering.
+        // Otherwise the character keeps its facing; moving (W) goes along that facing
+        // and the camera can be rotated independently (left-mouse free-look).
+        if (this.turnWithCamera)
+            this.characterYaw = degToRad(-this.ah);
+
+        // 1) Horizontal movement (WASD), relative to the CHARACTER facing (so free-look
+        //    doesn't change where W goes), projected onto the ground plane.
+        var forward = [1, 0, 0];
+        vec3.rotateZ(forward, forward, [0, 0, 0], this.characterYaw);
+        forward[2] = 0;
+        if (vec3.squaredLength(forward) > 1e-6) vec3.normalize(forward, forward);
+        var rightDir = [];
+        vec3.rotateZ(rightDir, forward, [0, 0, 0], degToRad(-90));
+        rightDir[2] = 0;
+        if (vec3.squaredLength(rightDir) > 1e-6) vec3.normalize(rightDir, rightDir);
+
+        var horiz = vec3.create();
+        if (horizontalDiff !== 0) vec3.scaleAndAdd(horiz, horiz, rightDir, horizontalDiff);
+        if (depthChange !== 0) vec3.scaleAndAdd(horiz, horiz, forward, depthChange);
+
+        if (vec3.squaredLength(horiz) > 0) {
+            var before = vec3.clone(this.camera);
+
+            // Cast wall rays from knee height (not the feet) so we don't snag on the floor;
+            // keep only the resolved XY, vertical is handled by gravity / ground snap.
+            var probe = vec3.fromValues(this.camera[0], this.camera[1], this.camera[2] + wallProbeH);
+            probe = world.slideMove(probe, horiz, wallRadius);
+            this.camera[0] = probe[0];
+            this.camera[1] = probe[1];
+
+            // Slope limit: don't allow climbing onto ground that is too steep and higher
+            // than where we stand (you can still slide/walk down or across gentle slopes).
+            var dest = world.groundBelow(this.camera, groundSnap, groundSnap);
+            if (dest !== null) {
+                var tooSteep = dest.normal[2] < wallClimb;
+                var uphill = dest.groundZ > before[2] + snapTol;
+                if (tooSteep && uphill) {
+                    this.camera[0] = before[0];
+                    this.camera[1] = before[1];
+                }
+            }
+        }
+
+        // 2) Vertical movement.
+        var wantUp = verticalDiff > 0;
+        if (verticalDiff !== 0) {
+            // Manual up/down (fly): collision-aware, and it suspends gravity for this
+            // frame so the keys stay responsive. Gravity resumes once released.
+            this.verticalVelocity = 0;
+            var probe = vec3.fromValues(this.camera[0], this.camera[1], this.camera[2] + wallProbeH);
+            var moved = world.slideMove(probe, [0, 0, verticalDiff], wallRadius);
+            this.camera[2] += moved[2] - probe[2];
+        } else {
+            // Gravity: accelerate downward; ground snap below corrects penetration.
+            this.verticalVelocity -= gravity * dt;
+            if (this.verticalVelocity < -maxFallSpeed) this.verticalVelocity = -maxFallSpeed;
+            this.camera[2] += this.verticalVelocity * dt;
+
+            // Past the apex the jump is over; the descent is "falling".
+            if (this.isJumping && this.verticalVelocity <= 0)
+                this.isJumping = false;
+        }
+
+        // 3) Ground detection / snapping. The player's feet rest exactly on the ground.
+        //    Only snap when descending/level (not while still rising from a jump).
+        var ground = (!wantUp && this.verticalVelocity <= 0) ? world.groundBelow(this.camera, groundSnap, groundSnap) : null;
+        if (ground !== null) {
+            if (this.camera[2] <= ground.groundZ + snapTol) {
+                this.camera[2] = ground.groundZ;
+                this.verticalVelocity = 0;
+                this.grounded = true;
+                this.isJumping = false; // landed
+            } else {
+                this.grounded = false;
+            }
+        } else {
+            this.grounded = false;
+        }
+
+        // 4) "Under the map" safety net: below all triangles => respawn on a random one.
+        if (this.camera[2] < world.minZ - underMapMargin) {
+            this.camera = world.randomTopPosition(0.1);
+            this.verticalVelocity = 0;
+            this.grounded = true;
+            this.isJumping = false;
+        }
+
+        // Falling = airborne and not in the ascending jump phase.
+        this.isFalling = !this.grounded && !this.isJumping;
+
+        // 5) Third-person orbit camera (yaw + pitch from the mouse), behind/above the player.
+        var camDir = [1, 0, 0];
+        vec3.rotateY(camDir, camDir, [0, 0, 0], degToRad(this.av + orbitPitchBias));
+        vec3.rotateZ(camDir, camDir, [0, 0, 0], degToRad(-this.ah));
+        vec3.normalize(camDir, camDir);
+
+        var lookAt = vec3.fromValues(this.camera[0], this.camera[1], this.camera[2] + lookUp);
+        var eye = vec3.scaleAndAdd(vec3.create(), lookAt, camDir, -this.orbitDistance);
+        this.lastEye = vec3.clone(eye);
+
+        return {
+            lookAtVec3: lookAt,
+            cameraVec3: eye
+        }
+    }
+
+    /* Requests a jump (player mode). Only jumps when grounded; isJumping drives the jump animation. */
+    requestJump() {
+        if (!this.collisionActive) return;
+        if (!this.grounded) return;
+
+        this.verticalVelocity = jumpSpeed;
+        this.grounded = false;
+        this.isJumping = true;
+    }
+
+    /*
+     * Sets the camera position directly (in world space). In player mode this sets the PLAYER
+     * position (e.g. teleports). The per-frame echo of the third-person eye that Scene feeds
+     * back is ignored so it doesn't clobber the player position.
+     */
     setCameraPos (x, y, z) {
+        if (this.collisionActive && x === this.lastEye[0] && y === this.lastEye[1] && z === this.lastEye[2])
+            return;
+
         this.camera = [x, y, z];
+        this.verticalVelocity = 0;
     }
 
 }

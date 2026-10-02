@@ -67,6 +67,10 @@ export default {
             console.log(e);
         }
     },
+    /* the mpq server's collision api, next to its files/ route (http://127.0.0.1:3002/files/ -> http://127.0.0.1:3002/collision/) */
+    getUrlToLoadCollision : function (){
+        return new URL('../collision/', new URL(urlToLoadWoWFile, window.location.href)).toString();
+    },
     getFileReadMethod : function(){
         return readFileMethod;
     },
