@@ -296,10 +296,10 @@ function sleep(ms: number) {
 export async function initViewer(containerEl: HTMLElement) {
   // Create HTML structure (canvas + simple debug panel)
   containerEl.innerHTML = `
-    <div style="width: 100%; height: 100%; position: relative; overflow: hidden;">
-      <canvas id="wow-canvas" style="float:left; display:block;"></canvas>
+    <div style="width: 100%; height: 100%; position: relative; overflow: hidden; display: flex;">
+      <canvas id="wow-canvas" style="flex: none; display:block;"></canvas>
 
-      <div id="settings-panel" style="display:inline-block; float:left; width: 225px; margin-left:10px; color: white;">
+      <div id="settings-panel" style="flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; padding: 0 10px; color: white;">
         <div>camera = (<span id="cam-pos"></span>)</div>
         <div>lookAt = (<span id="cam-look"></span>)</div>
         <div>Group # = <span id="group-num"></span></div>
