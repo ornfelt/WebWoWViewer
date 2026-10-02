@@ -247,12 +247,14 @@ export async function initViewer(containerEl) {
           #selMap option:disabled { color: #777; }
           #settings-panel .settings-section { margin-top: 8px; }
           #settings-panel .settings-section > summary { cursor: pointer; font-weight: bold; margin-bottom: 2px; }
+          #settings-panel button { margin-top: 6px; }
         </style>
         <div style="display: flex; align-items: center; gap: 4px;">
           <span style="white-space: nowrap;">map =</span>
           <select id="selMap" style="flex: 1 1 auto; min-width: 0; border: 1px solid #888; border-radius: 2px; padding: 1px 2px;"></select>
         </div>
-        <div>expansion = <span id="expansion"></span> | build = <span id="build"></span> | fps = <span id="fps"></span></div>
+        <div>expansion = <span id="expansion"></span> | build = <span id="build"></span></div>
+        <div style="margin-bottom: 1em;">fps = <span id="fps"></span></div>
         <div>camera (wow) = (<span id="cam-pos"></span>)</div>
         <div>camera (world) = (<span id="cam-pos-world"></span>)</div>
         <div>camera (wc) = (<span id="cam-pos-wc"></span>)</div>
@@ -281,7 +283,7 @@ export async function initViewer(containerEl) {
           <label><input type="checkbox" id="chkUsePortalCulling"> Portal Culling</label>
         </details>
 
-        <details id="secWireframe" class="settings-section">
+        <details id="secWireframe" class="settings-section" open>
           <summary>Wireframe polygons</summary>
           <label><input type="checkbox" id="chkRenderAdtPolygons"> ADT Polygons</label><br/>
           <label><input type="checkbox" id="chkRenderLiquidPolygons"> Liquid Polygons</label><br/>
@@ -290,7 +292,7 @@ export async function initViewer(containerEl) {
           <label><input type="checkbox" id="chkRenderSkyPolygons"> Sky Polygons</label>
         </details>
 
-        <details id="secDebug" class="settings-section">
+        <details id="secDebug" class="settings-section" open>
           <summary>Bounding boxes / debug</summary>
           <label><input type="checkbox" id="chkDrawPortals"> Draw Portals</label><br/>
           <label><input type="checkbox" id="chkDrawM2BB"> Draw M2 BB</label><br/>
@@ -309,7 +311,7 @@ export async function initViewer(containerEl) {
           <button id="btnCopyDebug">Copy main camera -> debug camera</button>
         </details>
 
-        <details id="secPackets" class="settings-section">
+        <details id="secPackets" class="settings-section" open>
           <summary>Packets</summary>
           <button id="btnLoadPackets">Parse packets</button><br/>
           <button id="btnLoadAllPackets">Parse all packets</button>
