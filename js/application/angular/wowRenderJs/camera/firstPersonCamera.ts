@@ -395,6 +395,7 @@ class Camera {
 
         // 2) Vertical movement.
         var wantUp = verticalDiff > 0;
+        var zBeforeVertical = this.camera[2];
         if (verticalDiff !== 0) {
             // Manual up/down (fly): collision-aware, and it suspends gravity for this
             // frame so the keys stay responsive. Gravity resumes once released.
@@ -415,7 +416,10 @@ class Camera {
 
         // 3) Ground detection / snapping. The player's feet rest exactly on the ground.
         //    Only snap when descending/level (not while still rising from a jump).
-        var ground = (!wantUp && this.verticalVelocity <= 0) ? world.groundBelow(this.camera, groundSnap, groundSnap) : null;
+        //    The probe starts at least as high as where this frame's fall started, so a fall step
+        //    longer than groundSnap (fast falls at a low frame rate) can't pass through the ground.
+        var groundSearchUp = Math.max(groundSnap, zBeforeVertical - this.camera[2] + snapTol);
+        var ground = (!wantUp && this.verticalVelocity <= 0) ? world.groundBelow(this.camera, groundSearchUp, groundSnap) : null;
         if (ground !== null) {
             if (this.camera[2] <= ground.groundZ + snapTol) {
                 this.camera[2] = ground.groundZ;
