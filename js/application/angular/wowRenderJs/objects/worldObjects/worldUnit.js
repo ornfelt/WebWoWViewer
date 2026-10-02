@@ -27,6 +27,15 @@ function extractFilePath(filePath) {
     return '';
 }
 
+/* the file name without its directory ('\\' or '/') and extension */
+function fileNameWithoutExtension(filePath) {
+    var fileName = filePath.substr(extractFilePath(filePath).length);
+    var dot = fileName.lastIndexOf('.');
+    return dot > 0 ? fileName.substr(0, dot) : fileName;
+}
+
+
+
 
 
 function findSectionRec(csd, race, gender, section, type, color) {
@@ -113,6 +122,9 @@ class WorldUnit extends WorldObject {
         this.items = new Array(3);
         this.helmet = null;
         this.textureCompositionManager = new TextureCompositionManager(sceneApi);
+
+        this.modelPathInput = '';
+        this.chosenModelIndex = 0;
     }
     setSpeedWalk(value){
         this.speedWalk = value;
@@ -520,6 +532,108 @@ class WorldUnit extends WorldObject {
         return model;
 
     }
+    getDisplayIdFromModelName(inputModelName, chosenIndex = 0) {
+        var cdid = this.sceneApi.dbc.getCreatureDisplayInfoDBC();
+        var cmdd = this.sceneApi.dbc.getCreatureModelDataDBC();
+        if (!cdid || !cmdd) return null;
+
+        // Normalize input
+        inputModelName = inputModelName.replace(/\.m2/gi, '.mdx');
+
+        var matches = [];
+
+        // First try: exact match on full model name
+        for (var key in cdid) {
+            var modelData = cmdd[cdid[key].model1];
+            if (modelData && modelData.modelName.toLowerCase() === inputModelName.toLowerCase()) {
+                console.log("Found exact match via dbModelName: " + modelData.modelName);
+                matches.push(Number(key));
+            }
+        }
+
+        // If no exact match is found, match on the file name without its extension (so a bare 'arthaslichking' matches too)
+        if (matches.length === 0) {
+            var inputFileName = fileNameWithoutExtension(inputModelName).toLowerCase();
+            for (var key in cdid) {
+                var modelData = cmdd[cdid[key].model1];
+                if (modelData && fileNameWithoutExtension(modelData.modelName).toLowerCase() === inputFileName) {
+                    console.log("Found fallback match via dbModelName: " + modelData.modelName);
+                    matches.push(Number(key));
+                }
+            }
+
+            if (matches.length > 1) {
+                console.log("Fallback used: Found " + matches.length + " matches for file name '" + inputFileName + "': " + matches.join(', '));
+            }
+        } else if (matches.length > 1) {
+            console.log("Found multiple exact matches (" + matches.length + ") for model name: '" + inputModelName + "': " + matches.join(', '));
+        }
+
+        if (matches.length === 0) {
+            console.log("No matching display ID found for model name: " + inputModelName);
+            return null;
+        }
+
+        // If chosenIndex is out of bounds, default to the first match
+        var index = (chosenIndex < matches.length) ? chosenIndex : 0;
+        var chosenDisplayId = matches[index];
+
+        if (matches.length > 1) {
+            console.log("Returning match at index " + index + " (display ID: " + chosenDisplayId + ").");
+        }
+
+        return chosenDisplayId;
+    }
+    createModelFromModelPath(modelPath, chosenIndex) {
+        var useHardcodedData = (window.selectedExpansion !== Expansion.WOTLK);
+
+        var displayIdBasedOnModelPath = this.getDisplayIdFromModelName(modelPath, chosenIndex);
+        var value = -1;
+
+        if (displayIdBasedOnModelPath !== null) {
+            value = displayIdBasedOnModelPath;
+            this.setDisplayId(value);
+            this.setNativeDisplayId(value);
+        } else {
+            useHardcodedData = true;
+        }
+
+        if (!useHardcodedData) {
+            return this.createModelFromDisplayId(value);
+        }
+
+        // Hardcoded data: load the model file itself
+        var modelFilename = modelPath;
+
+        var modelScale = 1;
+        var displayIDScale = 1;
+
+        this.modelScale = modelScale;
+        this.displayIDScale = displayIDScale;
+
+        var replaceTextures = [];
+        textureHelper.populateReplaceTextures(modelFilename, replaceTextures);
+
+        var meshIds = [];
+        for (var i = 0; i < 19; i++) {
+            meshIds[i] = 1;
+        }
+
+        var useMeshId = true;
+
+        // Debug info
+        console.log("Creating model from displayId:", value);
+        console.log("Model path:", modelFilename);
+        console.log("Model scale:", modelScale);
+        console.log("DisplayID scale:", displayIDScale);
+        console.log("Replace textures:", replaceTextures);
+        console.log("Use mesh IDs:", useMeshId);
+        if (useMeshId) {
+            console.log("Mesh IDs:", meshIds);
+        }
+
+        return this.sceneApi.objects.loadWorldM2Obj(modelFilename, useMeshId ? meshIds : null, replaceTextures);
+    }
     createHelmetFromItemDisplayInfo(race, gender, ItemDInfo) {
         var helmPath = "Item\\ObjectComponents\\head\\";
         var suffix = "_" + helm_race_names[race] + helm_gender[gender];
@@ -849,7 +963,9 @@ class WorldUnit extends WorldObject {
     }
     complete () {
         if (this.modelChanged)  {
-            var model = this.createModelFromDisplayId(this.nativeDisplayId);
+            var model = this.modelPathInput.length > 0
+                ? this.createModelFromModelPath(this.modelPathInput, this.chosenModelIndex)
+                : this.createModelFromDisplayId(this.nativeDisplayId);
             this.objectModel = model;
         }
 
