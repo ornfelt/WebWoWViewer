@@ -296,7 +296,7 @@ export async function initViewer(containerEl) {
           <summary>Controls</summary>
           W - forward, S - backward, A - left, D - right,<br/>
           Space - up (jump in player mode), Tab - down, Shift - faster, Mouse - move camera<br/>
-          Player mode: left drag - orbit, right drag - orbit + turn character<br/>
+          Player mode: A / D - turn, left drag - orbit, right drag - orbit + turn character<br/>
           B - M2, Z - ADT, O - WMO, I - WMO BB, K - depth,<br/>
           Q - liquid, E - sky, F - draw distance, F6 - hide this panel,<br/>
           L - lowres terrain, C - cycle anims, Wheel - zoom,<br/>

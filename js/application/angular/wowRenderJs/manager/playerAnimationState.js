@@ -9,6 +9,9 @@ export const AnimationType = {
     Fall: 'Fall',
     Idle: 'Idle',
     JumpStart: 'JumpStart',
+    // turning in place (web: A / D turn the character in player mode); AnimationData.dbc names
+    ShuffleLeft: 'ShuffleLeft',
+    ShuffleRight: 'ShuffleRight',
 };
 
 /*
@@ -26,6 +29,8 @@ class PlayerAnimationState {
         this.isStrafingRight = false;
         this.isJumping = false;
         this.isFalling = false;
+        this.isTurningLeft = false;
+        this.isTurningRight = false;
 
         // Current animation being played (avoids re-setting every frame)
         this.currentAnim = AnimationType.Idle;
@@ -40,7 +45,7 @@ class PlayerAnimationState {
     evaluate() {
         var desired;
 
-        // Priority: jump > fall > movement > idle
+        // Priority: jump > fall > movement > turning in place > idle
         if (this.isJumping) {
             desired = AnimationType.JumpStart;
         } else if (this.isFalling) {
@@ -55,6 +60,10 @@ class PlayerAnimationState {
                 desired = AnimationType.StrafeRight;
             else
                 desired = AnimationType.Run; // fallback
+        } else if (this.isTurningLeft) {
+            desired = AnimationType.ShuffleLeft;
+        } else if (this.isTurningRight) {
+            desired = AnimationType.ShuffleRight;
         } else {
             desired = AnimationType.Idle;
         }

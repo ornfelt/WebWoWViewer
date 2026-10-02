@@ -36,6 +36,9 @@ const lookUp = 2.0;                // look at a point slightly above the feet
 const orbitAvMin = -75.0;
 const orbitAvMax = 65.0;
 
+// Keyboard turning in player mode (A / D, web): WoW's default turn rate (rad/s).
+const turnRate = Math.PI;
+
 class Camera {
     constructor () {
         this.camera = [0, 0, 0];
@@ -109,11 +112,18 @@ class Camera {
     get isMovingBackward() {
         return this.MDDepthMinus > 0;
     }
+    /* A / D strafe in free roam, and turn the character in player mode */
     get isStrafingLeft() {
-        return this.MDHorizontalMinus > 0;
+        return !this.collisionActive && this.MDHorizontalMinus > 0;
     }
     get isStrafingRight() {
-        return this.MDHorizontalPlus > 0;
+        return !this.collisionActive && this.MDHorizontalPlus > 0;
+    }
+    get isTurningLeft() {
+        return this.collisionActive && this.MDHorizontalMinus > 0;
+    }
+    get isTurningRight() {
+        return this.collisionActive && this.MDHorizontalPlus > 0;
     }
     /* true if any movement key is pressed */
     get isMoving() {
@@ -307,6 +317,17 @@ class Camera {
         // Clamp pitch so the orbit camera stops at the top/bottom instead of flipping over.
         if (this.av < orbitAvMin) this.av = orbitAvMin;
         else if (this.av > orbitAvMax) this.av = orbitAvMax;
+
+        // Keyboard turning (A / D, web; my_web_wow strafes): the character turns in place instead of
+        // strafing, and the camera turns with it unless left-mouse free-look holds the camera.
+        var turn = this.MDHorizontalMinus - this.MDHorizontalPlus; // + is left (counter-clockwise)
+        if (turn !== 0) {
+            var turnRad = turn * turnRate * dt;
+            this.characterYaw += turnRad;
+            if (!this.freeLook)
+                this.ah -= turnRad * 180 / Math.PI;
+        }
+        horizontalDiff = 0;
 
         // Character facing: follows the camera yaw ONLY while right-mouse steering.
         // Otherwise the character keeps its facing; moving (W) goes along that facing
