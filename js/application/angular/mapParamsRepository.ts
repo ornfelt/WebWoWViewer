@@ -378,15 +378,57 @@ const maps: Record<MapKeyValue, MapParams> = {
   },
 };
 
+/* Short names for ?map=, as my_web_wow's Program.ParseMapKey (lower case) */
+const mapKeyAliases: Record<string, MapKeyValue> = {
+  // Azeroth
+  'darkshire': MapKey.DarkshireMap,
+  'stv': MapKey.StvMap,
+  'forsaken': MapKey.ForsakenStartMap,
+  // Kalimdor
+  'caverns': MapKey.CavernsOfTimeMap,
+  'orgrimmar': MapKey.OrgrimmarMap,
+  'darnassus': MapKey.DarnassusMap,
+  // TBC
+  'hellfire': MapKey.HellfireMap,
+  'shattrath': MapKey.ShattrathMap,
+  'nagrand': MapKey.NagrandMap,
+  'belf': MapKey.BelfMap,
+  'draenei': MapKey.DraeneiMap,
+  // WotLK
+  'dragonblight': MapKey.DragonblightMap,
+  'sholazar': MapKey.SholazarMap,
+  // PvP
+  'alteracvalley': MapKey.AlteracValleyMap,
+  'warsong': MapKey.WarsongGulchMap, 'warsonggulch': MapKey.WarsongGulchMap,
+  'arathi': MapKey.ArathiBasinMap, 'arathibasin': MapKey.ArathiBasinMap,
+  'eots': MapKey.EyeOfTheStormMap, 'eyeofthestorm': MapKey.EyeOfTheStormMap,
+  'sota': MapKey.StrandOfTheAncientsMap, 'strandoftheancients': MapKey.StrandOfTheAncientsMap,
+  // M2
+  'ragnaros': MapKey.RagnarosM2,
+  'drake': MapKey.DrakeM2,
+  'vanillaopeningscreen': MapKey.VanillaOpeningScreenM2,
+  'penguin': MapKey.PenguinM2, 'northrendpenguin': MapKey.PenguinM2,
+  'lichking': MapKey.LichKingM2,
+  'elwyntree': MapKey.ElwynForestTreeM2,
+  'wintertree': MapKey.WintertreeM2,
+  'fireball': MapKey.FireballM2,
+  // WMO / Arena
+  'nagrandarena': MapKey.NagrandArena, 'nagrandarenawmo': MapKey.NagrandArena,
+  'bladesedge': MapKey.BladesEdgeArena,
+  'darkshireblacksmith': MapKey.DarkshireBlacksmithWMO,
+  'lordaeronarena': MapKey.LordaeronArenaWMO,
+};
+
 export { MapKey, mapKeyGroups };
 
 export default {
   get: function (key: MapKeyValue): MapParams {
     return maps[key];
   },
-  /* the key whose name matches value, ignoring case, or undefined */
+  /* the key whose name or short name matches value, ignoring case, or undefined */
   findKey: function (value: string): MapKeyValue | undefined {
     const lower = value.trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(mapKeyAliases, lower)) return mapKeyAliases[lower];
     return (Object.values(MapKey) as MapKeyValue[]).find(key => key.toLowerCase() === lower);
   },
 };
