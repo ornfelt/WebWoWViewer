@@ -1,6 +1,8 @@
 import modelTextures from '../../model_textures.json';
+import config from './config.js';
 
 // Texture lookup for the hard-coded (non-WotLK) unit models, from model_textures.json:
+//   0. Random picker (if config.getUseRandomTextures() and the model has a registered picker)
 //   1. JSON lookup (hardcoded/curated mappings)
 //   2. Cow fallback (Creature\Cow\cow.blp)
 // (my_web_wow's TextureHelper also searches its creature DB and the MPQ directory, which the
@@ -26,12 +28,34 @@ for (var key in rawModelTextures) {
     cache[normalizeModelPath(key)] = rawModelTextures[key];
 }
 
+// Registered random pickers: normalized model path -> function(slotIndex) -> texture path
+var randomPickers = {};
+
+// Register a random texture picker for a model; it returns a full texture path (e.g. "creature\\sheep\\sheepblack.blp")
+function registerRandomPicker(modelPath, picker) {
+    randomPickers[normalizeModelPath(modelPath)] = picker;
+}
+
 function getFromJson(modelPath) {
     var textures = cache[normalizeModelPath(modelPath)];
     return textures ? textures : null;
 }
 
-function resolveTextures(modelPath) {
+function resolveTextures(modelPath, maxSlots = 3) {
+    // 0. Random picker (when enabled and registered for this model)
+    if (config.getUseRandomTextures()) {
+        var picker = randomPickers[normalizeModelPath(modelPath)];
+        if (picker) {
+            var results = [];
+            for (var i = 0; i < maxSlots; i++)
+                results[i] = picker(i);
+            // Filter out empty ones and return if any succeeded
+            var valid = results.filter(function (r) { return !!r; });
+            if (valid.length > 0)
+                return valid;
+        }
+    }
+
     var jsonResult = getFromJson(modelPath);
     if (jsonResult != null && jsonResult.length > 0)
         return jsonResult;
@@ -80,5 +104,6 @@ function populateReplaceTextures(modelPath, replaceTextures, startSlot = 11, max
 }
 
 export default {
-    populateReplaceTextures: populateReplaceTextures
+    populateReplaceTextures: populateReplaceTextures,
+    registerRandomPicker: registerRandomPicker
 }

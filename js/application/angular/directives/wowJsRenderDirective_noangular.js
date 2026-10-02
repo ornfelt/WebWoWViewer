@@ -280,7 +280,8 @@ export async function initViewer(containerEl) {
           <label><input type="checkbox" id="chkRenderSky"> Render Sky</label><br/>
           <label><input type="checkbox" id="chkRenderLiquid"> Render Liquid</label><br/>
           <label><input type="checkbox" id="chkRenderLowresTerrain"> Render Lowres Terrain</label><br/>
-          <label><input type="checkbox" id="chkUsePortalCulling"> Portal Culling</label>
+          <label><input type="checkbox" id="chkUsePortalCulling"> Portal Culling</label><br/>
+          <label title="Random skins for sheep, ogres, wolves, tigers, bears and naked skeletons loaded by model path, for the models loaded afterwards"><input type="checkbox" id="chkUseRandomTextures"> Random Textures</label>
         </details>
 
         <details id="secWireframe" class="settings-section" open>
@@ -353,6 +354,7 @@ export async function initViewer(containerEl) {
   const chkDoubleCamera     = containerEl.querySelector('#chkDoubleCamera');
   const chkUseSecondCamera  = containerEl.querySelector('#chkUseSecondCamera');
   const chkCycleAnimations  = containerEl.querySelector('#chkCycleAnimations');
+  const chkUseRandomTextures = containerEl.querySelector('#chkUseRandomTextures');
   const sliderDrawDistance  = containerEl.querySelector('#sliderDrawDistance');
   const drawDistanceEl      = containerEl.querySelector('#draw-distance');
 
@@ -669,6 +671,7 @@ export async function initViewer(containerEl) {
   chkUseSecondCamera.checked  = config.getUseSecondCamera();
   chkUseSecondCamera.disabled = !chkDoubleCamera.checked;
   chkCycleAnimations.checked  = config.getCycleAnimations();
+  chkUseRandomTextures.checked = config.getUseRandomTextures();
   sliderDrawDistance.value    = String(config.getDrawDistance());
   drawDistanceEl.textContent  = String(config.getDrawDistance());
 
@@ -722,6 +725,7 @@ export async function initViewer(containerEl) {
     }
   });
   chkCycleAnimations.addEventListener('change', () => { config.setCycleAnimations(chkCycleAnimations.checked); });
+  chkUseRandomTextures.addEventListener('change', () => { config.setUseRandomTextures(chkUseRandomTextures.checked); });
   sliderDrawDistance.addEventListener('input', () => {
     config.setDrawDistance(Number(sliderDrawDistance.value));
     drawDistanceEl.textContent = sliderDrawDistance.value;
