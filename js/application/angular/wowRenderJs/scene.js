@@ -163,74 +163,81 @@ class Scene {
         self.initCaches();
         self.initCamera();
 
+        /* a DBC that fails to load (fileLoader logs the file) is logged and left unset, instead of an uncaught rejection */
+        function dbcError(name) {
+            return function error() {
+                console.error("Could not load " + name + ", leaving it unset");
+            };
+        }
+
         /* Unit and Player data */
         animationDataDBC().then(function success(a) {
             self.animationDataDBC = a;
-        });
+        }, dbcError('AnimationData.dbc'));
         characterFacialHairStylesDBC().then(function success(a) {
             self.characterFacialHairStylesDBC = a;
-        });
+        }, dbcError('CharacterFacialHairStyles.dbc'));
         charHairGeosetsDBC().then(function success(a) {
             self.charHairGeosetsDBC = a;
-        });
+        }, dbcError('CharHairGeosets.dbc'));
         charSectionsDBC().then(function success(a) {
             self.charSectionsDBC = a;
-        });
+        }, dbcError('CharSections.dbc'));
         creatureDisplayInfoDBC().then(function success(a) {
             self.creatureDisplayInfoDBC = a;
-        });
+        }, dbcError('CreatureDisplayInfo.dbc'));
         if (window.selectedExpansion !== Expansion.CLASSIC) {
           creatureDisplayInfoExtraDBC().then(function success(a) {
               self.creatureDisplayInfoExtraDBC = a;
-          });
+          }, dbcError('CreatureDisplayInfoExtra.dbc'));
         }
         creatureModelDataDBC().then(function success(a) {
             self.creatureModelDataDBC = a;
-        });
+        }, dbcError('CreatureModelData.dbc'));
         gameObjectDisplayInfoDBC().then(function success(a) {
             self.gameObjectDisplayInfoDBC = a;
-        });
+        }, dbcError('GameObjectDisplayInfo.dbc'));
 
         // TODO: fix
         if (window.selectedExpansion === Expansion.WOTLK) {
           itemDisplayInfoDBC().then(function success(a) {
               self.itemDisplayInfoDBC = a;
-          });
+          }, dbcError('ItemDisplayInfo.dbc'));
           itemDBC().then(function success(a) {
               self.itemDBC = a;
-          });
+          }, dbcError('Item.dbc'));
           helmetGeosetVisDataDBC().then(function success(a) {
               self.helmetGeosetVisDataDBC = a;
-          });
+          }, dbcError('HelmetGeosetVisData.dbc'));
         }
 
         /* Map and area data */
         mapDBC().then(function success(a) {
             self.mapDBC = a;
-        });
+        }, dbcError('Map.dbc'));
 
         /* Lights information */
         // TODO: fix
         if (window.selectedExpansion === Expansion.WOTLK) {
           lightDBC().then(function success(a) {
               self.lightDBC = a;
-          });
+          }, dbcError('Light.dbc'));
         }
         lightFloatBandDBC().then(function success(a) {
             self.lightFloatBandDBC = a;
-        });
+        }, dbcError('LightFloatBand.dbc'));
         lightIntBandDBC().then(function success(a) {
             self.lightIntBandDBC = a;
-        });
+        }, dbcError('LightIntBand.dbc'));
         lightParamsDBC().then(function success(a) {
             self.lightParamsDBC = a;
-        });
+        }, dbcError('LightParams.dbc'));
 
         /* Liquids: the MH2O and WMO liquid type ids of WotLK */
         if (window.selectedExpansion === Expansion.WOTLK) {
           liquidTypeDBC().then(function success(a) {
               self.liquidTypeDBC = a;
-          });
+          }, dbcError('LiquidType.dbc'));
         }
 
     }
