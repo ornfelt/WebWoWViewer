@@ -39,6 +39,9 @@ var drawDepthBuffer: boolean = false;
 var drawDistance: number = 400;
 var cycleAnimations: boolean = false;
 
+/* random skins for the models with a registered picker (see textureHelper), for the models loaded afterwards */
+var useRandomTextures: boolean = false;
+
 var cameraM2: M2Object | null = null;
 
 var savedUrlForLoading: string | null | undefined;
@@ -224,6 +227,12 @@ export default {
     },
     setCycleAnimations : function (value: boolean) {
         cycleAnimations = value;
+    },
+    getUseRandomTextures : function () {
+        return useRandomTextures;
+    },
+    setUseRandomTextures : function (value: boolean) {
+        useRandomTextures = value;
     },
     getCameraM2 : function () {
         return cameraM2;

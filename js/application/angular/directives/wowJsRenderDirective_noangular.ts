@@ -323,7 +323,8 @@ export async function initViewer(containerEl: HTMLElement) {
           <label><input type="checkbox" id="chkRenderSky"> Render Sky</label><br/>
           <label><input type="checkbox" id="chkRenderLiquid"> Render Liquid</label><br/>
           <label><input type="checkbox" id="chkRenderLowresTerrain"> Render Lowres Terrain</label><br/>
-          <label><input type="checkbox" id="chkUsePortalCulling"> Portal Culling</label>
+          <label><input type="checkbox" id="chkUsePortalCulling"> Portal Culling</label><br/>
+          <label title="Random skins for sheep, ogres, wolves, tigers, bears and naked skeletons loaded by model path, for the models loaded afterwards"><input type="checkbox" id="chkUseRandomTextures"> Random Textures</label>
         </details>
 
         <details id="secWireframe" class="settings-section" open>
@@ -396,6 +397,7 @@ export async function initViewer(containerEl: HTMLElement) {
   const chkDoubleCamera     = containerEl.querySelector<HTMLInputElement>('#chkDoubleCamera')!;
   const chkUseSecondCamera  = containerEl.querySelector<HTMLInputElement>('#chkUseSecondCamera')!;
   const chkCycleAnimations  = containerEl.querySelector<HTMLInputElement>('#chkCycleAnimations')!;
+  const chkUseRandomTextures = containerEl.querySelector<HTMLInputElement>('#chkUseRandomTextures')!;
   const sliderDrawDistance  = containerEl.querySelector<HTMLInputElement>('#sliderDrawDistance')!;
   const drawDistanceEl      = containerEl.querySelector<HTMLSpanElement>('#draw-distance')!;
 
@@ -714,6 +716,7 @@ export async function initViewer(containerEl: HTMLElement) {
   chkUseSecondCamera.checked  = config.getUseSecondCamera();
   chkUseSecondCamera.disabled = !chkDoubleCamera.checked;
   chkCycleAnimations.checked  = config.getCycleAnimations();
+  chkUseRandomTextures.checked = config.getUseRandomTextures();
   sliderDrawDistance.value    = String(config.getDrawDistance());
   drawDistanceEl.textContent  = String(config.getDrawDistance());
 
@@ -767,6 +770,7 @@ export async function initViewer(containerEl: HTMLElement) {
     }
   });
   chkCycleAnimations.addEventListener('change', () => { config.setCycleAnimations(chkCycleAnimations.checked); });
+  chkUseRandomTextures.addEventListener('change', () => { config.setUseRandomTextures(chkUseRandomTextures.checked); });
   sliderDrawDistance.addEventListener('input', () => {
     config.setDrawDistance(Number(sliderDrawDistance.value));
     drawDistanceEl.textContent = sliderDrawDistance.value;

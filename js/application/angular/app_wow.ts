@@ -292,6 +292,8 @@
 import { initViewer } from './directives/wowJsRenderDirective_noangular';
 import Expansion from './Expansion';
 import configService from './services/config';
+import textureHelper from './services/textureHelper';
+import randomTexture from './services/randomTexture';
 
 // Example usage:
 // npm run start
@@ -301,6 +303,20 @@ import configService from './services/config';
 // or:
 // npm run build:prod
 // Note: Also start wow mpq file server...
+
+// Random skins for these models when "Random Textures" is on, as my_web_wow's Program.cs registers them
+textureHelper.registerRandomPicker("creature/sheep/sheep",
+    () => `creature\\sheep\\${randomTexture.pickRandomSheepSkin()}.blp`);
+textureHelper.registerRandomPicker("creature/ogre/ogre",
+    () => `creature\\ogre\\${randomTexture.pickRandomOgreSkin()}.blp`);
+textureHelper.registerRandomPicker("creature/wolf/wolf",
+    () => `creature\\wolf\\${randomTexture.pickRandomWolfSkin()}.blp`);
+textureHelper.registerRandomPicker("creature/tiger/tiger",
+    () => `creature\\tiger\\${randomTexture.pickRandomTigerSkin()}.blp`);
+textureHelper.registerRandomPicker("creature/bear/bear",
+    () => `creature\\bear\\${randomTexture.pickRandomBearSkin()}.blp`);
+textureHelper.registerRandomPicker("creature/skeletonnaked/skeletonnaked",
+    () => `creature\\SkeletonNaked\\${randomTexture.pickRandomSkeletonSkin()}.blp`);
 
 window.selectedExpansion = Expansion.WOTLK; // default
 let expansionLoaded: boolean = false;
