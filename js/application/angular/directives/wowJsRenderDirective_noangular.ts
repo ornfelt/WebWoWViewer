@@ -4,6 +4,9 @@ import WorldUnit from '../wowRenderJs/objects/worldObjects/worldUnit';
 import WorldPlayer from '../wowRenderJs/objects/worldObjects/worldPlayer';
 import {vec3} from 'gl-matrix'
 import type firstPersonCamera from '../wowRenderJs/camera/firstPersonCamera';
+import Expansion from '../Expansion';
+import mapParamsRepository, { MapKey, mapKeyGroups } from '../mapParamsRepository';
+import type { MapKeyValue, MapParams } from '../mapParamsRepository';
 
 /* Vendor-prefixed pointer-lock members the code falls back to; the DOM lib does not declare them */
 interface PrefixedMouseEvent extends MouseEvent {
@@ -24,29 +27,6 @@ interface PrefixedDocument extends Document {
 /* textContent stringifies what it is given; the render loop assigns numbers to the group / BSP node spans */
 interface NumberTextElement {
   textContent: string | number | null;
-}
-
-/* The scene initViewer() loads: one of the hard-coded presets (all but one commented out) */
-interface MapParams {
-  name: string;
-  source: string;
-  sceneType: string;
-  mapId?: number;
-  /* sceneType 'map' */
-  mapName?: string;
-  x?: number;
-  y?: number;
-  z?: number;
-  /* sceneType 'wmo' */
-  fileName?: string;
-  /* sceneType 'm2' */
-  modelName?: string;
-  cameraIndex?: number;
-  fogStart?: number;
-  fogEnd?: number;
-  fogColor?: number[];
-  /* the gradient debug sky instead of the map's lights.lit sky, and a sky in a 'wmo' / 'm2' scene */
-  useDebugSky?: boolean;
 }
 
 /* The settings panel and the checkboxes the render key binds toggle */
@@ -300,6 +280,8 @@ export async function initViewer(containerEl: HTMLElement) {
       <canvas id="wow-canvas" style="flex: none; display:block;"></canvas>
 
       <div id="settings-panel" style="flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; padding: 0 10px; color: white;">
+        <div>map = <select id="selMap" style="max-width: 100%;"></select></div>
+        <div>expansion = <span id="expansion"></span></div>
         <div>camera = (<span id="cam-pos"></span>)</div>
         <div>lookAt = (<span id="cam-look"></span>)</div>
         <div>Group # = <span id="group-num"></span></div>
@@ -345,6 +327,8 @@ export async function initViewer(containerEl: HTMLElement) {
 
   // Grab references
   const canvas = containerEl.querySelector<HTMLCanvasElement>('#wow-canvas')!;
+  const selMap = containerEl.querySelector<HTMLSelectElement>('#selMap')!;
+  const expansionEl = containerEl.querySelector<HTMLSpanElement>('#expansion')!;
   const camPosEl = containerEl.querySelector<HTMLSpanElement>('#cam-pos')!;
   const camLookEl = containerEl.querySelector<HTMLSpanElement>('#cam-look')!;
   const groupNumEl = containerEl.querySelector('#group-num') as NumberTextElement;
@@ -383,238 +367,99 @@ export async function initViewer(containerEl: HTMLElement) {
   canvas.width  = Math.floor(containerW * 0.79);
   canvas.height = containerH;
 
-  // Hard-code params
-    //const mapParams = {
-    //    name: 'Shattrath city (WotLK)',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    mapId: 530,
-    //    mapName: 'Expansion01',
-    //    x: -1663,
-    //    y: 5098,
-    //    z: 27
-    //};
+  // Hard-coded startup params
 
-    //const mapParams = {
-    //    name: 'Nagrand (WotLK)',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    mapId: 530,
-    //    mapName: 'Expansion01',
-    //    x: -743,
-    //    y: 8385,
-    //    z: 33
-    //};
+  // Azeroth (Eastern Kingdoms)
+  //const defaultMapKey = MapKey.DarkshireMap;
+  //const defaultMapKey = MapKey.StvMap;
+  //const defaultMapKey = MapKey.ForsakenStartMap;
 
-    //const mapParams = {
-    //    name: 'Nagrand arena',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    mapId: 559,
-    //    mapName: 'PVPZone05',
-    //    x: 4084.11, y:	2869.94, z:	12.1
-    //};
+  // Kalimdor
+  //const defaultMapKey = MapKey.CavernsOfTimeMap;
+  const defaultMapKey = MapKey.OrgrimmarMap;
+  //const defaultMapKey = MapKey.DarnassusMap;
 
-    //const mapParams = {
-    //  name: 'Eye of Storm',
-    //  source: 'http',
-    //  sceneType: 'map',
-    //  //mapId: 566,
-    //  mapName: 'NetherstormBG',
-    //  x: 2110,
-    //  y: 1489,
-    //  z: 1474
-    //}
+  // TBC
+  //const defaultMapKey = MapKey.ShattrathMap;
+  //const defaultMapKey = MapKey.NagrandMap;
+  //const defaultMapKey = MapKey.BelfMap;
+  //const defaultMapKey = MapKey.DraeneiMap;
 
-    //const mapParams = {
-    //  name: 'AV',
-    //  source: 'http',
-    //  sceneType: 'map',
-    //  //mapId: 30,
-    //  mapName: 'PVPZone01',
-    //  x: -531,
-    //  y: 0,
-    //  z: 267
-    //}
+  // WOTLK
+  //const defaultMapKey = MapKey.DragonblightMap;
+  //const defaultMapKey = MapKey.SholazarMap;
 
-    //const mapParams = {
-    //  name: 'WSG',
-    //  source: 'http',
-    //  sceneType: 'map',
-    //  //mapId: 489,
-    //  mapName: 'PVPZone03',
-    //  x: 1101,
-    //  y: 1313,
-    //  z: 568
-    //}
+  // PVP
+  //const defaultMapKey = MapKey.AlteracValleyMap;
+  //const defaultMapKey = MapKey.WarsongGulchMap;
+  //const defaultMapKey = MapKey.ArathiBasinMap;
+  //const defaultMapKey = MapKey.EyeOfTheStormMap;
+  //const defaultMapKey = MapKey.StrandOfTheAncientsMap;
 
-    //const mapParams = {
-    //  name: 'AB',
-    //  source: 'http',
-    //  sceneType: 'map',
-    //  //mapId: 529,
-    //  mapName: 'PVPZone04',
-    //  x: 1177,
-    //  y: 841,
-    //  z: 176
-    //}
+  // M2
+  //const defaultMapKey = MapKey.RagnarosM2;
+  //const defaultMapKey = MapKey.DrakeM2;
+  //const defaultMapKey = MapKey.VanillaOpeningScreenM2;
+  // WOTLK
+  //const defaultMapKey = MapKey.PenguinM2;
+  //const defaultMapKey = MapKey.LichKingM2;
 
-    //const mapParams = {
-    //    name: 'Darkshire',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    //mapId: 0,
-    //    mapName: 'Azeroth',
-    //    x: -10559.7,
-    //    y: -1189.02,
-    //    z: 29.0698
-    //}
+  // Static
+  //const defaultMapKey = MapKey.ElwynForestTreeM2;
+  //const defaultMapKey = MapKey.WintertreeM2;
 
-    //const mapParams = {
-    //    name: 'Northrend Dragonblight',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    //mapId: 571,
-    //    mapName: 'Northrend',
-    //    x: 4134.04,
-    //    y: 1029.00,
-    //    z: 148.33
-    //}
+  // Spells
+  //const defaultMapKey = MapKey.FireballM2;
 
-    //const mapParams = {
-    //    name: 'Northrend Sholazar',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    //mapId: 571,
-    //    mapName: 'Northrend',
-    //    x: 5307.26,
-    //    y: 5606.34,
-    //    z: -77.70
-    //}
+  // Arena
+  //const defaultMapKey = MapKey.NagrandArena;
+  //const defaultMapKey = MapKey.BladesEdgeArena;
 
-    //const mapParams = {
-    //    name: 'stv',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    //mapId: 0,
-    //    mapName: 'Azeroth',
-    //    x: -13325.42,
-    //    y: 110.50,
-    //    z: 54.79
-    //}
+  // Other
+  //const defaultMapKey = MapKey.BlackTemple;
+  //const defaultMapKey = MapKey.HillsbradPast;
+  //const defaultMapKey = MapKey.ZulAman;
 
-    //const mapParams = {
-    //    name: 'Forsaken start',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    //mapId: 0,
-    //    mapName: 'Azeroth',
-    //    x: 2000,
-    //    y: 1600,
-    //    z: 137
-    //}
+  // WMO
+  //const defaultMapKey = MapKey.DarkshireBlacksmithWMO;
+  //const defaultMapKey = MapKey.LordaeronArenaWMO;
 
-    //const mapParams = {
-    //    name: 'elwyn forest tree',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'world\\azeroth\\elwynn\\passivedoodads\\trees\\elwynntreecanopy03.m2'
-    //}
+  // TODO: test individual adt, more WMOs and models...
 
-    //const mapParams = {
-    //    name: 'Vanilla Opening screen',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'Interface\\GLUES\\MODELS\\UI_MAINMENU\\UI_MainMenu.m2',
-    //    cameraIndex: 0,
-    //    fogStart : 0,
-    //    fogEnd : 1200,
-    //    fogColor : [0.25, 0.06, 0.015]
-    //}
+  // The maps that are only valid in WOTLK, or only in TBC and WOTLK
+  const wotlkMaps: MapKeyValue[] = [MapKey.PenguinM2, MapKey.LichKingM2, MapKey.DragonblightMap, MapKey.SholazarMap, MapKey.StrandOfTheAncientsMap];
+  const tbcMaps: MapKeyValue[] = [MapKey.HellfireMap, MapKey.ShattrathMap, MapKey.NagrandMap, MapKey.EyeOfTheStormMap, MapKey.BelfMap, MapKey.DraeneiMap, MapKey.NagrandArena, MapKey.BladesEdgeArena, MapKey.BlackTemple, MapKey.HillsbradPast, MapKey.ZulAman];
+  function invalidMapReason(key: MapKeyValue) {
+    if (wotlkMaps.includes(key) && window.selectedExpansion !== Expansion.WOTLK)
+      return 'only valid in WOTLK';
+    if (tbcMaps.includes(key) && window.selectedExpansion !== Expansion.TBC && window.selectedExpansion !== Expansion.WOTLK)
+      return 'only valid in TBC or WOTLK';
+    return null;
+  }
 
-    //const mapParams = {
-    //    name: 'Caverns of Time',
-    //    source: 'http',
-    //    sceneType: 'map',
-    //    mapId: 1,
-    //    mapName: 'Kalimdor',
-    //    x: -8181.35,
-    //    y: -4596.92,
-    //    z: -125.34
-    //}
-
-    const mapParams: MapParams = {
-        name: 'Orgrimmar',
-        source: 'http',
-        sceneType: 'map',
-        mapId: 1,
-        mapName: 'Kalimdor',
-        x: 1096.1,
-        y: -4549.0,
-        z: 135.0
+  // ?map=<MapKey> overrides the default map (the map selection reloads the page with it)
+  const mapArg = new URLSearchParams(window.location.search).get('map');
+  let mapKey: MapKeyValue = defaultMapKey;
+  let mapKeySource = 'default';
+  if (mapArg !== null) {
+    const overrideMapKey = mapParamsRepository.findKey(mapArg);
+    if (overrideMapKey === undefined) {
+      console.error(`Unknown map key: '${mapArg}', loading ${defaultMapKey}`);
+    } else if (invalidMapReason(overrideMapKey) !== null) {
+      console.error(`Map '${overrideMapKey}' is ${invalidMapReason(overrideMapKey)}, loading ${defaultMapKey}`);
+    } else {
+      mapKey = overrideMapKey;
+      mapKeySource = 'URL';
     }
+  }
 
-    //const mapParams = {
-    //    name: 'Darkshire blacksmith',
-    //    source: 'http',
-    //    sceneType: 'wmo',
-    //    fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO'
-    //}
+  console.log(`map_key source : ${mapKeySource}`);
+  console.log(`map_key        : ${mapKey}`);
 
-    //const mapParams = {
-    //    name: 'arena wmo',
-    //    source: 'http',
-    //    sceneType: 'wmo',
-    //    useDebugSky: true,
-    //    fileName: 'world\\wmo\\pvp\\buildings\\lordaeron\\pvp_lordaeron_arena.wmo'
-    //    //fileName: 'world\\wmo\\pvp\\buildings\\dalaran\\dalaran_sewer_arena.wmo'
-    //    //fileName: 'world\\wmo\\pvp\\buildings\\dalaran\\dalaran_sewer_arena.wmo'
-    //    //fileName: 'world\\wmo\\pvp\\buildings\\ancientorcarena\\ancorc_pvpstadium.wmo' // Nagrand arena!
-    //    //fileName: 'world\\wmo\\dungeon\\ol_ogrehuts\\pvp_ogre_arena01.wmo'
-    //    //fileName: 'world\\wmo\\azeroth\\collidable doodads\\stranglethorn\\stranglethornarena\\stranglegladiatorarena.wmo'
-    //    // This one failed
-    //    //fileName: 'world\\wmo\\pvp\\buildings\\orgrimmar\\orgrimmararena.wmo'
-    //}
+  const useDebugSky = mapKey === MapKey.NagrandArena || mapKey === MapKey.LordaeronArenaWMO
+    || mapKey === MapKey.BladesEdgeArena || mapKey === MapKey.BlackTemple
+    || mapKey === MapKey.HillsbradPast || mapKey === MapKey.ZulAman;
 
-    //const mapParams = {
-    //    name: 'Penguin',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'creature/northrendpenguin/northrendpenguin.m2',
-    //    //cameraIndex: 0
-    //}
-
-    //const mapParams = {
-    //    name: 'ragnaros',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'creature\\ragnaros\\ragnaros.m2',
-    //}
-
-    //const mapParams = {
-    //    name: 'drake',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'creature\\drake\\drake.mdx',
-    //}
-
-    //const mapParams = {
-    //    name: 'wintertree02',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'world\\khazmodan\\ironforge\\passivedoodads\\trees\\wintertree02.m2',
-    //}
-
-    //const mapParams = {
-    //    name: 'Test fireball',
-    //    source: 'http',
-    //    sceneType: 'm2',
-    //    modelName: 'spells\\fireball_missile_low.m2'
-    //}
-
-    // TODO: test individual adt, more WMOs and models...
-
-  const useDebugSky = mapParams.useDebugSky === true;
   if (useDebugSky) {
     config.setRenderSky(true);
     config.setUseDebugSky(true);
@@ -623,8 +468,27 @@ export async function initViewer(containerEl: HTMLElement) {
   // Create Scene
   const sceneObj = new Scene(canvas);
 
+  const mapParams: MapParams = mapParamsRepository.get(mapKey);
+
+  // Map selection: every preset, grouped as in MapKey; the ones the expansion cannot load are disabled
+  for (const group of mapKeyGroups) {
+    const optGroup = document.createElement('optgroup');
+    optGroup.label = group.label;
+    for (const key of group.keys) {
+      const option = document.createElement('option');
+      const reason = invalidMapReason(key);
+      option.value = key;
+      option.textContent = mapParamsRepository.get(key).name + (reason !== null ? ` (${reason})` : '');
+      option.disabled = reason !== null;
+      optGroup.appendChild(option);
+    }
+    selMap.appendChild(optGroup);
+  }
+  selMap.value = mapKey;
+  expansionEl.textContent = window.selectedExpansion;
+
   // Disable lowres terrain and sky rendering if not running map mode
-  if (mapParams.sceneType != 'map') {
+  if (mapParams.sceneType != 'map' || mapKey === MapKey.NagrandArena) {
     config.setRenderLowresTerrain(false);
     if (useDebugSky)
       sceneObj.initSky();
@@ -849,6 +713,15 @@ export async function initViewer(containerEl: HTMLElement) {
   chkUseSecondCamera.addEventListener('change', () => {
     config.setUseSecondCamera(chkUseSecondCamera.checked);
   });
+
+  // Map selection => reload with the chosen map
+  selMap.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('map', selMap.value);
+    window.location.href = url.toString();
+  });
+  // the camera keys still reach the document; keep them from changing the selection (and reloading)
+  selMap.addEventListener('keydown', (e) => { e.preventDefault(); });
 
   // Buttons
   btnCopyDebug.addEventListener('click', () => {
