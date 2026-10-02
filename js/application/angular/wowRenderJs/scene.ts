@@ -291,6 +291,10 @@ class Scene {
 
     /* set by spawnPlayerCharacter() */
     playerAnimState: PlayerAnimationState | undefined;
+    /* set by setPlayerMode() once the player character is to be spawned */
+    playerCharacterRequested: boolean | undefined;
+    /* set by the constructor */
+    unitDbcsLoaded!: Promise<void[]>;
 
     constructor(canvas: HTMLCanvasElement) {
         //var stats = new Stats();
@@ -353,46 +357,48 @@ class Scene {
             };
         }
 
-        /* Unit and Player data */
-        animationDataDBC().then(function success(a) {
+        /* Unit and Player data; unitDbcsLoaded settles once they have all loaded or failed (the player character needs them) */
+        var unitDbcs: Promise<void>[] = [];
+        unitDbcs.push(animationDataDBC().then(function success(a) {
             self.animationDataDBC = a;
-        }, dbcError('AnimationData.dbc'));
-        characterFacialHairStylesDBC().then(function success(a) {
+        }, dbcError('AnimationData.dbc')));
+        unitDbcs.push(characterFacialHairStylesDBC().then(function success(a) {
             self.characterFacialHairStylesDBC = a;
-        }, dbcError('CharacterFacialHairStyles.dbc'));
-        charHairGeosetsDBC().then(function success(a) {
+        }, dbcError('CharacterFacialHairStyles.dbc')));
+        unitDbcs.push(charHairGeosetsDBC().then(function success(a) {
             self.charHairGeosetsDBC = a;
-        }, dbcError('CharHairGeosets.dbc'));
-        charSectionsDBC().then(function success(a) {
+        }, dbcError('CharHairGeosets.dbc')));
+        unitDbcs.push(charSectionsDBC().then(function success(a) {
             self.charSectionsDBC = a;
-        }, dbcError('CharSections.dbc'));
-        creatureDisplayInfoDBC().then(function success(a) {
+        }, dbcError('CharSections.dbc')));
+        unitDbcs.push(creatureDisplayInfoDBC().then(function success(a) {
             self.creatureDisplayInfoDBC = a;
-        }, dbcError('CreatureDisplayInfo.dbc'));
+        }, dbcError('CreatureDisplayInfo.dbc')));
         if (window.selectedExpansion !== Expansion.CLASSIC) {
-          creatureDisplayInfoExtraDBC().then(function success(a) {
+          unitDbcs.push(creatureDisplayInfoExtraDBC().then(function success(a) {
               self.creatureDisplayInfoExtraDBC = a;
-          }, dbcError('CreatureDisplayInfoExtra.dbc'));
+          }, dbcError('CreatureDisplayInfoExtra.dbc')));
         }
-        creatureModelDataDBC().then(function success(a) {
+        unitDbcs.push(creatureModelDataDBC().then(function success(a) {
             self.creatureModelDataDBC = a;
-        }, dbcError('CreatureModelData.dbc'));
-        gameObjectDisplayInfoDBC().then(function success(a) {
+        }, dbcError('CreatureModelData.dbc')));
+        unitDbcs.push(gameObjectDisplayInfoDBC().then(function success(a) {
             self.gameObjectDisplayInfoDBC = a;
-        }, dbcError('GameObjectDisplayInfo.dbc'));
+        }, dbcError('GameObjectDisplayInfo.dbc')));
 
         // TODO: fix
         if (window.selectedExpansion === Expansion.WOTLK) {
-          itemDisplayInfoDBC().then(function success(a) {
+          unitDbcs.push(itemDisplayInfoDBC().then(function success(a) {
               self.itemDisplayInfoDBC = a;
-          }, dbcError('ItemDisplayInfo.dbc'));
-          itemDBC().then(function success(a) {
+          }, dbcError('ItemDisplayInfo.dbc')));
+          unitDbcs.push(itemDBC().then(function success(a) {
               self.itemDBC = a;
-          }, dbcError('Item.dbc'));
-          helmetGeosetVisDataDBC().then(function success(a) {
+          }, dbcError('Item.dbc')));
+          unitDbcs.push(helmetGeosetVisDataDBC().then(function success(a) {
               self.helmetGeosetVisDataDBC = a;
-          }, dbcError('HelmetGeosetVisData.dbc'));
+          }, dbcError('HelmetGeosetVisData.dbc')));
         }
+        this.unitDbcsLoaded = Promise.all(unitDbcs);
 
         /* Map and area data */
         mapDBC().then(function success(a) {
@@ -1945,8 +1951,13 @@ class Scene {
     /* switch between the free roam camera and the player character (needs collision triangles), spawning the character the first time */
     setPlayerMode(enabled: boolean) {
         this.camera.setPlayerMode(enabled);
-        if (this.camera.collisionActive && !this.worldObjectManager.objectMap[localPlayerGuid]) {
-            this.spawnPlayerCharacter();
+        if (this.camera.collisionActive && !this.playerCharacterRequested) {
+            this.playerCharacterRequested = true;
+            // the character's model comes from the creature DBCs, which may still be loading
+            var self = this;
+            this.unitDbcsLoaded.then(function () {
+                self.spawnPlayerCharacter();
+            });
         }
     }
     /* the player character, as my_web_wow's hardcoded Player1 (display id 26563, scale 1); worldObjectManager places it */
