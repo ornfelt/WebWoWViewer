@@ -149,7 +149,7 @@ const maps = {
     sceneType: 'map',
     mapId: 530,
     mapName: 'Expansion01',
-    x: -743, y: 8385, z: 33
+    x: -743, y: 8385, z: 53
   },
   [MapKey.BelfMap]: {
     name: "Eversong woods / Silvermoon city / Quel'Thalas",
