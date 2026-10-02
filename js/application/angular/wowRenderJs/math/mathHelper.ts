@@ -12,6 +12,15 @@ export interface TopAndBottomZ {
 }
 
 class MathHelper {
+    /* wow space -> world / GL space, as my_web_wow's Vector3Extensions.ToWorld */
+    static toWorld(wow: ReadonlyVec3): vec3 {
+        const zeroPoint = 32.0 * 533.33333;
+        return vec3.fromValues(zeroPoint - wow[1], wow[2], zeroPoint - wow[0]);
+    }
+    /* wow space -> wc space (swap y / z, negate y), as Vector3Extensions.ToWc */
+    static toWc(wow: ReadonlyVec3): vec3 {
+        return vec3.fromValues(wow[0], wow[2], -wow[1]);
+    }
     static getFrustumClipsFromMatrix(mat: ReadonlyMat4): vec4[] {
         var planes: vec4[] = new Array(6);
         // Right clipping plane.
