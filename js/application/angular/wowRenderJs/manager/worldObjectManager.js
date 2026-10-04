@@ -28,6 +28,8 @@ class WorldObjectManager {
         this.lastPacketIndex = 0;
 
         this.playPackets = false;
+        /* the keys of the Wander mode's bots, which their WanderController places (Scene.startWanderMode) */
+        this.wanderKeys = new Set();
     }
 
     update(deltaTime, cameraPos, viewMat, camera) {
@@ -103,7 +105,7 @@ class WorldObjectManager {
             this.objectMap[17786964].setPosition(vectorArray);
         }
 
-        if (this.objectMap[17786930]) {
+        if (this.objectMap[17786930] && !this.wanderKeys.has(17786930)) {
             var vectorArray = new Array();
             vectorArray[0] = cameraPos[0]-15;
             vectorArray[1] = cameraPos[1]+15;

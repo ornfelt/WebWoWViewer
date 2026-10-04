@@ -1,6 +1,6 @@
 const maxFallbackHops = 15;
 
-/* AnimationType values -> their AnimationData.dbc names (the movement part of my_web_wow's AnimationNameMapping) */
+/* AnimationType values -> their AnimationData.dbc names (the movement and spell part of my_web_wow's AnimationNameMapping) */
 const nameByType = {
     Run: 'Run',
     StrafeLeft: 'WalkLeft',    // could also be "StrafeLeft" depending on DBC
@@ -8,6 +8,9 @@ const nameByType = {
     Fall: 'Fall',
     Idle: 'Stand',
     JumpStart: 'JumpStart',
+    SpellCast: 'ReadySpellOmni',
+    SpellCast2: 'SpellCastOmni',
+    SpellCasted: 'SpellCastOmni',
 };
 
 /* lower-case AnimationData.dbc name -> record, built once per loaded DBC */

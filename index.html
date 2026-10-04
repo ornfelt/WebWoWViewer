@@ -1287,6 +1287,63 @@ void main() {
 #endif //COMPILING_FS
     </script>
 
+    <script id="debug2DShader" type="text/plain">
+#ifdef COMPILING_VS
+// 2D HUD/debug. aPosition is in PIXEL coords, origin TOP-LEFT, +x right, +y down.
+uniform vec2 uResolution;
+
+attribute vec2 aPosition;
+attribute vec4 aColor;
+
+varying vec4 vColor;
+
+void main() {
+    float ndcX = (aPosition.x / uResolution.x) * 2.0 - 1.0;
+    float ndcY = 1.0 - (aPosition.y / uResolution.y) * 2.0; // flip: y=0 is top
+    gl_Position = vec4(ndcX, ndcY, 0.0, 1.0);
+    vColor = aColor;
+}
+#endif //COMPILING_VS
+
+#ifdef COMPILING_FS
+precision mediump float;
+
+varying vec4 vColor;
+
+void main() {
+    gl_FragColor = vColor;
+}
+#endif //COMPILING_FS
+    </script>
+
+    <script id="debug3DShader" type="text/plain">
+#ifdef COMPILING_VS
+// 3D world-space debug lines/boxes. Same matrix convention as the WMO/M2/ADT shaders.
+uniform mat4 uLookAtMat;
+uniform mat4 uPMatrix;
+
+attribute vec3 aPosition;
+attribute vec4 aColor;
+
+varying vec4 vColor;
+
+void main() {
+    gl_Position = uPMatrix * uLookAtMat * vec4(aPosition, 1.0);
+    vColor = aColor;
+}
+#endif //COMPILING_VS
+
+#ifdef COMPILING_FS
+precision mediump float;
+
+varying vec4 vColor;
+
+void main() {
+    gl_FragColor = vColor;
+}
+#endif //COMPILING_FS
+    </script>
+
     <!-- Our final Webpack bundle -->
     <script src="build/main.js"></script>
   </body>

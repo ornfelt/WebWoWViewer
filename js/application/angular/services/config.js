@@ -47,6 +47,19 @@ var cameraM2 = null;
 /* the gameplay mode (my_web_wow's GlobalSettings.CurrentGameplayMode), set from ?mode= on startup */
 var gameplayMode = GameplayMode.FreeRoam;
 
+/* the HUD, the wandering bots and the 3D debug drawing (my_web_wow's GlobalSettings) */
+var useHud = true; // the 2D HUD (unit frames, cast bars, numbers, floating combat text)
+var enableWandering = true; // the wandering bots walk (Wander mode)
+var drawNodeBoxes = false;
+var drawNodeFlagColors = false; // color the node boxes by their BotWpFlags
+var drawLinkedNodes = false;
+var drawAllLinkedNodes = false;
+var drawAllLinkedNodesNoDepth = false;
+var drawPathLines = false;
+var drawPathPoints = false;
+var drawTargetCircle = true;
+var drawTargetDot = false;
+
 var savedUrlForLoading;
 try {
     savedUrlForLoading = localStorage.getItem('urlForLoading');
@@ -250,6 +263,72 @@ export default {
     },
     setCameraM2 : function (value) {
         cameraM2 = value;
+    },
+    getUseHud : function () {
+        return useHud;
+    },
+    setUseHud : function (value) {
+        useHud = value;
+    },
+    getEnableWandering : function () {
+        return enableWandering;
+    },
+    setEnableWandering : function (value) {
+        enableWandering = value;
+    },
+    getDrawNodeBoxes : function () {
+        return drawNodeBoxes;
+    },
+    setDrawNodeBoxes : function (value) {
+        drawNodeBoxes = value;
+    },
+    getDrawNodeFlagColors : function () {
+        return drawNodeFlagColors;
+    },
+    setDrawNodeFlagColors : function (value) {
+        drawNodeFlagColors = value;
+    },
+    getDrawLinkedNodes : function () {
+        return drawLinkedNodes;
+    },
+    setDrawLinkedNodes : function (value) {
+        drawLinkedNodes = value;
+    },
+    getDrawAllLinkedNodes : function () {
+        return drawAllLinkedNodes;
+    },
+    setDrawAllLinkedNodes : function (value) {
+        drawAllLinkedNodes = value;
+    },
+    getDrawAllLinkedNodesNoDepth : function () {
+        return drawAllLinkedNodesNoDepth;
+    },
+    setDrawAllLinkedNodesNoDepth : function (value) {
+        drawAllLinkedNodesNoDepth = value;
+    },
+    getDrawPathLines : function () {
+        return drawPathLines;
+    },
+    setDrawPathLines : function (value) {
+        drawPathLines = value;
+    },
+    getDrawPathPoints : function () {
+        return drawPathPoints;
+    },
+    setDrawPathPoints : function (value) {
+        drawPathPoints = value;
+    },
+    getDrawTargetCircle : function () {
+        return drawTargetCircle;
+    },
+    setDrawTargetCircle : function (value) {
+        drawTargetCircle = value;
+    },
+    getDrawTargetDot : function () {
+        return drawTargetDot;
+    },
+    setDrawTargetDot : function (value) {
+        drawTargetDot = value;
     },
     getGameplayMode : function () {
         return gameplayMode;

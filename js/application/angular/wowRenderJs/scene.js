@@ -15,6 +15,11 @@ import GraphManager from './manager/sceneGraphManager.js'
 import WorldObjectManager, { localPlayerGuid } from './manager/worldObjectManager.js'
 import PlayerAnimationState from './manager/playerAnimationState.js'
 import SpawnManager from './manager/spawnManager.js'
+import SpellManager from './manager/spellManager.js'
+import WanderManager from './manager/wanderManager.js'
+import NodeManager from './manager/nodeManager.js'
+import Hud from './hud/hud.js'
+import { AnimationType } from './manager/playerAnimationState.js'
 import { setAnimationSafe } from './manager/animationBridge.js'
 import WorldPlayer from './objects/worldObjects/worldPlayer.js'
 import config from './../services/config.js'
@@ -80,6 +85,8 @@ const skyShader                = getShaderSourceById('sky');
 const skyGradientShader        = getShaderSourceById('SkyGradient');
 const liquidShader             = getShaderSourceById('liquid');
 const lowresTerrainShader      = getShaderSourceById('lowresTerrain');
+const debug2DShader            = getShaderSourceById('debug2DShader');
+const debug3DShader            = getShaderSourceById('debug3DShader');
 
 // etc.
 
@@ -140,6 +147,7 @@ class Scene {
 
         this.uFogStart = -1;
         this.uFogEnd  = -1;
+        this.fps = 0;
 
         this.lastHour = -1;
 
@@ -157,6 +165,7 @@ class Scene {
 
         self.initShaders()
         self.isShadersLoaded = true;
+        self.hud = new Hud(self);
 
         self.initSceneApi();
         self.initSceneGraph();
@@ -478,6 +487,9 @@ class Scene {
         self.liquidShader = self.compileShader(liquidShader, liquidShader);
 
         self.lowresTerrainShader = self.compileShader(lowresTerrainShader, lowresTerrainShader);
+
+        self.debug2DShader = self.compileShader(debug2DShader, debug2DShader);
+        self.debug3DShader = self.compileShader(debug3DShader, debug3DShader);
     }
     initCaches (){
         this.wmoGeomCache = new WmoGeomCache(this.sceneApi);
@@ -1540,8 +1552,13 @@ class Scene {
             playerAnimState.isTurningLeft = this.camera.isTurningLeft;
             playerAnimState.isTurningRight = this.camera.isTurningRight;
 
+            // Cancel casts on movement
+            if (this.camera.isMoving && (playerAnimState.isCasting || playerAnimState.isChanneling)) {
+                if (this.spellManager) this.spellManager.cancelCast();
+            }
+
             // Evaluate desired animation
-            var desiredAnim = playerAnimState.evaluate();
+            var desiredAnim = playerAnimState.evaluate(deltaTime);
             if (desiredAnim !== null) {
                 // Apply to the player's model
                 var player = this.worldObjectManager.objectMap[localPlayerGuid];
@@ -1550,6 +1567,9 @@ class Scene {
                 }
             }
         }
+
+        if (this.spellManager) this.spellManager.update(deltaTime);
+        if (this.wanderManager) this.wanderManager.update(deltaTime);
 
         this.graphManager.checkCulling(perspectiveMatrixForCulling, lookAtMat4);
         this.graphManager.sortGeometry(perspectiveMatrixForCulling, lookAtMat4);
@@ -1656,6 +1676,11 @@ class Scene {
         gl.depthMask(true);
         gl.enableVertexAttribArray(0);
         this.graphManager.draw(this.lookAtMat4, perspectiveMatrix, liquidTime);
+
+        // node tracking + world-space debug, composited with the scene
+        this.hud.updateNodeTracking();
+        this.hud.renderWorldDebug(lookAtMat4, perspectiveMatrix);
+
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
         if (!config.getDoubleCameraDebug()) {
@@ -1693,6 +1718,10 @@ class Scene {
                 true);
         }
 
+        // 2D HUD overlay, drawn straight to the screen
+        if (config.getUseHud()) {
+            this.hud.renderHud2D(this.hud.buildHudState());
+        }
 
 
         //this.stats.end();
@@ -1780,7 +1809,81 @@ class Scene {
         newWorldPlayer.manualAnimation = true;
         newWorldPlayer.complete();
 
-        this.playerAnimState = new PlayerAnimationState();
+        var playerAnimState = new PlayerAnimationState();
+        this.playerAnimState = playerAnimState;
+
+        // the player's spells, cast from the character (my_web_wow's WowViewer spell setup)
+        var spellManager = new SpellManager(this.sceneApi, this.worldObjectManager, localPlayerGuid);
+        spellManager.onAnimationStart = function (animType) {
+            if (animType === AnimationType.SpellCast2) // channeling
+                playerAnimState.onChannelStart(animType);
+            else
+                playerAnimState.onCastStart(animType);
+        };
+        spellManager.onAnimationComplete = function (animType) {
+            playerAnimState.onCastComplete(animType);
+        };
+        spellManager.onCastCanceled = function () {
+            playerAnimState.onCastCanceled();
+        };
+        var hud = this.hud;
+        spellManager.onDamage = function (unit, amount, crit) {
+            hud.addDamageNumberAtUnit(unit, amount, crit);
+        };
+        this.spellManager = spellManager;
+    }
+    /* loads the map's wander nodes from the mpq server (the node debugger, the debug drawing and the Wander mode); resolves to the node count */
+    loadGameplayNodes(mapId) {
+        var nodeManager = new NodeManager(mapId);
+        this.nodeManager = nodeManager;
+        return nodeManager.loadNodes();
+    }
+    /* sets an animation on a unit through the AnimationData.dbc names, once its model has loaded */
+    setUnitAnimation(unit, animType) {
+        if (!unit.objectModel || !unit.objectModel.loaded || !this.animationDataDBC) return;
+        setAnimationSafe(unit.objectModel.animationManager, animType, this.animationDataDBC);
+    }
+    /*
+     * The Wander mode: my_web_wow's two bots (Player2 and Player3) walking from node to node over the
+     * navigation paths, once the nodes (loadGameplayNodes) and the creature DBCs have loaded; resolves to
+     * the number of bots.
+     */
+    startWanderMode(mapId) {
+        var self = this;
+        return this.unitDbcsLoaded.then(function () {
+            var nodeManager = self.nodeManager;
+            if (!nodeManager || nodeManager.nodes.length === 0) {
+                console.log("[WanderManager] Map " + mapId + " has no nodes, wandering unavailable.");
+                return 0;
+            }
+
+            var wanderManager = new WanderManager(mapId, nodeManager, self.hud, function (unit, animType) {
+                self.setUnitAnimation(unit, animType);
+            });
+            self.wanderManager = wanderManager;
+
+            // Player2 / Player3: [objectMap key, display id, scale]
+            var bots = [
+                [17786930, 8570, 0.3],
+                [17786931, window.selectedExpansion === Expansion.CLASSIC ? 5645 : 21135, 0.3]
+            ];
+            for (var [key, displayId, scale] of bots) {
+                var bot = new WorldPlayer(self.sceneApi);
+                bot.setDisplayId(displayId);
+                bot.setNativeDisplayId(displayId);
+                bot.setScale(scale);
+                bot.setRotation(0);
+                // the WanderController sets the run / idle animations
+                bot.manualAnimation = true;
+                bot.complete();
+                self.worldObjectManager.objectMap[key] = bot;
+                // keeps the worldObjectManager's camera-following of 17786930 off the bot
+                self.worldObjectManager.wanderKeys.add(key);
+
+                wanderManager.registerWanderer(key, bot, 7);
+            }
+            return bots.length;
+        });
     }
     /* the CreatureMap / SpellMap modes: creature or spell models at the map's wander nodes, spawned once the creature DBCs have loaded (they pick the models' display ids); resolves to the spawn count */
     startSpawnMode(mapId, isSpellMap) {
