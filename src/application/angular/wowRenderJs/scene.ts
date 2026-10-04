@@ -86,7 +86,7 @@ import type { ItemRecord } from './../services/dbc/itemDBC';
 import type { MapRecord } from './../services/dbc/mapDBC';
 import type { LiquidTypeRecord } from './../services/dbc/liquidTypeDBC';
 
-/* The Khronos helper from js/lib/webgl-debug.js - neither index.html nor any module loads it (see initGlContext) */
+/* The Khronos helper from src/lib/webgl-debug.js - neither index.html nor any module loads it (see initGlContext) */
 declare const WebGLDebugUtils: {
     glEnumToString(value: number): string;
     glFunctionArgsToString(functionName: string, args: ArrayLike<unknown>): string;
@@ -579,7 +579,7 @@ class Scene {
 
         try {
             var gl: WebGLRenderingContext | null | undefined = canvas.getContext("webgl", {premultipliedAlpha: false, alpha: false }) || (canvas.getContext("experimental-webgl", {premultipliedAlpha: false}) as WebGLRenderingContext | null);
-            // JS-BUG: WebGLDebugUtils (js/lib/webgl-debug.js) is never loaded, so this throws a ReferenceError that the empty catch swallows - the debug context and its two callbacks are never used
+            // JS-BUG: WebGLDebugUtils (src/lib/webgl-debug.js) is never loaded, so this throws a ReferenceError that the empty catch swallows - the debug context and its two callbacks are never used
             gl = WebGLDebugUtils.makeDebugContext(gl!, throwOnGLError, validateNoneOfTheArgsAreUndefined);
         }
         catch(e) {}

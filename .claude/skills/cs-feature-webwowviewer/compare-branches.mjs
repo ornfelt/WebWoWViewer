@@ -25,8 +25,8 @@ import { createRequire } from "node:module";
 import path from "node:path";
 
 const root = process.cwd();
-const ENTRY_TS = "js/application/angular/app_wow.ts";
-const ENTRY_JS = "js/application/angular/app_wowjs.js";
+const ENTRY_TS = "src/application/angular/app_wow.ts";
+const ENTRY_JS = "src/application/angular/app_wowjs.js";
 
 function git(args) {
   return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
@@ -70,8 +70,8 @@ function read(branch, file) {
 
 function list(branch, ext) {
   const out = branch === current
-    ? git(["ls-files", "--cached", "--others", "--exclude-standard", "--", "js"])
-    : git(["ls-tree", "-r", "--name-only", branch, "--", "js"]);
+    ? git(["ls-files", "--cached", "--others", "--exclude-standard", "--", "src"])
+    : git(["ls-tree", "-r", "--name-only", branch, "--", "src"]);
   return out.split("\n").filter((f) => f.endsWith(ext) && !f.endsWith(".d.ts")
     && (branch !== current || existsSync(path.join(root, f))));
 }

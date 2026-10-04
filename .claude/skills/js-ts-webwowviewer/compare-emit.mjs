@@ -126,7 +126,7 @@ if (pairs.length === 0) {
   process.exit(2);
 }
 if (pairs.includes("--all")) {
-  pairs = git(["ls-files", "--cached", "--others", "--exclude-standard", "--", "js"])
+  pairs = git(["ls-files", "--cached", "--others", "--exclude-standard", "--", "src"])
     .split("\n")
     .filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"));
 }

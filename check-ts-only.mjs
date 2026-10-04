@@ -1,4 +1,4 @@
-// Fails (exit 1) when any .js file exists under js/application, listing them: the TypeScript branch has
+// Fails (exit 1) when any .js file exists under src/application, listing them: the TypeScript branch has
 // TypeScript sources only. A node script instead of `! find ... | grep .`, so it also runs from cmd.exe,
 // which npm uses for its scripts on Windows.
 import { readdirSync } from 'node:fs';
@@ -14,6 +14,6 @@ function findJs(dir) {
     return found;
 }
 
-const jsFiles = findJs('js/application');
+const jsFiles = findJs('src/application');
 for (const file of jsFiles) console.log(file.split(path.sep).join('/'));
 process.exit(jsFiles.length > 0 ? 1 : 0);

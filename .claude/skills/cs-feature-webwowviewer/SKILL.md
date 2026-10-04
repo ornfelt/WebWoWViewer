@@ -47,8 +47,8 @@ There are two web branches, and **every feature or fix is applied to both**:
 
 | Branch | Language | Entry point | Notes |
 | --- | --- | --- | --- |
-| `new-clean-ts` | TypeScript only | `js/application/angular/app_wow.ts` | `strict` `tsc`; the build fails if any `.js` exists under `js/application` (`check:ts-only`) |
-| `new-clean` | JavaScript only | `js/application/angular/app_wowjs.js` | no type checking |
+| `new-clean-ts` | TypeScript only | `src/application/angular/app_wow.ts` | `strict` `tsc`; the build fails if any `.js` exists under `src/application` (`check:ts-only`) |
+| `new-clean` | JavaScript only | `src/application/angular/app_wowjs.js` | no type checking |
 
 Both branches have the same files in the same places with the same base names (`foo.ts` on one is
 `foo.js` on the other); only the entry point is named differently. The JavaScript on `new-clean`
@@ -82,7 +82,7 @@ Run all web commands from the WebWoWViewer repository root.
 A rough map from the C# code to the web code. Names drift in places, so confirm by reading both
 sides before relying on it.
 
-| C# (`my_web_wow/`) | Web (`js/application/angular/`) |
+| C# (`my_web_wow/`) | Web (`src/application/angular/`) |
 | --- | --- |
 | `Scene.cs` (shader setup, render loop, `Activate*Shader`) | `wowRenderJs/scene.ts` |
 | `sceneApi/*.cs` | `wowRenderJs/sceneApi.ts` (types) and `initSceneApi()` in `wowRenderJs/scene.ts` |
@@ -285,7 +285,7 @@ fix with a follow-up commit on that branch (never amend); then run the check aga
 Known differences that exist independently of this skill (do not "fix" them without asking):
 
 - `JS-ONLY` files: `directives/fileDownload.js`, `directives/wowJsRenderDirective.js` (old
-  AngularJS directives) and `js/lib/webgl-debug.js` - JavaScript only, unused by the bundle.
+  AngularJS directives) and `src/lib/webgl-debug.js` - JavaScript only, unused by the bundle.
 - `TYPE-ONLY` files: `wowRenderJs/sceneApi.ts` - types only, no `.js` needed (`.d.ts` files such
   as `global.d.ts` are not checked at all).
 

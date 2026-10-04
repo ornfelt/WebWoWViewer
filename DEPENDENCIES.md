@@ -39,7 +39,7 @@ that its output matches the code it started from, so that starting point must no
 ### Build tooling (devDependencies, never shipped)
 
 - **`webpack`** - the bundler. Builds `build/main.js` from the entry
-  (`js/application/angular/app_wowjs.js` on `new-clean`, `app_wow.ts` on `new-clean-ts`),
+  (`src/application/angular/app_wowjs.js` on `new-clean`, `app_wow.ts` on `new-clean-ts`),
   splits off the Web Worker (`new Worker(new URL(...))`) and its axios chunk, inlines the imported
   mock-packet JSON (`rag_no_mount.json`), and writes source maps (`devtool: 'source-map'`).
   `index.html` loads the result with `<script src="build/main.js">`.

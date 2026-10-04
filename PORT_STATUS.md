@@ -2,11 +2,11 @@
 
 Maintained by the `js-ts-webwowviewer` skill. A hint for the next run, not the source of truth -
 the tree is. Re-derive with:
-`find js/application/angular -name '*.js'` (unported) and
-`grep -rn 'TS-PORT' js/application/angular` (partially typed / parked).
+`find src/application/angular -name '*.js'` (unported) and
+`grep -rn 'TS-PORT' src/application/angular` (partially typed / parked).
 
 **Last run:** run 10 - scene (group 9), wowJsRenderDirective_noangular (group 10), last sweep, switch-over
-**Next:** nothing left to port - the port is complete; `review js/application/angular` next, then the bug table below
+**Next:** nothing left to port - the port is complete; `review src/application/angular` next, then the bug table below
 
 ## Porting order
 
@@ -39,7 +39,7 @@ the tree is. Re-derive with:
 Bugs and suspicious code found in the original JavaScript while porting. The port never fixes them
 (that would change the runtime); they are collected here to go through after the port. Each one is
 also marked in the source with a `// JS-BUG:` comment on the line above - `grep -rn 'JS-BUG'
-js/application/angular` lists them with current line numbers. Columns: where, what, effect.
+src/application/angular` lists them with current line numbers. Columns: where, what, effect.
 
 | # | Where | What | Effect |
 | --- | --- | --- | --- |
@@ -102,7 +102,7 @@ js/application/angular` lists them with current line numbers. Columns: where, wh
 | 92 | `wowRenderJs/manager/sceneGraphManager.ts` `update` | `wmoObject.update(deltaTime)` - `WmoObject.update` takes no arguments | harmless, ignored |
 | 93 | `wowRenderJs/manager/sceneGraphManager.ts` `update` | reads `.groupId` / `.nodeId` from `isInsideInterior()`, which returns `-1` (a number) when the camera is outside the WMO's box | works by accident (`undefined >= 0` is false), but the returned `interiorGroupNum` is `undefined` rather than -1 when the last WMO's box does not contain the camera; the UI shows `\|\| 0` |
 | 94 | `wowRenderJs/manager/sceneGraphManager.ts` `drawM2s` | `drawBB()` without a color - `WorldMDXObject` does not override `MDXObject.drawBB(color)` like the ADT / WMO doodads do | world M2 boxes call `uniform3fv(uColor, new Float32Array(undefined))` - probably a GL INVALID_VALUE, the box keeps the previous color (debug drawing only) |
-| 95 | `wowRenderJs/scene.ts` `initGlContext` | `WebGLDebugUtils.makeDebugContext(...)` - `js/lib/webgl-debug.js` is neither loaded by `index.html` nor imported | the ReferenceError is swallowed by the empty `catch`, so `gl` stays the plain context and `throwOnGLError` / `validateNoneOfTheArgsAreUndefined` are dead code - harmless |
+| 95 | `wowRenderJs/scene.ts` `initGlContext` | `WebGLDebugUtils.makeDebugContext(...)` - `src/lib/webgl-debug.js` is neither loaded by `index.html` nor imported | the ReferenceError is swallowed by the empty `catch`, so `gl` stays the plain context and `throwOnGLError` / `validateNoneOfTheArgsAreUndefined` are dead code - harmless |
 | 96 | `wowRenderJs/scene.ts` `initSceneApi` | `shaders.deativateBoundingBoxShader` calls `self.deactivateBoundingBoxShader()`, which Scene does not have | would throw a TypeError; nothing calls it - harmless today |
 | 97 | `wowRenderJs/scene.ts` `initSceneApi` | `resources.unloadWmoMain` calls `self.wmoMainCache.unloadWmoMain()` - the method is `unLoadWmoMain` | would throw a TypeError; nothing calls it - harmless today |
 | 98 | `wowRenderJs/scene.ts` `draw` | the M2-camera branch runs `vec4.transformMat4` on `currentPosition` / `currentTarget`, which `calcCameras` builds with 3 components for an unanimated track | `w` is `undefined`, so the camera position becomes NaN (probably needs `w = 1`); the branch is unreachable today because nothing sets `config.setCameraM2` (bug 100) |
@@ -234,7 +234,7 @@ Places where typing needed an assertion, a widened type, `@ts-expect-error` or a
   (no `.js` specifier is left outside comments). The three remaining `any`s are commented and genuinely dynamic:
   `ChunkResultObj` (chunkedLoader), `ParsedObject` (linedfileLoader), `processPacket(packet)` (worldObjectManager).
 - After the port (user request): the unused AngularJS directives `wowJsRenderDirective.js` and `fileDownload.js` were deleted, and
-  `package.json` gained `check:ts-only` (fails if any `.js` file exists under `js/application`), run with `tsc --noEmit` by the
+  `package.json` gained `check:ts-only` (fails if any `.js` file exists under `src/application`), run with `tsc --noEmit` by the
   `prebuild`, `prebuild:prod`, `prestart` and `preserver` hooks.
 
 ## Run log

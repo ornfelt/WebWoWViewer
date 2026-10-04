@@ -1,6 +1,6 @@
 ---
 name: js-ts-webwowviewer
-description: Port the WebWoWViewer JavaScript sources (js/application/angular) to TypeScript in place on the new-clean-ts branch, file by file, with the exact same logic and an identical runtime - the port adds types and nothing else. Repeatable - run it bare and it works out from the tree where the port stands, picks the next unported file(s), ports roughly 1000-3000 lines, verifies that the type-stripped output is identical to the original JavaScript, keeps the build green, records progress in PORT_STATUS.md and ends with one commit (no Co-Authored-By trailer). Also has setup, port <file>, review <file> and status modes.
+description: Port the WebWoWViewer JavaScript sources (src/application/angular) to TypeScript in place on the new-clean-ts branch, file by file, with the exact same logic and an identical runtime - the port adds types and nothing else. Repeatable - run it bare and it works out from the tree where the port stands, picks the next unported file(s), ports roughly 1000-3000 lines, verifies that the type-stripped output is identical to the original JavaScript, keeps the build green, records progress in PORT_STATUS.md and ends with one commit (no Co-Authored-By trailer). Also has setup, port <file>, review <file> and status modes.
 disable-model-invocation: true
 argument-hint: "[setup, continue, status, port <file-or-dir>, review <file-or-dir> - empty means continue where the port left off]"
 ---
@@ -9,7 +9,7 @@ argument-hint: "[setup, continue, status, port <file-or-dir>, review <file-or-di
 
 The goal is a TypeScript WebWoWViewer: the same files, the same classes, the same functions, the
 same data flow, the same WebGL calls in the same order, the same network requests, the same console
-output - **the same runtime** - with every `.js` file under `js/application/angular` replaced by a
+output - **the same runtime** - with every `.js` file under `src/application/angular` replaced by a
 `.ts` file that is fully typed under `strict`.
 
 **The port is done on the `new-clean-ts` branch, and only there** (see "Branch"). Every run ends
@@ -46,7 +46,7 @@ Repository root (the directory holding `package.json`, `webpack.config.js` and `
 
 `$code_root_dir/Code2/Wow/tools/WebWoWViewer`
 
-Source and target are the same tree. Every `js/application/angular/**/<name>.js` becomes
+Source and target are the same tree. Every `src/application/angular/**/<name>.js` becomes
 `<name>.ts` in the **same directory, with the same base name**, and the `.js` file is removed with
 `git mv` so history follows the file. The one rename is the entry point: `app_wowjs.js` becomes
 `app_wow.ts` (the name the `new-clean-ts` branch already uses).
@@ -136,7 +136,7 @@ cached tables and promises. Type-stripped output is identical to the original Ja
 
 Write only inside this repository, and inside it only:
 
-- `js/application/angular/**` - the files being ported, plus the two sanctioned new type-only files
+- `src/application/angular/**` - the files being ported, plus the two sanctioned new type-only files
   (see "File mapping"),
 - `tsconfig.json`, `webpack.config.js`, `package.json`, `package-lock.json` - setup mode only, plus
   the final switch-over in "When it is done",
@@ -146,7 +146,7 @@ Temporary files (commit message, scratch output) go in the session's scratchpad 
 in the repository.
 
 Never edit `index.html` (it holds the live GLSL shaders inline and loads `build/main.js`), `glsl/`,
-`js/lib/`, the JSON mock packets under `js/application/*.json`, `README.md`, or anything under
+`src/lib/`, the JSON mock packets under `src/application/*.json`, `README.md`, or anything under
 `node_modules/` or `build/`. Never delete a file other than the `.js` being replaced by its `.ts`.
 If the JavaScript looks wrong, record it (see "JavaScript bugs") and port it as-is - a port that
 fixes a bug has changed the runtime.
@@ -186,7 +186,7 @@ deciding anything:
 
 ```bash
 cd "$code_root_dir/Code2/Wow/tools/WebWoWViewer"
-A=js/application/angular
+A=src/application/angular
 
 git branch --show-current                     # must be new-clean-ts, see "Branch"
 git status --short                            # a dirty tree from an earlier, unfinished run?
@@ -262,7 +262,7 @@ summarize per "Output expectations". End the summary with a single explicit line
 and the reader - knows the entry point:
 
 ```text
-Next: port js/application/angular/services/map/mdxLoader.js (from the header parser onwards)
+Next: port src/application/angular/services/map/mdxLoader.js (from the header parser onwards)
 ```
 
 #### 5. When to stop, and when it is done
@@ -278,12 +278,12 @@ Next: port js/application/angular/services/map/mdxLoader.js (from the header par
 - **Last sweep** - when no in-scope `.js` file is left, finish every `// TS-PORT: parked` marker
   (the types they waited for all exist now) and every remaining commented `any` that a real type
   can replace, then run "Verification" with `compare-emit.mjs --all`.
-- **When it is done** - the last sweep is clean, `find js/application/angular -name '*.js'` lists
-  only the files under "Not ported", and `grep -rn 'TS-PORT' js/application/angular` is empty.
+- **When it is done** - the last sweep is clean, `find src/application/angular -name '*.js'` lists
+  only the files under "Not ported", and `grep -rn 'TS-PORT' src/application/angular` is empty.
   (`// JS-BUG:` markers stay - they are for the user's bug review, not port work.)
   Then, in that same run, do the switch-over:
   1. `tsconfig.json`: remove `allowJs` (and `checkJs` if present) - nothing JavaScript is compiled
-     any more. Keep `include` pointing at `js/application`, and add the files under "Not ported"
+     any more. Keep `include` pointing at `src/application`, and add the files under "Not ported"
      to `exclude` if `tsc` would otherwise pick them up.
   2. `webpack.config.js`: keep `.js` in `resolve.extensions` (dependencies in `node_modules` need
      it); remove `extensionAlias` only if no specifier ending in `.js` is left in the `.ts` files.
@@ -294,7 +294,7 @@ Next: port js/application/angular/services/map/mdxLoader.js (from the header par
   5. Tell the user the port is complete and list the remaining "Not ported" `.js` files, asking
      whether they want them deleted. Do not delete them yourself.
   6. Point the user at the "JavaScript bugs" table in `PORT_STATUS.md` (and
-     `grep -rn 'JS-BUG' js/application/angular`) as the list to go through now that the port is
+     `grep -rn 'JS-BUG' src/application/angular`) as the list to go through now that the port is
      done, with the count of entries. Do not fix any of them in the port.
 
   **Do not invent work** after that: no refactors, no new abstractions, no lint setup, no tests,
@@ -355,7 +355,7 @@ WebWoWViewer/
   webpack.config.js              entry app_wow.ts, ts-loader rule, extensionAlias (setup)
   PORT_STATUS.md                 the ledger (committed with each run)
   glsl/                          not touched - unused by the bundle, the live shaders are in index.html
-  js/
+  src/
     lib/webgl-debug.js           not ported (vendored, unused)
     application/
       *.json                     mock packets - not touched, imported as JSON
@@ -382,12 +382,12 @@ WebWoWViewer/
   and import it elsewhere with `import type`.
 - **Do not create `types.ts`, `interfaces.ts`, `utils.ts` or any other new module.** The only
   sanctioned new files are the two type-only ones:
-  - `js/application/angular/global.d.ts` - the `declare global { interface Window { ... } }`
+  - `src/application/angular/global.d.ts` - the `declare global { interface Window { ... } }`
     augmentation for the properties the code reads and writes on `window` (`selectedExpansion`,
     `m`, `meshestoBeRendered`, ...). If an existing `.ts` file (for example `app_wow.ts` on
     `new-clean-ts`) already declares such an augmentation, move the declaration here - moving a
     `declare` block is type-only and changes nothing at runtime.
-  - `js/application/angular/wowRenderJs/sceneApi.ts` - `export interface SceneApi` and its nested
+  - `src/application/angular/wowRenderJs/sceneApi.ts` - `export interface SceneApi` and its nested
     interfaces, and nothing else. See "The sceneApi hub".
   Both must emit no JavaScript: no `const`, no `enum`, no function, no class - only `interface`,
   `type` and `declare`.
@@ -398,13 +398,13 @@ WebWoWViewer/
   directives. They import `angular` / `angular-ui-bootstrap`, which are not installed, and nothing
   imports them (the live UI is `wowJsRenderDirective_noangular.js`). Left as they are; the final
   run asks the user whether to delete them.
-- **`js/lib/webgl-debug.js`** - the vendored Khronos WebGL debug helper, not imported anywhere.
+- **`src/lib/webgl-debug.js`** - the vendored Khronos WebGL debug helper, not imported anywhere.
 - **`index.html`, `glsl/`** - HTML and GLSL, not JavaScript. The shaders `scene.js` compiles are the
   inline `<script id="...">` blocks in `index.html`, read with `getElementById`; the `glsl/`
   files are not in the bundle.
 - **`webpack.config.js`** - stays CommonJS JavaScript (webpack loads it with Node). Setup edits it,
   it is not ported.
-- **`js/application/*.json`** - data, not code.
+- **`src/application/*.json`** - data, not code.
 - **Tests, linting, formatting tooling** - none exists and none is added. The acceptance bar is
   `tsc`, the webpack build and the emit check.
 
@@ -450,7 +450,7 @@ edit it.
        "skipLibCheck": true,
        "sourceMap": true
      },
-     "include": ["js/application/**/*"]
+     "include": ["src/application/**/*"]
    }
    ```
 
@@ -472,8 +472,8 @@ edit it.
    - No `noEmit` in the file: `ts-loader` needs to emit. Type-check with `npx tsc --noEmit`.
 
 3. **`webpack.config.js`**:
-   - `entry` is `./js/application/angular/app_wow.ts` if that file exists, otherwise it stays
-     `./js/application/angular/app_wowjs.js` until group 10 renames it.
+   - `entry` is `./src/application/angular/app_wow.ts` if that file exists, otherwise it stays
+     `./src/application/angular/app_wowjs.js` until group 10 renames it.
    - `resolve.extensions` is `['.ts', '.js', '.jsx', '.glsl']` - `.ts` first.
    - `resolve.extensionAlias` is `{ '.js': ['.ts', '.js'] }`, so a not-yet-ported file that
      imports `./foo.js` gets `foo.ts` once `foo` is ported, without editing the importer.
@@ -489,8 +489,8 @@ edit it.
 
    Maintained by the `js-ts-webwowviewer` skill. A hint for the next run, not the source of truth -
    the tree is. Re-derive with:
-   `find js/application/angular -name '*.js'` (unported) and
-   `grep -rn 'TS-PORT' js/application/angular` (partially typed / parked).
+   `find src/application/angular -name '*.js'` (unported) and
+   `grep -rn 'TS-PORT' src/application/angular` (partially typed / parked).
 
    **Last run:** setup - toolchain
    **Next:** group 1 - Foundation (global.d.ts, sceneApi.ts, config, fileReadHelper, ...)
@@ -516,7 +516,7 @@ edit it.
    ## JavaScript bugs (ported as-is)
 
    Bugs and suspicious code found in the original JavaScript while porting. Each one is also marked
-   in the source with a `// JS-BUG:` comment - `grep -rn 'JS-BUG' js/application/angular`.
+   in the source with a `// JS-BUG:` comment - `grep -rn 'JS-BUG' src/application/angular`.
 
    | # | Where | What | Effect |
    | --- | --- | --- | --- |
@@ -549,7 +549,7 @@ edit it.
 
 1. **Read the whole `.js` file first**, and the modules it imports, so the types reflect what the
    code actually passes around rather than what the names suggest. Read its importers too (a
-   `grep -rn "<basename>" js/application/angular`), because they decide what the exported
+   `grep -rn "<basename>" src/application/angular`), because they decide what the exported
    signatures must accept.
 2. **Dependencies first.** If the file imports a `.js` module that is not ported yet, the porting
    order was not followed or the graph has a cycle. Import it anyway - `allowJs` gives it inferred
@@ -768,7 +768,7 @@ All three are the acceptance bar:
   original `.js` (read from the tree, `HEAD`, or the commit that deleted it) through the same
   `ts.transpileModule` call with comments removed, normalizes relative import specifiers
   (`./foo.js`, `./foo.ts`, `./foo` are equal), and compares. For a renamed file pass
-  `new.ts=old.js`. `--all` checks every `.ts` file under `js/`. A `DIFFERS` is a runtime change and
+  `new.ts=old.js`. `--all` checks every `.ts` file under `src/`. A `DIFFERS` is a runtime change and
   the run is not finished until it is gone - the only exception is the entry point on
   `new-clean-ts` (see "The entry point"), which is reported to the user.
 
@@ -858,4 +858,4 @@ After the edits, summarize:
   `Co-Authored-By` or other trailer. If the run did not commit (nothing changed, a review run, or
   verification failed), say so and why.
 - a final `Next: <file or member>` line - one line, always last, even when the answer is "nothing
-  left to port, run `review js/application/angular` next"
+  left to port, run `review src/application/angular` next"
