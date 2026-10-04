@@ -91,6 +91,7 @@ class ServerWorld {
         player.scale = this.cfg.playerScale;
         player.botClass = NetBotClass.Caster; // default, can be changed
         player.initHealth(this.cfg);
+        player.saveOriginalModel();
 
         // Assign team in deathmatch
         if (this.cfg.deathmatch)
