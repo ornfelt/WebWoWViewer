@@ -65,6 +65,10 @@ var botCount = 8;
 var devMode = true; // bots don't attack the player
 var playerMelee = false; // the player's class in bot mode (and Kick vs Counterspell); false = caster
 
+/* the frame-stage report (my_web_wow's Performance.cs) and the load timing logs (GlobalSettings.Timing); set from ?perf=1 / ?timing=1 too */
+var performanceOverlay = false;
+var logTiming = false;
+
 /* the JSON packet file the player is loaded from (my_web_wow's UsePlayerJsonData / PlayerJsonFileName); null = the default player */
 var playerJsonFileName = null;
 
@@ -355,6 +359,18 @@ export default {
     },
     setPlayerMelee : function (value) {
         playerMelee = value;
+    },
+    getPerformanceOverlay : function () {
+        return performanceOverlay;
+    },
+    setPerformanceOverlay : function (value) {
+        performanceOverlay = value;
+    },
+    getLogTiming : function () {
+        return logTiming;
+    },
+    setLogTiming : function (value) {
+        logTiming = value;
     },
     getPlayerJsonFileName : function () {
         return playerJsonFileName;

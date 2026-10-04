@@ -1,4 +1,5 @@
 import cacheTemplate from './../cache.js';
+import { timeParse, timeUpload, timeTextures } from './../../services/performance.js';
 import config from './../../services/config.js';
 import { triangleListToLines } from './wireframe.js';
 
@@ -316,12 +317,14 @@ class WmoGeomCache {
     constructor (sceneApi) {
         this.cache = cacheTemplate(function loadGroupWmo(fileName) {
             /* Must return promise */
-            return wmoGroupLoader(fileName, true);
+            return timeParse("WmoGeom", fileName, wmoGroupLoader(fileName, true));
         }, function process(wmoGroupFile) {
 
-            var wmoGeomObj = new WmoGeom(wmoGroupFile, sceneApi);
-            wmoGeomObj.createVBO();
-            return wmoGeomObj;
+            return timeUpload("WmoGeom", wmoGroupFile, function () {
+                var wmoGeomObj = new WmoGeom(wmoGroupFile, sceneApi);
+                wmoGeomObj.createVBO();
+                return wmoGeomObj;
+            });
         });
     }
     loadWmoGeom (fileName){

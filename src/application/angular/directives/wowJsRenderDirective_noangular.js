@@ -11,6 +11,7 @@ import { SpellType } from '../wowRenderJs/objects/spellDefinitions.js';
 import { createNodeDebugger, createSpawnBrowser } from './gameplayPanels.js';
 import { NetSpellType, NetBotClass } from '../wowRenderJs/localServer/netProtocol.js';
 import { playerJsonFiles } from '../services/packetJson.js';
+import { performanceTable, performanceDump, performanceReset } from '../services/performance.js';
 import mapParamsRepository, { MapKey, mapKeyGroups } from '../mapParamsRepository.js';
 
 /**
@@ -280,6 +281,7 @@ export async function initViewer(containerEl) {
   containerEl.innerHTML = `
     <div style="width: 100%; height: 100%; position: relative; overflow: hidden; display: flex;">
       <canvas id="wow-canvas" style="flex: none; display:block;"></canvas>
+      <pre id="perf-overlay" style="display: none; position: absolute; left: 4px; bottom: 4px; margin: 0; padding: 4px 6px; background: rgba(0, 0, 0, 0.6); color: #d0ffd0; font: 11px monospace; pointer-events: none; z-index: 5;"></pre>
 
       <div id="settings-panel" style="flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; padding: 0 10px; color: white;">
         <style>
@@ -347,7 +349,9 @@ export async function initViewer(containerEl) {
           <label><input type="checkbox" id="chkDrawM2BB"> Draw M2 BB</label><br/>
           <label><input type="checkbox" id="chkDrawWmoBB"> Draw WMO BB</label><br/>
           <label><input type="checkbox" id="chkDrawBSP"> Draw BSP</label><br/>
-          <label><input type="checkbox" id="chkDrawDepth"> Draw Depth</label>
+          <label><input type="checkbox" id="chkDrawDepth"> Draw Depth</label><br/>
+          <label title="Frame-stage timings (culling, sorting, updates, draws), refreshed once a second over the canvas and in the console (?perf=1)"><input type="checkbox" id="chkPerformanceOverlay"> Performance overlay</label><br/>
+          <label title="Parse / GPU upload / texture / total times of every loaded ADT, M2, skin, WMO and BLP in the console (?timing=1, to time the first map load too)"><input type="checkbox" id="chkLogTiming"> Load timing logs</label>
         </details>
 
         <details id="secCamera" class="settings-section" open>
@@ -436,6 +440,9 @@ export async function initViewer(containerEl) {
   const chkDrawWmoBB        = containerEl.querySelector('#chkDrawWmoBB');
   const chkDrawBSP          = containerEl.querySelector('#chkDrawBSP');
   const chkDrawDepth        = containerEl.querySelector('#chkDrawDepth');
+  const chkPerformanceOverlay = containerEl.querySelector('#chkPerformanceOverlay');
+  const chkLogTiming        = containerEl.querySelector('#chkLogTiming');
+  const perfOverlayEl       = containerEl.querySelector('#perf-overlay');
   const chkUsePortalCulling = containerEl.querySelector('#chkUsePortalCulling');
   const chkDoubleCamera     = containerEl.querySelector('#chkDoubleCamera');
   const chkUseSecondCamera  = containerEl.querySelector('#chkUseSecondCamera');
@@ -589,6 +596,11 @@ export async function initViewer(containerEl) {
     else
       console.error(`Unknown player json: '${playerJsonArg}', using the default player`);
   }
+
+  // ?perf=1 / ?timing=1 switch the performance overlay / the load timing logs on from the start
+  const searchParams = new URLSearchParams(window.location.search);
+  if (searchParams.get('perf') === '1') config.setPerformanceOverlay(true);
+  if (searchParams.get('timing') === '1') config.setLogTiming(true);
 
   // ?bots=<count> sets the FreeForAll / Deathmatch bot count (the bot count field reloads the page with it)
   const botsArg = new URLSearchParams(window.location.search).get('bots');
@@ -923,6 +935,9 @@ export async function initViewer(containerEl) {
   chkCycleAnimations.checked  = config.getCycleAnimations();
   chkUseRandomTextures.checked = config.getUseRandomTextures();
   chkUseHud.checked           = config.getUseHud();
+  chkPerformanceOverlay.checked = config.getPerformanceOverlay();
+  chkLogTiming.checked        = config.getLogTiming();
+  perfOverlayEl.style.display = config.getPerformanceOverlay() ? '' : 'none';
   chkEnableWandering.checked  = config.getEnableWandering();
   numBotCount.value           = String(config.getBotCount());
   chkDevMode.checked          = config.getDevMode();
@@ -1159,6 +1174,13 @@ export async function initViewer(containerEl) {
   chkCycleAnimations.addEventListener('change', () => { config.setCycleAnimations(chkCycleAnimations.checked); });
   chkUseRandomTextures.addEventListener('change', () => { config.setUseRandomTextures(chkUseRandomTextures.checked); });
   chkUseHud.addEventListener('change', () => { config.setUseHud(chkUseHud.checked); });
+  chkPerformanceOverlay.addEventListener('change', () => {
+    config.setPerformanceOverlay(chkPerformanceOverlay.checked);
+    performanceReset();
+    perfOverlayEl.textContent = '';
+    perfOverlayEl.style.display = chkPerformanceOverlay.checked ? '' : 'none';
+  });
+  chkLogTiming.addEventListener('change', () => { config.setLogTiming(chkLogTiming.checked); });
   numBotCount.addEventListener('change', () => {
     const url = new URL(window.location.href);
     url.searchParams.set('bots', String(Math.max(0, Math.floor(Number(numBotCount.value) || 0))));
@@ -1292,6 +1314,12 @@ export async function initViewer(containerEl) {
       if (fpsElapsed >= 1000) {
         fpsEl.textContent = (fpsFrameCount / (fpsElapsed / 1000)).toFixed(2);
         sceneObj.fps = Math.round(fpsFrameCount / (fpsElapsed / 1000));
+        // the frame-stage report of the last second (my_web_wow dumps it with its fps log)
+        if (config.getPerformanceOverlay()) {
+          perfOverlayEl.textContent = performanceTable();
+          performanceDump();
+          performanceReset();
+        }
         fpsFrameCount = 0;
         fpsLastTime = now;
       }

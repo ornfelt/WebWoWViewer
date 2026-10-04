@@ -10,7 +10,8 @@ import InstanceManager from './instanceManager.js';
 import mathHelper from './../math/mathHelper.js';
 import PortalCullingAlgo from './../math/portalCullingAlgo.js';
 
-import config from './../../services/config.js';
+import config from './../../services/config.js'
+import { performanceBegin, performanceEnd, PerformanceCategory } from './../../services/performance.js';
 
 import {mat4} from 'gl-matrix';
 
@@ -397,6 +398,7 @@ class GraphManager {
         //2. Draw WMO
         if (config.getRenderWMO()) {
           this.sceneApi.shaders.activateWMOShader();
+          var t = performanceBegin();
           for (var i = 0; i < this.wmoRenderedThisFrame.length; i++) {
               // only the WMO the camera is inside has been portal traversed (see checkExterior)
               if (config.getUsePortalCulling() && this.wmoRenderedThisFrame[i] === this.currentWMO) {
@@ -405,6 +407,7 @@ class GraphManager {
                   this.wmoRenderedThisFrame[i].draw();
               }
           }
+          performanceEnd(PerformanceCategory.WMO_RENDER, t);
           this.sceneApi.shaders.deactivateWMOShader();
         }
 
@@ -549,7 +552,9 @@ class GraphManager {
                     this.wmoRenderedThisFrame[i].drawPortals();
                 }
             }
+            var t = performanceBegin();
             this.drawM2s();
+            performanceEnd(PerformanceCategory.M2_RENDER, t);
             this.drawLiquids(view, proj, liquidTime, this.currentWMO.exteriorPortals.length > 0);
 
             this.sceneApi.shaders.activateFrustumBoxShader();
@@ -559,7 +564,9 @@ class GraphManager {
             }
         } else {
             this.drawExterior();
+            var t = performanceBegin();
             this.drawM2s();
+            performanceEnd(PerformanceCategory.M2_RENDER, t);
             this.drawLiquids(view, proj, liquidTime, true);
 
             //6. Draw WMO portals

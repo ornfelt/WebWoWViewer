@@ -162,6 +162,7 @@
 
 
 import cacheTemplate from './../cache.js';
+import { timeParse, timeUpload } from './../../services/performance.js';
 import blpLoader from './../../services/map/blpLoader.js';
 // Remove: import decodeDxt from 'decode-dxt';
 
@@ -278,10 +279,10 @@ class TextureWoWCache {
         this.cache = cacheTemplate(
             /* loadFn */
             function loadBlpFile(fileName) {
-                return blpLoader(fileName);
+                return timeParse("BLP", fileName, blpLoader(fileName));
             },
             /* processFn */
-            (blpFile) => {
+            (blpFile) => timeUpload("BLP", blpFile, () => {
                 const textureObj = new Texture(sceneApi);
                 textureObj.loadFromMipmaps(
                     blpFile.mipmaps,
@@ -290,7 +291,7 @@ class TextureWoWCache {
                 );
                 textureObj.fileName = blpFile.fileName;
                 return textureObj;
-            }
+            })
         );
     }
 

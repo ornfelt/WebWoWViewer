@@ -28,6 +28,7 @@ import WorldPlayer from './objects/worldObjects/worldPlayer.js'
 import WorldUnit from './objects/worldObjects/worldUnit.js'
 import { loadPacketJson } from './../services/packetJson.js'
 import config from './../services/config.js'
+import { performanceBegin, performanceEnd, PerformanceCategory, timing } from './../services/performance.js'
 
 import wdtLoader from './../services/map/wdtLoader.js';
 
@@ -1542,7 +1543,9 @@ class Scene {
         this.graphManager.setLookAtMat(lookAtMat4);
 
         // Update objects
+        var t = performanceBegin();
         var updateRes = this.graphManager.update(deltaTime);
+        performanceEnd(PerformanceCategory.GRAPH_UPDATE, t);
 
         // Bot mode camera: position behind and above the player
         if (this.multiplayerManager && this.multiplayerManager.isBotMode) {
@@ -1559,11 +1562,13 @@ class Scene {
                 this.mainCameraLookAt = [playerPos[0], playerPos[1], playerPos[2] + 2];
             }
         }
+        t = performanceBegin();
         try {
             this.worldObjectManager.update(deltaTime, cameraPos, lookAtMat4, this.camera);
         } catch(e) {
             console.log(e)
         }
+        performanceEnd(PerformanceCategory.WORLD_OBJECT_UPDATE, t);
 
         // Sync movement flags from camera to animation state
         if (this.playerAnimState) {
@@ -1597,8 +1602,13 @@ class Scene {
         if (this.spellManager) this.spellManager.update(deltaTime);
         if (this.wanderManager) this.wanderManager.update(deltaTime);
 
+        t = performanceBegin();
         this.graphManager.checkCulling(perspectiveMatrixForCulling, lookAtMat4);
+        performanceEnd(PerformanceCategory.CHECK_CULLING, t);
+
+        t = performanceBegin();
         this.graphManager.sortGeometry(perspectiveMatrixForCulling, lookAtMat4);
+        performanceEnd(PerformanceCategory.SORT_GEOMETRY, t);
 
 
         // liquid clock: seconds, wrapped every LiquidClockPeriod
@@ -1701,7 +1711,9 @@ class Scene {
         gl.activeTexture(gl.TEXTURE0);
         gl.depthMask(true);
         gl.enableVertexAttribArray(0);
+        t = performanceBegin();
         this.graphManager.draw(this.lookAtMat4, perspectiveMatrix, liquidTime);
+        performanceEnd(PerformanceCategory.GRAPH_DRAW, t);
 
         // node tracking + world-space debug, composited with the scene
         this.hud.updateNodeTracking();
@@ -1768,7 +1780,7 @@ class Scene {
     loadMap (mapName, x, y){
         var self = this;
         var wdtFileName = "world/maps/"+mapName+"/"+mapName+".wdt";
-
+        var mapStart = performance.now();
 
         wdtLoader(wdtFileName).then(function success(wdtFile){
             self.currentWdt = wdtFile;
@@ -1784,6 +1796,7 @@ class Scene {
                 self.graphManager.addADTObject(x, y, adtFileName);
             }
 
+            timing("[TIMING] Map setup (WDT + init): " + (performance.now() - mapStart).toFixed(1) + " ms");
         }, function error(){
         })
     }
