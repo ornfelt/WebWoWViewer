@@ -1,4 +1,6 @@
 import Expansion from '../Expansion';
+import GameplayMode from '../GameplayMode';
+import type { GameplayModeValue } from '../GameplayMode';
 import type { M2Object } from '../wowRenderJs/objects/M2Object';
 
 //var urlToLoadWoWFile = '/get/';
@@ -44,6 +46,9 @@ var useRandomTextures: boolean = false;
 
 var cameraM2: M2Object | null = null;
 
+/* the gameplay mode (my_web_wow's GlobalSettings.CurrentGameplayMode), set from ?mode= on startup */
+var gameplayMode: GameplayModeValue = GameplayMode.FreeRoam;
+
 var savedUrlForLoading: string | null | undefined;
 try {
     savedUrlForLoading = localStorage.getItem('urlForLoading');
@@ -71,6 +76,10 @@ export default {
     /* the mpq server's collision api, next to its files/ route (http://127.0.0.1:3002/files/ -> http://127.0.0.1:3002/collision/) */
     getUrlToLoadCollision : function (){
         return new URL('../collision/', new URL(urlToLoadWoWFile, window.location.href)).toString();
+    },
+    /* the mpq server's gameplay api (wander nodes, navigation, model lists), next to its files/ route */
+    getUrlToLoadGameplay : function (){
+        return new URL('../gameplay/', new URL(urlToLoadWoWFile, window.location.href)).toString();
     },
     getFileReadMethod : function(){
         return readFileMethod;
@@ -243,5 +252,11 @@ export default {
     },
     setCameraM2 : function (value: M2Object | null) {
         cameraM2 = value;
+    },
+    getGameplayMode : function () {
+        return gameplayMode;
+    },
+    setGameplayMode : function (value: GameplayModeValue) {
+        gameplayMode = value;
     }
 }

@@ -14,6 +14,7 @@
 import GraphManager from './manager/sceneGraphManager'
 import WorldObjectManager, { localPlayerGuid } from './manager/worldObjectManager'
 import PlayerAnimationState from './manager/playerAnimationState'
+import SpawnManager from './manager/spawnManager'
 import { setAnimationSafe } from './manager/animationBridge'
 import WorldPlayer from './objects/worldObjects/worldPlayer'
 import config from './../services/config'
@@ -295,6 +296,8 @@ class Scene {
     playerCharacterRequested: boolean | undefined;
     /* set by the constructor */
     unitDbcsLoaded!: Promise<void[]>;
+    /* for the CreatureMap / SpellMap modes, set by startSpawnMode() */
+    spawnManagerMap: SpawnManager | undefined;
 
     constructor(canvas: HTMLCanvasElement) {
         //var stats = new Stats();
@@ -1971,6 +1974,14 @@ class Scene {
         newWorldPlayer.complete();
 
         this.playerAnimState = new PlayerAnimationState();
+    }
+    /* the CreatureMap / SpellMap modes: creature or spell models at the map's wander nodes, spawned once the creature DBCs have loaded (they pick the models' display ids); resolves to the spawn count */
+    startSpawnMode(mapId: number, isSpellMap: boolean): Promise<number> {
+        var spawnManager = new SpawnManager(this.sceneApi, this.worldObjectManager, mapId);
+        this.spawnManagerMap = spawnManager;
+        return this.unitDbcsLoaded.then(function () {
+            return spawnManager.initializeAndSpawn(isSpellMap);
+        });
     }
     setFogStart(value: number) {
         this.uFogStart  = value;
