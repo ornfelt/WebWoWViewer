@@ -16,6 +16,7 @@ import packetList from '../../../rag_no_mount.json'
 //import packetList from '../../../attacketdMinion1.json'
 //let packetList = [];
 import {vec3} from 'gl-matrix'
+import { HIDDEN_POS } from '../objects/spellProjectile'
 import type {ReadonlyMat4, ReadonlyVec4} from 'gl-matrix'
 import type { SceneApi } from '../sceneApi';
 import type firstPersonCamera from '../camera/firstPersonCamera';
@@ -45,6 +46,8 @@ class WorldObjectManager {
     clientTime!: number;
     /* the keys of the Wander mode's bots, which their WanderController places (Scene.startWanderMode) */
     wanderKeys: Set<number>;
+    /* the game server's bot mode plays the player (MultiplayerManager), so the player character is put away */
+    hideLocalPlayer: boolean;
 
     constructor(sceneApi: SceneApi){
         this.objectMap = {};
@@ -53,6 +56,7 @@ class WorldObjectManager {
 
         this.playPackets = false;
         this.wanderKeys = new Set();
+        this.hideLocalPlayer = false;
     }
 
     update(deltaTime: number, cameraPos: ReadonlyVec4, viewMat: ReadonlyMat4, camera: firstPersonCamera) {
@@ -76,7 +80,9 @@ class WorldObjectManager {
 
         /* Place the player character (before the models update, which builds the placement matrix from it) */
         var player = this.objectMap[localPlayerGuid];
-        if (player) {
+        if (player && this.hideLocalPlayer) {
+            player.setPosition(vec3.clone(HIDDEN_POS));
+        } else if (player) {
             if (camera.collisionActive) {
                 // Player mode / third-person: the player position drives collision and the
                 // camera sits behind/above it, so the model goes at the player position.

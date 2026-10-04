@@ -19,6 +19,9 @@ import SpellManager from './manager/spellManager'
 import WanderManager from './manager/wanderManager'
 import NodeManager from './manager/nodeManager'
 import Hud from './hud/hud'
+import MultiplayerManager from './multiplayer/multiplayerManager'
+import LocalGameServer from './localServer/localGameServer'
+import { NetBotClass } from './localServer/netProtocol'
 import { AnimationType } from './manager/playerAnimationState'
 import type WorldUnit from './objects/worldObjects/worldUnit';
 import type { AnimationTypeValue } from './manager/playerAnimationState';
@@ -315,6 +318,8 @@ class Scene {
     nodeManager: NodeManager | undefined;
     /* the Wander mode's bots, set by startWanderMode() */
     wanderManager: WanderManager | undefined;
+    /* the FreeForAll / Deathmatch modes' game, set by startMultiplayerMode() */
+    multiplayerManager: MultiplayerManager | undefined;
     /* the 2D HUD and the 3D debug drawing, set by the constructor */
     hud!: Hud;
     /* frames per second, set by the viewer's render loop (for the HUD) */
@@ -1741,6 +1746,22 @@ class Scene {
 
         // Update objects
         var updateRes = this.graphManager.update(deltaTime);
+
+        // Bot mode camera: position behind and above the player
+        if (this.multiplayerManager && this.multiplayerManager.isBotMode) {
+            var playerPos = this.multiplayerManager.getPlayerPositionFromServer();
+            if (playerPos !== null) {
+                var playerRot = this.multiplayerManager.getPlayerRotationFromServer();
+
+                var behindDist = 15;
+                var upDist = 12;
+                this.mainCamera = [
+                    playerPos[0] - Math.cos(playerRot) * behindDist,
+                    playerPos[1] - Math.sin(playerRot) * behindDist,
+                    playerPos[2] + upDist];
+                this.mainCameraLookAt = [playerPos[0], playerPos[1], playerPos[2] + 2];
+            }
+        }
         try {
             this.worldObjectManager.update(deltaTime, cameraPos, lookAtMat4, this.camera);
         } catch(e) {
@@ -1775,6 +1796,7 @@ class Scene {
             }
         }
 
+        if (this.multiplayerManager) this.multiplayerManager.update(deltaTime, this.camera);
         if (this.spellManager) this.spellManager.update(deltaTime);
         if (this.wanderManager) this.wanderManager.update(deltaTime);
 
@@ -1927,7 +1949,9 @@ class Scene {
 
         // 2D HUD overlay, drawn straight to the screen
         if (config.getUseHud()) {
-            this.hud.renderHud2D(this.hud.buildHudState());
+            this.hud.renderHud2D(this.multiplayerManager
+                ? this.multiplayerManager.buildMultiplayerHudState()
+                : this.hud.buildHudState());
         }
 
 
@@ -2016,28 +2040,64 @@ class Scene {
         newWorldPlayer.manualAnimation = true;
         newWorldPlayer.complete();
 
-        var playerAnimState = new PlayerAnimationState();
-        this.playerAnimState = playerAnimState;
+        this.playerAnimState = new PlayerAnimationState();
 
-        // the player's spells, cast from the character (my_web_wow's WowViewer spell setup)
+        // the player's spells, cast from the character
+        this.ensureSpellManager();
+    }
+    /* the player's spells (my_web_wow's WowViewer spell setup), created once: by the player character, or by the FreeForAll / Deathmatch modes for the spell visuals */
+    ensureSpellManager(): SpellManager {
+        if (this.spellManager) return this.spellManager;
+
+        var self = this;
         var spellManager = new SpellManager(this.sceneApi, this.worldObjectManager, localPlayerGuid);
         spellManager.onAnimationStart = function (animType) {
+            if (!self.playerAnimState) return;
             if (animType === AnimationType.SpellCast2) // channeling
-                playerAnimState.onChannelStart(animType);
+                self.playerAnimState.onChannelStart(animType);
             else
-                playerAnimState.onCastStart(animType);
+                self.playerAnimState.onCastStart(animType);
         };
         spellManager.onAnimationComplete = function (animType) {
-            playerAnimState.onCastComplete(animType);
+            if (self.playerAnimState) self.playerAnimState.onCastComplete(animType);
         };
         spellManager.onCastCanceled = function () {
-            playerAnimState.onCastCanceled();
+            if (self.playerAnimState) self.playerAnimState.onCastCanceled();
         };
         var hud = this.hud;
         spellManager.onDamage = function (unit, amount, crit) {
             hud.addDamageNumberAtUnit(unit, amount, crit);
         };
         this.spellManager = spellManager;
+        return spellManager;
+    }
+    /*
+     * The FreeForAll / Deathmatch modes: my_web_wow's game server (WowServer) run in the page against the
+     * bots, with MultiplayerManager showing its world, once the nodes (loadGameplayNodes) and the creature
+     * DBCs have loaded; resolves to the number of bots.
+     */
+    startMultiplayerMode(mapId: number, deathmatch: boolean): Promise<number> {
+        var self = this;
+        return this.unitDbcsLoaded.then(function () {
+            var nodeManager = self.nodeManager;
+            if (!nodeManager || nodeManager.nodes.length === 0) {
+                console.log("[world] Map " + mapId + " has no nodes, the game is unavailable.");
+                return 0;
+            }
+
+            var server = new LocalGameServer(mapId, window.selectedExpansion, deathmatch,
+                config.getBotCount(), config.getDevMode(), nodeManager);
+
+            // the spells are visuals of the server's combat
+            var spellManager = self.ensureSpellManager();
+            spellManager.localDamage = false;
+
+            var multiplayerManager = new MultiplayerManager(self, server);
+            multiplayerManager.botClass = config.getPlayerMelee() ? NetBotClass.Melee : NetBotClass.Caster;
+            multiplayerManager.onConnected(server.hello);
+            self.multiplayerManager = multiplayerManager;
+            return server.cfg.botCount;
+        });
     }
     /* loads the map's wander nodes from the mpq server (the node debugger, the debug drawing and the Wander mode); resolves to the node count */
     loadGameplayNodes(mapId: number): Promise<number> {

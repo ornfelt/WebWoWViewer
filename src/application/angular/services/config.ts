@@ -62,6 +62,11 @@ var drawPathPoints: boolean = false;
 var drawTargetCircle: boolean = true;
 var drawTargetDot: boolean = false;
 
+/* the FreeForAll / Deathmatch modes' game server (my_web_wow's ServerConfig / GlobalSettings defaults) */
+var botCount: number = 8;
+var devMode: boolean = true; // bots don't attack the player
+var playerMelee: boolean = false; // the player's class in bot mode (and Kick vs Counterspell); false = caster
+
 var savedUrlForLoading: string | null | undefined;
 try {
     savedUrlForLoading = localStorage.getItem('urlForLoading');
@@ -331,6 +336,24 @@ export default {
     },
     setDrawTargetDot : function (value: boolean) {
         drawTargetDot = value;
+    },
+    getBotCount : function () {
+        return botCount;
+    },
+    setBotCount : function (value: number) {
+        botCount = value;
+    },
+    getDevMode : function () {
+        return devMode;
+    },
+    setDevMode : function (value: boolean) {
+        devMode = value;
+    },
+    getPlayerMelee : function () {
+        return playerMelee;
+    },
+    setPlayerMelee : function (value: boolean) {
+        playerMelee = value;
     },
     getGameplayMode : function () {
         return gameplayMode;

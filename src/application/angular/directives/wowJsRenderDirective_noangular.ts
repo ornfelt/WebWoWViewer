@@ -10,6 +10,8 @@ import Expansion from '../Expansion';
 import GameplayMode, { implementedGameplayModes, parseGameplayMode } from '../GameplayMode';
 import { SpellType } from '../wowRenderJs/objects/spellDefinitions';
 import { createNodeDebugger, createSpawnBrowser } from './gameplayPanels';
+import { NetSpellType, NetBotClass } from '../wowRenderJs/localServer/netProtocol';
+import type { NetSpellTypeValue } from '../wowRenderJs/localServer/netProtocol';
 import type { SpellTypeValue } from '../wowRenderJs/objects/spellDefinitions';
 import mapParamsRepository, { MapKey, mapKeyGroups } from '../mapParamsRepository';
 import type { MapKeyValue, MapParams } from '../mapParamsRepository';
@@ -359,7 +361,8 @@ export async function initViewer(containerEl: HTMLElement) {
           5 - Lightning Bolt, 6 - Blizzard, V - Frost Nova, X - Ice Block, T - cycle target,<br/>
           0 - teleport to target, N - wandering, G - target marker, J - node flag colors,<br/>
           , - wander paths, . - linked nodes / node boxes, Ctrl+. - all node links,<br/>
-          F7 - node debugger, F8 - spawn browser
+          F7 - node debugger, F8 - spawn browser,<br/>
+          FreeForAll / Deathmatch: also 7 - Polymorph, 8 - Counterspell (Kick when melee)
         </details>
 
         <details id="secRendering" class="settings-section" open>
@@ -415,6 +418,10 @@ export async function initViewer(containerEl: HTMLElement) {
           <div>nodes = <span id="gameplay-nodes">-</span></div>
           <label title="Unit frames, cast bars, numbers and floating combat text"><input type="checkbox" id="chkUseHud"> HUD</label><br/>
           <label title="The Wander mode's bots walk from node to node (N)"><input type="checkbox" id="chkEnableWandering"> Wandering</label><br/>
+          <label title="FreeForAll / Deathmatch: the number of bots (reloads the page)">Bots <input type="number" id="numBotCount" min="0" max="100" style="width: 4em;"></label><br/>
+          <label title="FreeForAll / Deathmatch: the bots don't attack the player"><input type="checkbox" id="chkDevMode"> Dev mode</label><br/>
+          <label title="FreeForAll / Deathmatch: the player's class in bot mode, and Kick (8) instead of Counterspell"><input type="checkbox" id="chkPlayerMelee"> Player melee (vs caster)</label><br/>
+          <label title="FreeForAll / Deathmatch: the game server plays the player"><input type="checkbox" id="chkBotMode" disabled> Bot mode (auto-play)</label><br/>
           <button id="btnNodeDebugger">Node debugger (F7)</button>
           <button id="btnSpawnBrowser">Spawn browser (F8)</button>
         </details>
@@ -483,6 +490,10 @@ export async function initViewer(containerEl: HTMLElement) {
   const gameplayNodesEl     = containerEl.querySelector<HTMLSpanElement>('#gameplay-nodes')!;
   const chkUseHud           = containerEl.querySelector<HTMLInputElement>('#chkUseHud')!;
   const chkEnableWandering  = containerEl.querySelector<HTMLInputElement>('#chkEnableWandering')!;
+  const numBotCount         = containerEl.querySelector<HTMLInputElement>('#numBotCount')!;
+  const chkDevMode          = containerEl.querySelector<HTMLInputElement>('#chkDevMode')!;
+  const chkPlayerMelee      = containerEl.querySelector<HTMLInputElement>('#chkPlayerMelee')!;
+  const chkBotMode          = containerEl.querySelector<HTMLInputElement>('#chkBotMode')!;
   const chkDrawNodeBoxes    = containerEl.querySelector<HTMLInputElement>('#chkDrawNodeBoxes')!;
   const chkDrawNodeFlagColors = containerEl.querySelector<HTMLInputElement>('#chkDrawNodeFlagColors')!;
   const chkDrawLinkedNodes  = containerEl.querySelector<HTMLInputElement>('#chkDrawLinkedNodes')!;
@@ -610,6 +621,11 @@ export async function initViewer(containerEl: HTMLElement) {
   }
   console.log(`gameplay mode  : ${config.getGameplayMode()}`);
 
+  // ?bots=<count> sets the FreeForAll / Deathmatch bot count (the bot count field reloads the page with it)
+  const botsArg = new URLSearchParams(window.location.search).get('bots');
+  if (botsArg !== null && /^\d+$/.test(botsArg))
+    config.setBotCount(Number(botsArg));
+
   const useDebugSky = mapKey === MapKey.NagrandArena || mapKey === MapKey.LordaeronArenaWMO
     || mapKey === MapKey.BladesEdgeArena || mapKey === MapKey.BlackTemple
     || mapKey === MapKey.HillsbradPast || mapKey === MapKey.ZulAman;
@@ -661,6 +677,17 @@ export async function initViewer(containerEl: HTMLElement) {
       gameplayStatusEl.textContent = 'loading';
       nodesLoaded.then(() => sceneObj.startWanderMode(mapId)).then((count) => {
         gameplayStatusEl.textContent = count > 0 ? count + ' bots' : 'none (no wander nodes, see console)';
+      });
+      return;
+    }
+
+    // FreeForAll / Deathmatch: my_web_wow's game server in the page, against the bots
+    if (mode === GameplayMode.FreeForAll || mode === GameplayMode.Deathmatch) {
+      const deathmatch = mode === GameplayMode.Deathmatch;
+      gameplayStatusEl.textContent = 'loading';
+      nodesLoaded.then(() => sceneObj.startMultiplayerMode(mapId, deathmatch)).then((count) => {
+        gameplayStatusEl.textContent = sceneObj.multiplayerManager ? count + ' bots' : 'none (no wander nodes, see console)';
+        chkBotMode.disabled = !sceneObj.multiplayerManager;
       });
       return;
     }
@@ -913,6 +940,9 @@ export async function initViewer(containerEl: HTMLElement) {
   chkUseRandomTextures.checked = config.getUseRandomTextures();
   chkUseHud.checked           = config.getUseHud();
   chkEnableWandering.checked  = config.getEnableWandering();
+  numBotCount.value           = String(config.getBotCount());
+  chkDevMode.checked          = config.getDevMode();
+  chkPlayerMelee.checked      = config.getPlayerMelee();
   chkDrawNodeBoxes.checked    = config.getDrawNodeBoxes();
   chkDrawNodeFlagColors.checked = config.getDrawNodeFlagColors();
   chkDrawLinkedNodes.checked  = config.getDrawLinkedNodes();
@@ -947,6 +977,18 @@ export async function initViewer(containerEl: HTMLElement) {
     'x': SpellType.IceBlock,      // area at player, 7s duration
   };
 
+  // the same keys for the game server's spells (FreeForAll / Deathmatch)
+  const netSpellKeys: { [key: string]: NetSpellTypeValue } = {
+    '1': NetSpellType.Frostbolt,
+    '2': NetSpellType.IceLance,
+    '3': NetSpellType.Pyroblast,
+    '4': NetSpellType.IceMissile,
+    '5': NetSpellType.LightningBolt,
+    '6': NetSpellType.Blizzard,
+    'v': NetSpellType.FrostNova,
+    'x': NetSpellType.IceBlock,
+  };
+
   // the gameplay / debug keys of my_web_wow's WowViewer.OnKeyDown (its devMode keys included); true when handled
   function gameplayKey(event: KeyboardEvent): boolean {
     if (event.key === 'F7') { nodeDebugger.toggle(); return true; }
@@ -956,7 +998,24 @@ export async function initViewer(containerEl: HTMLElement) {
     const key = event.key.toLowerCase();
     // Ctrl only with '.'
     if (event.ctrlKey && key !== '.') return false;
-    if (event.repeat && (key in spellKeys || 't0ngj,.'.indexOf(key) >= 0)) return true;
+    if (event.repeat && (key in spellKeys || 't0ngj,.78'.indexOf(key) >= 0)) return true;
+
+    // FreeForAll / Deathmatch: the spells and the targeting go to the game server (the C#'s mp keys)
+    const mp = sceneObj.multiplayerManager;
+    if (mp) {
+      let netSpell: NetSpellTypeValue | null = null;
+      if (key in netSpellKeys) netSpell = netSpellKeys[key];
+      else if (key === '7') netSpell = NetSpellType.Polymorph;
+      else if (key === '8') netSpell = config.getPlayerMelee() ? NetSpellType.Kick : NetSpellType.Counterspell;
+      if (netSpell !== null) {
+        mp.castSpell(netSpell);
+        return true;
+      }
+      if (key === 't') {
+        mp.cycleTarget();
+        return true;
+      }
+    }
 
     if (key in spellKeys) {
       if (sceneObj.spellManager) sceneObj.spellManager.castSpell(spellKeys[key]);
@@ -975,7 +1034,8 @@ export async function initViewer(containerEl: HTMLElement) {
         return true;
       // teleport (the camera) to the current target
       case '0': {
-        const targetKey = sceneObj.spellManager ? sceneObj.spellManager.getCurrentTargetKey() : null;
+        const targetKey = sceneObj.multiplayerManager ? sceneObj.multiplayerManager.getCurrentTargetId()
+          : sceneObj.spellManager ? sceneObj.spellManager.getCurrentTargetKey() : null;
         if (targetKey === null) { console.log('[WowViewer] No target selected'); return true; }
         const target = sceneObj.worldObjectManager.objectMap[targetKey];
         if (!target) { console.log(`[WowViewer] Target ${targetKey} not found in objectMap`); return true; }
@@ -1090,6 +1150,23 @@ export async function initViewer(containerEl: HTMLElement) {
   chkCycleAnimations.addEventListener('change', () => { config.setCycleAnimations(chkCycleAnimations.checked); });
   chkUseRandomTextures.addEventListener('change', () => { config.setUseRandomTextures(chkUseRandomTextures.checked); });
   chkUseHud.addEventListener('change', () => { config.setUseHud(chkUseHud.checked); });
+  numBotCount.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('bots', String(Math.max(0, Math.floor(Number(numBotCount.value) || 0))));
+    window.location.href = url.toString();
+  });
+  chkDevMode.addEventListener('change', () => {
+    config.setDevMode(chkDevMode.checked);
+    if (sceneObj.multiplayerManager) sceneObj.multiplayerManager.net.setDevMode(chkDevMode.checked);
+  });
+  chkPlayerMelee.addEventListener('change', () => {
+    config.setPlayerMelee(chkPlayerMelee.checked);
+    if (sceneObj.multiplayerManager) sceneObj.multiplayerManager.botClass = chkPlayerMelee.checked ? NetBotClass.Melee : NetBotClass.Caster;
+  });
+  chkBotMode.addEventListener('change', () => {
+    if (sceneObj.multiplayerManager && sceneObj.multiplayerManager.isBotMode !== chkBotMode.checked)
+      sceneObj.multiplayerManager.toggleBotMode();
+  });
   chkEnableWandering.addEventListener('change', () => {
     config.setEnableWandering(chkEnableWandering.checked);
     if (sceneObj.wanderManager) sceneObj.wanderManager.setAllWandering(chkEnableWandering.checked);

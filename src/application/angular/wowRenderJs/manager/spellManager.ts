@@ -67,6 +67,8 @@ class SpellManager {
 
     // damage dealt (web addition): the unit, the amount and whether it was a crit
     onDamage: ((unit: WorldUnit, amount: number, crit: boolean) => void) | null;
+    // false while the game server (FreeForAll / Deathmatch) decides the damage and the spells are visuals only
+    localDamage: boolean;
 
     // Track which spell is currently channeling for cast-bar display
     activeChannelType: SpellTypeValue | null;
@@ -89,6 +91,7 @@ class SpellManager {
         this.onAnimationComplete = null;
         this.onCastCanceled = null;
         this.onDamage = null;
+        this.localDamage = true;
         this.activeChannelType = null;
         this.blizzardTargetPos = null;
         this.blizzardTickTimer = 0;
@@ -132,7 +135,7 @@ class SpellManager {
                 def.speed, def.arrivalThreshold, def.baseRotationCorrection);
             var damage = def.damage;
             pool.setOnArrive((targetKey) => {
-                if (damage !== null) this.dealDamage(targetKey, damage);
+                if (damage !== null && this.localDamage) this.dealDamage(targetKey, damage);
             });
 
             this.projectilePools.set(type, pool);
@@ -390,7 +393,7 @@ class SpellManager {
         this.iceBlockEffect.update(deltaTime);
 
         // Blizzard damage ticks (web addition)
-        if (this.blizzardChannel.isActive) {
+        if (this.blizzardChannel.isActive && this.localDamage) {
             this.blizzardTickTimer += deltaTime / 1000;
             while (this.blizzardTickTimer >= BlizzardTickInterval) {
                 this.blizzardTickTimer -= BlizzardTickInterval;
@@ -439,6 +442,42 @@ class SpellManager {
         if (player)
             return vec3.clone(player.getPosition());
         return vec3.create();
+    }
+
+    /* Fire a projectile visual from one entity to another (for the game server's spell effects); speedOverride adapts the speed so it lands at the server's travel time. */
+    fireProjectileFromTo(type: SpellTypeValue, casterKey: number, targetKey: number, speedOverride = 0) {
+        var pool = this.projectilePools.get(type);
+        if (!pool) return;
+        if (pool.allActive) return;
+
+        // Get caster position from objectMap
+        var origin = vec3.create();
+        var caster = this.worldObjectManager.objectMap[casterKey];
+        if (caster)
+            vec3.copy(origin, caster.getPosition());
+
+        if (speedOverride > 0)
+            pool.fireWithSpeed(origin, targetKey, speedOverride);
+        else
+            pool.fire(origin, targetKey);
+    }
+
+    /* Fire an area effect (frost nova / ice block) at an arbitrary world position. */
+    fireAreaEffectAt(type: SpellTypeValue, position: vec3) {
+        switch (type) {
+            case SpellType.FrostNova:
+                this.frostNovaEffect.activate(position);
+                break;
+            case SpellType.IceBlock:
+                this.iceBlockEffect.activate(position);
+                break;
+        }
+    }
+
+    /* Start a channeled spell visual at a position (for the game server's blizzard effects). */
+    startChannelAt(type: SpellTypeValue, position: vec3) {
+        if (type === SpellType.Blizzard)
+            this.blizzardChannel.start(position);
     }
 
     /* Set the internal target to a specific objectMap key */
