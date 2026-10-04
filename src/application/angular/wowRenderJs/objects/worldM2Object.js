@@ -100,13 +100,11 @@ class WorldMDXObject extends MDXObject {
     }
     createPlacementMatrixFromParent (parentM2, attachment, scale){
         var parentM2File = parentM2.m2Geom.m2File;
-        var attIndex = parentM2File.attachLookups[attachment];
-        var attachInfo = parentM2File.attachments[attIndex];
+        var attIndex = parentM2File.attachLookups ? parentM2File.attachLookups[attachment] : undefined;
+        var attachInfo = (attIndex !== undefined && attIndex >= 0 && parentM2File.attachments) ? parentM2File.attachments[attIndex] : undefined;
 
-
-        if (!attachInfo) {
-            debugger;
-        }
+        // a parent model without this attachment (e.g. a mount model with no rider point): keep the current placement
+        if (!attachInfo) return;
 
         var boneId = attachInfo.bone;
         var parentBoneTransMat = parentM2.bonesMatrices[boneId];
