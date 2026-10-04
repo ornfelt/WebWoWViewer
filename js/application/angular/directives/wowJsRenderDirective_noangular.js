@@ -6,6 +6,7 @@ import {vec3} from 'gl-matrix'
 import MathHelper from '../wowRenderJs/math/mathHelper.js';
 import CollisionWorld from '../wowRenderJs/collision/collisionWorld.js';
 import Expansion from '../Expansion.js';
+import GameplayMode, { implementedGameplayModes, parseGameplayMode } from '../GameplayMode.js';
 import mapParamsRepository, { MapKey, mapKeyGroups } from '../mapParamsRepository.js';
 
 /**
@@ -273,8 +274,8 @@ export async function initViewer(containerEl) {
 
       <div id="settings-panel" style="flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; padding: 0 10px; color: white;">
         <style>
-          #selMap, #selMap optgroup, #selMap option { background: #222; color: white; }
-          #selMap option:disabled { color: #777; }
+          #selMap, #selMap optgroup, #selMap option, #selGameplayMode, #selGameplayMode option { background: #222; color: white; }
+          #selMap option:disabled, #selGameplayMode option:disabled { color: #777; }
           #settings-panel .settings-section { margin-top: 8px; }
           #settings-panel .settings-section > summary { cursor: pointer; font-weight: bold; margin-bottom: 2px; }
           #settings-panel button { margin-top: 6px; }
@@ -346,6 +347,15 @@ export async function initViewer(containerEl) {
           <button id="btnCopyDebug">Copy main camera -> debug camera</button>
         </details>
 
+        <details id="secGameplay" class="settings-section" open>
+          <summary>Gameplay</summary>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="white-space: nowrap;">mode =</span>
+            <select id="selGameplayMode" title="SpellMap / CreatureMap: spell or creature models at the map's wander nodes (mpq server gameplay api)" style="flex: 1 1 auto; min-width: 0; border: 1px solid #888; border-radius: 2px; padding: 1px 2px;"></select>
+          </div>
+          <div>spawns = <span id="gameplay-status">-</span></div>
+        </details>
+
         <details id="secPackets" class="settings-section" open>
           <summary>Packets</summary>
           <button id="btnLoadPackets">Parse packets</button><br/>
@@ -392,6 +402,8 @@ export async function initViewer(containerEl) {
   const radPlayerCharacter  = containerEl.querySelector('#radPlayerCharacter');
   const collisionStatusEl   = containerEl.querySelector('#collision-status');
   const chkUseRandomTextures = containerEl.querySelector('#chkUseRandomTextures');
+  const selGameplayMode     = containerEl.querySelector('#selGameplayMode');
+  const gameplayStatusEl    = containerEl.querySelector('#gameplay-status');
   const sliderDrawDistance  = containerEl.querySelector('#sliderDrawDistance');
   const drawDistanceEl      = containerEl.querySelector('#draw-distance');
 
@@ -494,6 +506,20 @@ export async function initViewer(containerEl) {
   console.log(`map_key source : ${mapKeySource}`);
   console.log(`map_key        : ${mapKey}`);
 
+  // ?mode=<GameplayMode> sets the gameplay mode (the mode selection reloads the page with it), as my_web_wow's --mode
+  const modeArg = new URLSearchParams(window.location.search).get('mode');
+  if (modeArg !== null) {
+    const mode = parseGameplayMode(modeArg);
+    if (mode === undefined) {
+      console.error(`Unknown gameplay mode: '${modeArg}', using ${config.getGameplayMode()}`);
+    } else if (!implementedGameplayModes.includes(mode)) {
+      console.error(`Gameplay mode '${mode}' is not implemented yet, using ${config.getGameplayMode()}`);
+    } else {
+      config.setGameplayMode(mode);
+    }
+  }
+  console.log(`gameplay mode  : ${config.getGameplayMode()}`);
+
   const useDebugSky = mapKey === MapKey.NagrandArena || mapKey === MapKey.LordaeronArenaWMO
     || mapKey === MapKey.BladesEdgeArena || mapKey === MapKey.BlackTemple
     || mapKey === MapKey.HillsbradPast || mapKey === MapKey.ZulAman;
@@ -521,6 +547,25 @@ export async function initViewer(containerEl) {
     updateCameraMode();
   }
 
+  // CreatureMap / SpellMap: creature or spell models at the map's wander nodes (my_web_wow's WowViewer
+  // spawn setup); the mpq server's gameplay api has the nodes and the model lists
+  function startGameplayMode(mapId) {
+    const mode = config.getGameplayMode();
+    if (mode !== GameplayMode.CreatureMap && mode !== GameplayMode.SpellMap) return;
+    if (mapId === undefined) {
+      console.log(`[SpawnManager] No map ID for ${mapKey}, skipping spawns.`);
+      gameplayStatusEl.textContent = 'no map id';
+      return;
+    }
+    const isSpellMap = mode === GameplayMode.SpellMap;
+    gameplayStatusEl.textContent = 'loading';
+    sceneObj.startSpawnMode(mapId, isSpellMap).then((count) => {
+      gameplayStatusEl.textContent = count > 0
+        ? count + (isSpellMap ? ' spells' : ' creatures')
+        : 'none (no wander nodes or models, see console)';
+    });
+  }
+
   const mapParams = mapParamsRepository.get(mapKey);
 
   // Map selection: every preset, grouped as in MapKey; the ones the expansion cannot load are disabled
@@ -541,6 +586,16 @@ export async function initViewer(containerEl) {
   }
   selMap.value = mapKey;
   selMap.title = mapParams.name;
+
+  // Gameplay mode selection: every mode; the ones the web version does not have yet are disabled
+  for (const mode of Object.values(GameplayMode)) {
+    const option = document.createElement('option');
+    option.value = mode;
+    option.textContent = mode + (implementedGameplayModes.includes(mode) ? '' : ' (not implemented)');
+    option.disabled = !implementedGameplayModes.includes(mode);
+    selGameplayMode.appendChild(option);
+  }
+  selGameplayMode.value = config.getGameplayMode();
   expansionEl.textContent = window.selectedExpansion;
   // webpack replaces process.env.NODE_ENV with the build mode
   buildEl.textContent = process.env.NODE_ENV ?? '';
@@ -563,6 +618,8 @@ export async function initViewer(containerEl) {
     // collision triangles (the player mode) are loaded for maps only
     if (mapParams.sceneType != 'map') {
         collisionStatusEl.textContent = 'maps only';
+        if (config.getGameplayMode() !== GameplayMode.FreeRoam)
+            gameplayStatusEl.textContent = 'maps only';
     }
     if (mapParams.sceneType == 'map') {
         sceneObj.loadMap(mapParams.mapName, adt_x, adt_y);
@@ -579,6 +636,8 @@ export async function initViewer(containerEl) {
             collisionStatusEl.textContent = 'none for this map';
           }
         });
+
+        startGameplayMode(mapParams.mapId);
     } else if (mapParams.sceneType == 'wmo') { 
         sceneObj.loadWMOFile({
             fileName : mapParams.fileName,
@@ -831,6 +890,12 @@ export async function initViewer(containerEl) {
   });
   // the camera keys still reach the document; keep them from changing the selection (and reloading)
   selMap.addEventListener('keydown', (e) => { e.preventDefault(); });
+  selGameplayMode.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('mode', selGameplayMode.value);
+    window.location.href = url.toString();
+  });
+  selGameplayMode.addEventListener('keydown', (e) => { e.preventDefault(); });
 
   // Buttons
   btnCopyDebug.addEventListener('click', () => {

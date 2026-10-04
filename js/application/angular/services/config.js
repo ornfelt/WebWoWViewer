@@ -1,4 +1,5 @@
 import Expansion from '../Expansion.js';
+import GameplayMode from '../GameplayMode.js';
 
 //var urlToLoadWoWFile = '/get/';
 var urlToLoadWoWFile = 'http://127.0.0.1:3002/files/';
@@ -43,6 +44,9 @@ var useRandomTextures = false;
 
 var cameraM2 = null;
 
+/* the gameplay mode (my_web_wow's GlobalSettings.CurrentGameplayMode), set from ?mode= on startup */
+var gameplayMode = GameplayMode.FreeRoam;
+
 var savedUrlForLoading;
 try {
     savedUrlForLoading = localStorage.getItem('urlForLoading');
@@ -70,6 +74,10 @@ export default {
     /* the mpq server's collision api, next to its files/ route (http://127.0.0.1:3002/files/ -> http://127.0.0.1:3002/collision/) */
     getUrlToLoadCollision : function (){
         return new URL('../collision/', new URL(urlToLoadWoWFile, window.location.href)).toString();
+    },
+    /* the mpq server's gameplay api (wander nodes, navigation, model lists), next to its files/ route */
+    getUrlToLoadGameplay : function (){
+        return new URL('../gameplay/', new URL(urlToLoadWoWFile, window.location.href)).toString();
     },
     getFileReadMethod : function(){
         return readFileMethod;
@@ -242,5 +250,11 @@ export default {
     },
     setCameraM2 : function (value) {
         cameraM2 = value;
+    },
+    getGameplayMode : function () {
+        return gameplayMode;
+    },
+    setGameplayMode : function (value) {
+        gameplayMode = value;
     }
 }
