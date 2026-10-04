@@ -1907,8 +1907,9 @@ class Scene {
     /*
      * The player, its worn items and its mount from a JSON packet file (services/packetJson), as my_web_wow's
      * UsePlayerJsonData: the packets are processed once the creature DBCs have loaded, and the file's player
-     * (my_web_wow's local player key 17786964) becomes the player character; its other units are parked in
-     * front of the camera. Resolves to whether the file could be loaded.
+     * (the unit with my_web_wow's local player key 17786964, else the file's first player unit) becomes the
+     * player character; a file without one keeps the default player. Its other units are parked in front of
+     * the camera. Resolves to whether the file could be loaded.
      */
     loadPlayerJson(fileName) {
         var self = this;
@@ -1919,14 +1920,23 @@ class Scene {
             var om = self.worldObjectManager.objectMap;
             self.worldObjectManager.loadPackets(packets);
 
-            var player = om[JsonPlayerGuid];
-            if (player && !om[localPlayerGuid]) {
-                delete om[JsonPlayerGuid];
-                om[localPlayerGuid] = player;
-                var keys = self.worldObjectManager.jsonObjectKeys;
-                keys[keys.indexOf(String(JsonPlayerGuid))] = String(localPlayerGuid);
+            // the file's player: the unit with my_web_wow's local player key, else its first player (obj_type 4) unit
+            var keys = self.worldObjectManager.jsonObjectKeys;
+            var playerKey = om[JsonPlayerGuid] ? String(JsonPlayerGuid) : null;
+            if (playerKey === null) {
+                for (var key of keys) {
+                    if (om[key] instanceof WorldPlayer) { playerKey = key; break; }
+                }
             }
-            console.log("[WowViewer] Player loaded from " + fileName + (player ? "" : " (no player " + JsonPlayerGuid + " in it)"));
+            if (playerKey === null) {
+                console.log("[WowViewer] No player in " + fileName + "; using the default player");
+            } else if (!om[localPlayerGuid]) {
+                var player = om[playerKey];
+                delete om[playerKey];
+                om[localPlayerGuid] = player;
+                keys[keys.indexOf(playerKey)] = String(localPlayerGuid);
+                console.log("[WowViewer] Player loaded from " + fileName + " (unit " + playerKey + ")");
+            }
             return true;
         });
         this.playerJsonLoaded = loaded;
