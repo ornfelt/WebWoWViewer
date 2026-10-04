@@ -48,6 +48,8 @@ class WorldObjectManager {
     wanderKeys: Set<number>;
     /* the game server's bot mode plays the player (MultiplayerManager), so the player character is put away */
     hideLocalPlayer: boolean;
+    /* the keys of the units loaded from a JSON packet file (loadPackets), in insertion order */
+    jsonObjectKeys: string[];
 
     constructor(sceneApi: SceneApi){
         this.objectMap = {};
@@ -57,6 +59,7 @@ class WorldObjectManager {
         this.playPackets = false;
         this.wanderKeys = new Set();
         this.hideLocalPlayer = false;
+        this.jsonObjectKeys = [];
     }
 
     update(deltaTime: number, cameraPos: ReadonlyVec4, viewMat: ReadonlyMat4, camera: firstPersonCamera) {
@@ -110,6 +113,9 @@ class WorldObjectManager {
                 player.setRotation(yawRad);
             }
         }
+
+        /* Park the units of a JSON packet file in front of the camera */
+        this.parkJsonObjectsInFrontOfCamera(cameraPos, camera);
 
         /* 2. Update models */
         for (var field in this.objectMap) {
@@ -508,6 +514,61 @@ class WorldObjectManager {
     loadAllPacket(){
         for (var i = 0; i < packetList.length; i++){
             this.processPacket(packetList[i]);
+        }
+    }
+
+    /*
+     * Process every packet of a JSON packet file (services/packetJson), as loadAllPacket does for the built-in
+     * packets and my_web_wow's LoadPacketsFromFile; the units it creates are parked in front of the camera.
+     */
+    loadPackets(packets: unknown[]) {
+        var keysBefore = new Set(Object.keys(this.objectMap));
+        for (var packet of packets) {
+            this.processPacket(packet);
+        }
+        for (var key of Object.keys(this.objectMap)) {
+            if (!keysBefore.has(key) && this.jsonObjectKeys.indexOf(key) < 0)
+                this.jsonObjectKeys.push(key);
+        }
+        console.log("[WorldObjectManager] Processed " + packets.length + " packet(s); objectMap now has " + Object.keys(this.objectMap).length + " object(s).");
+    }
+
+    /*
+     * Places every JSON-loaded unit in front of the camera each frame, unless it is following a packet movement
+     * path (isMoving), as my_web_wow's ParkJsonObjectsInFrontOfCamera. The player character is skipped, it has
+     * its own placement in update(). Multiple objects are spread out laterally so they don't overlap.
+     */
+    parkJsonObjectsInFrontOfCamera(cameraPos: ReadonlyVec4, camera: firstPersonCamera) {
+        if (this.jsonObjectKeys.length === 0)
+            return;
+
+        var yawRad = -camera.ah * (Math.PI / 180);
+        var pitchRad = -camera.av * (Math.PI / 180);
+        var dist = 20;
+
+        var cosPitch = Math.cos(pitchRad);
+        var fx = Math.cos(yawRad) * cosPitch;
+        var fy = Math.sin(yawRad) * cosPitch;
+        var fz = Math.sin(pitchRad);
+
+        // Right vector (perpendicular to forward in the XY plane) for lateral spacing.
+        var rx = Math.sin(yawRad);
+        var ry = -Math.cos(yawRad);
+
+        var shown = 0;
+        for (var key of this.jsonObjectKeys) {
+            if (key === String(localPlayerGuid)) continue; // the player character: handled in update
+            var unit = this.objectMap[key];
+            if (!(unit instanceof WorldUnit)) continue;
+            if (unit.isMoving) continue;   // respect packet movement paths
+
+            var lateral = shown * 4;
+            unit.setPosition(vec3.fromValues(
+                cameraPos[0] + fx * dist + rx * lateral,
+                cameraPos[1] + fy * dist + ry * lateral,
+                cameraPos[2] + fz * dist - 6));
+            unit.setRotation(yawRad);
+            shown++;
         }
     }
 

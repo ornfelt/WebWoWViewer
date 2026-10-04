@@ -67,6 +67,9 @@ var botCount: number = 8;
 var devMode: boolean = true; // bots don't attack the player
 var playerMelee: boolean = false; // the player's class in bot mode (and Kick vs Counterspell); false = caster
 
+/* the JSON packet file the player is loaded from (my_web_wow's UsePlayerJsonData / PlayerJsonFileName); null = the default player */
+var playerJsonFileName: string | null = null;
+
 var savedUrlForLoading: string | null | undefined;
 try {
     savedUrlForLoading = localStorage.getItem('urlForLoading');
@@ -354,6 +357,12 @@ export default {
     },
     setPlayerMelee : function (value: boolean) {
         playerMelee = value;
+    },
+    getPlayerJsonFileName : function () {
+        return playerJsonFileName;
+    },
+    setPlayerJsonFileName : function (value: string | null) {
+        playerJsonFileName = value;
     },
     getGameplayMode : function () {
         return gameplayMode;

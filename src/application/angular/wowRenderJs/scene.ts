@@ -23,10 +23,11 @@ import MultiplayerManager from './multiplayer/multiplayerManager'
 import LocalGameServer from './localServer/localGameServer'
 import { NetBotClass } from './localServer/netProtocol'
 import { AnimationType } from './manager/playerAnimationState'
-import type WorldUnit from './objects/worldObjects/worldUnit';
 import type { AnimationTypeValue } from './manager/playerAnimationState';
 import { setAnimationSafe } from './manager/animationBridge'
 import WorldPlayer from './objects/worldObjects/worldPlayer'
+import WorldUnit from './objects/worldObjects/worldUnit'
+import { loadPacketJson } from './../services/packetJson'
 import config from './../services/config'
 
 import wdtLoader from './../services/map/wdtLoader';
@@ -144,6 +145,9 @@ const liquidShader             = getShaderSourceById('liquid');
 const lowresTerrainShader      = getShaderSourceById('lowresTerrain');
 const debug2DShader            = getShaderSourceById('debug2DShader');
 const debug3DShader            = getShaderSourceById('debug3DShader');
+
+/* the player's guid in the JSON packet files: my_web_wow's local player key */
+const JsonPlayerGuid = 17786964;
 
 // etc.
 
@@ -310,6 +314,8 @@ class Scene {
     playerCharacterRequested: boolean | undefined;
     /* set by the constructor */
     unitDbcsLoaded!: Promise<void[]>;
+    /* settles once the JSON packet file (loadPlayerJson) has been processed; the player character waits for it */
+    playerJsonLoaded: Promise<unknown>;
     /* for the CreatureMap / SpellMap modes, set by startSpawnMode() */
     spawnManagerMap: SpawnManager | undefined;
     /* the player's spells, set by spawnPlayerCharacter() */
@@ -353,6 +359,7 @@ class Scene {
         this.uFogStart = -1;
         this.uFogEnd  = -1;
         this.fps = 0;
+        this.playerJsonLoaded = Promise.resolve();
 
         this.lastHour = -1;
 
@@ -2023,22 +2030,30 @@ class Scene {
         this.camera.setPlayerMode(enabled);
         if (this.camera.collisionActive && !this.playerCharacterRequested) {
             this.playerCharacterRequested = true;
-            // the character's model comes from the creature DBCs, which may still be loading
+            // the character's model comes from the creature DBCs (or a JSON packet file), which may still be loading
             var self = this;
-            this.unitDbcsLoaded.then(function () {
+            Promise.all([this.unitDbcsLoaded, this.playerJsonLoaded]).then(function () {
                 self.spawnPlayerCharacter();
             });
         }
     }
-    /* the player character, as my_web_wow's hardcoded Player1 (display id 26563, scale 1); worldObjectManager places it */
+    /*
+     * the player character, as my_web_wow's hardcoded Player1 (display id 26563, scale 1), or the player of a
+     * JSON packet file (loadPlayerJson) as it is; worldObjectManager places it
+     */
     spawnPlayerCharacter() {
-        var newWorldPlayer = new WorldPlayer(this.sceneApi);
-        this.worldObjectManager.objectMap[localPlayerGuid] = newWorldPlayer;
-        newWorldPlayer.setDisplayId(26563);
-        newWorldPlayer.setNativeDisplayId(26563);
-        newWorldPlayer.setScale(1.0);
-        newWorldPlayer.manualAnimation = true;
-        newWorldPlayer.complete();
+        var jsonPlayer = this.worldObjectManager.objectMap[localPlayerGuid];
+        if (jsonPlayer instanceof WorldUnit) {
+            jsonPlayer.manualAnimation = true;
+        } else {
+            var newWorldPlayer = new WorldPlayer(this.sceneApi);
+            this.worldObjectManager.objectMap[localPlayerGuid] = newWorldPlayer;
+            newWorldPlayer.setDisplayId(26563);
+            newWorldPlayer.setNativeDisplayId(26563);
+            newWorldPlayer.setScale(1.0);
+            newWorldPlayer.manualAnimation = true;
+            newWorldPlayer.complete();
+        }
 
         this.playerAnimState = new PlayerAnimationState();
 
@@ -2098,6 +2113,34 @@ class Scene {
             self.multiplayerManager = multiplayerManager;
             return server.cfg.botCount;
         });
+    }
+    /*
+     * The player, its worn items and its mount from a JSON packet file (services/packetJson), as my_web_wow's
+     * UsePlayerJsonData: the packets are processed once the creature DBCs have loaded, and the file's player
+     * (my_web_wow's local player key 17786964) becomes the player character; its other units are parked in
+     * front of the camera. Resolves to whether the file could be loaded.
+     */
+    loadPlayerJson(fileName: string): Promise<boolean> {
+        var self = this;
+        var loaded = Promise.all([this.unitDbcsLoaded, loadPacketJson(fileName)]).then(function (results) {
+            var packets = results[1];
+            if (packets === null) return false;
+
+            var om = self.worldObjectManager.objectMap;
+            self.worldObjectManager.loadPackets(packets);
+
+            var player = om[JsonPlayerGuid];
+            if (player && !om[localPlayerGuid]) {
+                delete om[JsonPlayerGuid];
+                om[localPlayerGuid] = player;
+                var keys = self.worldObjectManager.jsonObjectKeys;
+                keys[keys.indexOf(String(JsonPlayerGuid))] = String(localPlayerGuid);
+            }
+            console.log("[WowViewer] Player loaded from " + fileName + (player ? "" : " (no player " + JsonPlayerGuid + " in it)"));
+            return true;
+        });
+        this.playerJsonLoaded = loaded;
+        return loaded;
     }
     /* loads the map's wander nodes from the mpq server (the node debugger, the debug drawing and the Wander mode); resolves to the node count */
     loadGameplayNodes(mapId: number): Promise<number> {

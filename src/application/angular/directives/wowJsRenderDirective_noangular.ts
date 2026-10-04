@@ -11,6 +11,7 @@ import GameplayMode, { implementedGameplayModes, parseGameplayMode } from '../Ga
 import { SpellType } from '../wowRenderJs/objects/spellDefinitions';
 import { createNodeDebugger, createSpawnBrowser } from './gameplayPanels';
 import { NetSpellType, NetBotClass } from '../wowRenderJs/localServer/netProtocol';
+import { playerJsonFiles } from '../services/packetJson';
 import type { NetSpellTypeValue } from '../wowRenderJs/localServer/netProtocol';
 import type { SpellTypeValue } from '../wowRenderJs/objects/spellDefinitions';
 import mapParamsRepository, { MapKey, mapKeyGroups } from '../mapParamsRepository';
@@ -329,7 +330,7 @@ export async function initViewer(containerEl: HTMLElement) {
 
       <div id="settings-panel" style="flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; box-sizing: border-box; padding: 0 10px; color: white;">
         <style>
-          #selMap, #selMap optgroup, #selMap option, #selGameplayMode, #selGameplayMode option { background: #222; color: white; }
+          #selMap, #selMap optgroup, #selMap option, #selGameplayMode, #selGameplayMode option, #selPlayerJson, #selPlayerJson option { background: #222; color: white; }
           #selMap option:disabled, #selGameplayMode option:disabled { color: #777; }
           #settings-panel .settings-section { margin-top: 8px; }
           #settings-panel .settings-section > summary { cursor: pointer; font-weight: bold; margin-bottom: 2px; }
@@ -362,7 +363,8 @@ export async function initViewer(containerEl: HTMLElement) {
           0 - teleport to target, N - wandering, G - target marker, J - node flag colors,<br/>
           , - wander paths, . - linked nodes / node boxes, Ctrl+. - all node links,<br/>
           F7 - node debugger, F8 - spawn browser,<br/>
-          FreeForAll / Deathmatch: also 7 - Polymorph, 8 - Counterspell (Kick when melee)
+          FreeForAll / Deathmatch: also 7 - Polymorph, 8 - Counterspell (Kick when melee),<br/>
+          Shift+C - teleport to a random linked node, Shift+X - teleport to a random node
         </details>
 
         <details id="secRendering" class="settings-section" open>
@@ -416,6 +418,10 @@ export async function initViewer(containerEl: HTMLElement) {
           </div>
           <div>spawns = <span id="gameplay-status">-</span></div>
           <div>nodes = <span id="gameplay-nodes">-</span></div>
+          <div style="display: flex; align-items: center; gap: 4px;" title="The player character (with its worn items and mount) from a JSON packet file in src/application (reloads the page)">
+            <span style="white-space: nowrap;">player json =</span>
+            <select id="selPlayerJson" style="flex: 1 1 auto; min-width: 0; border: 1px solid #888; border-radius: 2px; padding: 1px 2px;"></select>
+          </div>
           <label title="Unit frames, cast bars, numbers and floating combat text"><input type="checkbox" id="chkUseHud"> HUD</label><br/>
           <label title="The Wander mode's bots walk from node to node (N)"><input type="checkbox" id="chkEnableWandering"> Wandering</label><br/>
           <label title="FreeForAll / Deathmatch: the number of bots (reloads the page)">Bots <input type="number" id="numBotCount" min="0" max="100" style="width: 4em;"></label><br/>
@@ -488,6 +494,7 @@ export async function initViewer(containerEl: HTMLElement) {
   const selGameplayMode     = containerEl.querySelector<HTMLSelectElement>('#selGameplayMode')!;
   const gameplayStatusEl    = containerEl.querySelector<HTMLSpanElement>('#gameplay-status')!;
   const gameplayNodesEl     = containerEl.querySelector<HTMLSpanElement>('#gameplay-nodes')!;
+  const selPlayerJson       = containerEl.querySelector<HTMLSelectElement>('#selPlayerJson')!;
   const chkUseHud           = containerEl.querySelector<HTMLInputElement>('#chkUseHud')!;
   const chkEnableWandering  = containerEl.querySelector<HTMLInputElement>('#chkEnableWandering')!;
   const numBotCount         = containerEl.querySelector<HTMLInputElement>('#numBotCount')!;
@@ -621,6 +628,15 @@ export async function initViewer(containerEl: HTMLElement) {
   }
   console.log(`gameplay mode  : ${config.getGameplayMode()}`);
 
+  // ?playerJson=<file> loads the player from a JSON packet file (the player json selection reloads the page with it)
+  const playerJsonArg = new URLSearchParams(window.location.search).get('playerJson');
+  if (playerJsonArg !== null) {
+    if (playerJsonFiles.indexOf(playerJsonArg) >= 0)
+      config.setPlayerJsonFileName(playerJsonArg);
+    else
+      console.error(`Unknown player json: '${playerJsonArg}', using the default player`);
+  }
+
   // ?bots=<count> sets the FreeForAll / Deathmatch bot count (the bot count field reloads the page with it)
   const botsArg = new URLSearchParams(window.location.search).get('bots');
   if (botsArg !== null && /^\d+$/.test(botsArg))
@@ -732,6 +748,15 @@ export async function initViewer(containerEl: HTMLElement) {
     selGameplayMode.appendChild(option);
   }
   selGameplayMode.value = config.getGameplayMode();
+
+  // Player JSON selection: none (the default player) or one of the packet files
+  for (const fileName of ['none'].concat(playerJsonFiles)) {
+    const option = document.createElement('option');
+    option.value = fileName;
+    option.textContent = fileName;
+    selPlayerJson.appendChild(option);
+  }
+  selPlayerJson.value = config.getPlayerJsonFileName() ?? 'none';
   expansionEl.textContent = window.selectedExpansion;
   // webpack replaces process.env.NODE_ENV with the build mode
   buildEl.textContent = process.env.NODE_ENV ?? '';
@@ -773,6 +798,14 @@ export async function initViewer(containerEl: HTMLElement) {
             collisionStatusEl.textContent = 'none for this map';
           }
         });
+
+        // the player (with its worn items and mount) from a JSON packet file, unless the game server provides it
+        const playerJson = config.getPlayerJsonFileName();
+        const mode = config.getGameplayMode();
+        if (playerJson !== null && mode !== GameplayMode.FreeForAll && mode !== GameplayMode.Deathmatch) {
+          console.log(`[WowViewer] Player JSON enabled; loading player from ${playerJson}`);
+          sceneObj.loadPlayerJson(playerJson);
+        }
 
         startGameplayMode(mapParams.mapId);
     } else if (mapParams.sceneType == 'wmo') { 
@@ -989,6 +1022,22 @@ export async function initViewer(containerEl: HTMLElement) {
     'x': NetSpellType.IceBlock,
   };
 
+  // my_web_wow's TeleToRandomNode / TeleToRandomLinkedNode: the camera to a random node of the map, or one linked from the nearest node
+  function teleToRandomNode() {
+    const nm = sceneObj.nodeManager;
+    const node = nm ? nm.getRandomNode() : null;
+    if (node === null) { console.log('[tele] no nodes loaded'); return; }
+    sceneObj.setCameraPos(node.x, node.y, node.z + 5);
+    console.log(`[tele] -> node ${node.id} (${node.x.toFixed(0)},${node.y.toFixed(0)},${node.z.toFixed(0)})`);
+  }
+  function teleToRandomLinkedNode() {
+    const cur = sceneObj.hud.currentNodeId;
+    const node = sceneObj.nodeManager ? sceneObj.nodeManager.getRandomLinkedNode(cur) : null;
+    if (node === null) { console.log(`[tele] no linked node from ${cur}`); return; }
+    sceneObj.setCameraPos(node.x, node.y, node.z + 5);
+    console.log(`[tele] -> linked node ${node.id}`);
+  }
+
   // the gameplay / debug keys of my_web_wow's WowViewer.OnKeyDown (its devMode keys included); true when handled
   function gameplayKey(event: KeyboardEvent): boolean {
     if (event.key === 'F7') { nodeDebugger.toggle(); return true; }
@@ -998,6 +1047,15 @@ export async function initViewer(containerEl: HTMLElement) {
     const key = event.key.toLowerCase();
     // Ctrl only with '.'
     if (event.ctrlKey && key !== '.') return false;
+
+    // Shift+C / Shift+X: the dev teleports (my_web_wow's dev-mode C / X; here C cycles animations and X is Ice Block)
+    if (event.shiftKey && (key === 'c' || key === 'x')) {
+      if (!event.repeat) {
+        if (key === 'c') teleToRandomLinkedNode();
+        else teleToRandomNode();
+      }
+      return true;
+    }
     if (event.repeat && (key in spellKeys || 't0ngj,.78'.indexOf(key) >= 0)) return true;
 
     // FreeForAll / Deathmatch: the spells and the targeting go to the game server (the C#'s mp keys)
@@ -1222,6 +1280,15 @@ export async function initViewer(containerEl: HTMLElement) {
     window.location.href = url.toString();
   });
   selGameplayMode.addEventListener('keydown', (e) => { e.preventDefault(); });
+  selPlayerJson.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    if (selPlayerJson.value === 'none')
+      url.searchParams.delete('playerJson');
+    else
+      url.searchParams.set('playerJson', selPlayerJson.value);
+    window.location.href = url.toString();
+  });
+  selPlayerJson.addEventListener('keydown', (e) => { e.preventDefault(); });
 
   // Buttons
   btnNodeDebugger.addEventListener('click', () => { nodeDebugger.toggle(); });
