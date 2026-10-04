@@ -11,6 +11,18 @@ const nameByType = {
     SpellCast: 'ReadySpellOmni',
     SpellCast2: 'SpellCastOmni',
     SpellCasted: 'SpellCastOmni',
+    Walk: 'Walk',
+    Attack: 'AttackUnarmed',
+    Attack2: 'Attack2H',
+    Attack3: 'Attack1H',
+    Attack4: 'AttackOff',
+    Attack5: 'AttackUnarmed',
+    Attack6: 'AttackUnarmed',
+    AttackSpecial: 'SpellCastDirected',
+    SpellCast3: 'ChannelCastOmni',
+    Die: 'Death',
+    GettingHit: 'CombatCritical',
+    Stunned: 'CombatWound',
 };
 
 /* lower-case AnimationData.dbc name -> record, built once per loaded DBC */

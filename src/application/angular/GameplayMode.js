@@ -1,5 +1,5 @@
-// The gameplay modes, as in my_web_wow's GameplayMode.cs. Only FreeRoam, Wander, SpellMap and CreatureMap
-// are implemented in the web version so far.
+// The gameplay modes, as in my_web_wow's GameplayMode.cs. Dungeon and RealWorld are not implemented (in
+// the C# either).
 const GameplayMode = {
   FreeRoam: "FreeRoam",
   Wander: "Wander",
@@ -11,7 +11,8 @@ const GameplayMode = {
   RealWorld: "RealWorld"   // Not implemented
 };
 
-export const implementedGameplayModes = [GameplayMode.FreeRoam, GameplayMode.Wander, GameplayMode.SpellMap, GameplayMode.CreatureMap];
+export const implementedGameplayModes = [GameplayMode.FreeRoam, GameplayMode.Wander, GameplayMode.FreeForAll, GameplayMode.Deathmatch,
+  GameplayMode.SpellMap, GameplayMode.CreatureMap];
 
 // A mode from its name (any case) or the short names my_web_wow's --mode takes; undefined if unknown
 export function parseGameplayMode(raw) {

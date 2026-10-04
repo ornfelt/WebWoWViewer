@@ -13,6 +13,7 @@ export default class AnimationManager {
         this.currentAnimationIndex = 0;
         this.currentAnimationTime = 0;
         this.currentAnimationPlayedTimes = 0;
+        this.paused = false;
 
         this.nextSubAnimationIndex = -1;
         this.nextSubAnimationTime = 0;
@@ -161,7 +162,8 @@ export default class AnimationManager {
         var mainAnimationRecord = m2File.animations[this.mainAnimationIndex];
         var currentAnimationRecord = m2File.animations[this.currentAnimationIndex];
 
-        this.currentAnimationTime += deltaTime;
+        if (!this.paused)
+            this.currentAnimationTime += deltaTime;
         //Update global sequences
         for (var i = 0; i < this.globalSequenceTimes.length; i++) {
             if (m2File.globalSequences[i] > 0) { // Global sequence values can be 0's

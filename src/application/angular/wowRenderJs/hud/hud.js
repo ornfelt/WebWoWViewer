@@ -130,6 +130,12 @@ class Hud {
         this.dd.rectOutline2D(x, y, w, h, outline);
     }
 
+    drawKillCount(count, yPos, color) {
+        var xPos = this.scene.canvas.width - 120;
+        xPos += (4 - String(count).length) * 30;
+        this.drawNumber(count, xPos, yPos, 20, color, true);
+    }
+
     drawCastBar(x, y, width, thickness, progress, color) {
         progress = clamp01(progress);
         var top = y - thickness * 0.5;
@@ -149,9 +155,9 @@ class Hud {
 
     /*
      * Web addition: a damage number over a unit (local damage on hit, see SpellManager), at the unit's
-     * screen position, in the colours of the C#'s test feed (crit orange, else yellow).
+     * screen position, in the colours of the C#'s test feed (crit orange, else yellow) unless color is given.
      */
-    addDamageNumberAtUnit(unit, value, crit) {
+    addDamageNumberAtUnit(unit, value, crit, color = null) {
         var p = unit.getPosition();
         var clip = vec4.fromValues(p[0], p[1], p[2], 1);
         var viewProj = mat4.multiply(mat4.create(), this.scene.perspectiveMatrix, this.scene.lookAtMat4);
@@ -160,7 +166,7 @@ class Hud {
 
         var x = (clip[0] / clip[3] * 0.5 + 0.5) * this.scene.canvas.width;
         var y = (1 - (clip[1] / clip[3] * 0.5 + 0.5)) * this.scene.canvas.height;
-        this.addDamageNumber(value, x, y, crit ? [1, 0.4, 0] : [1, 1, 0.3], crit);
+        this.addDamageNumber(value, x, y, color !== null ? color : crit ? [1, 0.4, 0] : [1, 1, 0.3], crit);
     }
 
     updateAndDrawNumbers() {
@@ -362,7 +368,7 @@ class Hud {
         var target = this.getPlayerTarget();
         if (target !== null) {
             // the C# divides by 3 outside multiplayer, where the scale is probably not saved correctly
-            var tScale = target.scale / 3.0;
+            var tScale = this.scene.multiplayerManager ? target.scale : target.scale / 3.0;
             if (config.getDrawTargetCircle()) { this.drawTargetCircle(target.pos, target.team, 0.3 * tScale, 3 * tScale); any = true; }
             if (config.getDrawTargetDot()) { this.drawTargetDot(target.pos, target.team, 0.25 * tScale, 4 * tScale); any = true; }
         }
@@ -371,6 +377,13 @@ class Hud {
         var blizzPos = this.scene.spellManager ? this.scene.spellManager.blizzardTargetPosition : null;
         if (blizzPos !== null) {
             this.drawBlizzardCircle(blizzPos);
+            any = true;
+        }
+
+        // the game server's blizzard circles and frozen units (FreeForAll / Deathmatch)
+        if (this.scene.multiplayerManager) {
+            this.scene.multiplayerManager.drawBlizzardCircles();
+            this.scene.multiplayerManager.drawFrozenCircles();
             any = true;
         }
 
@@ -434,7 +447,16 @@ class Hud {
 
             targetCasting: false,
             targetCastProgress: 0,
-            targetCastColor: [1, 0.5, 0, 1]
+            targetCastColor: [1, 0.5, 0, 1],
+
+            showRessTimer: false,
+            ressSecondsLeft: 0,
+            ressSecondsTotal: 0,
+            ressFraction: 1,
+
+            deathmatch: false,
+            allianceKills: 0,
+            hordeKills: 0
         };
 
         var om = this.scene.worldObjectManager.objectMap;
@@ -543,6 +565,27 @@ class Hud {
         if (s.playerCasting) this.drawCastBar(s.playerCastX, s.playerCastY, s.playerCastWidth, 5, s.playerCastProgress, s.playerCastColor);
         // target cast bar: follows the target frame
         if (s.targetCasting) this.drawCastBar(targetFrameX, targetCastY, frameW, 5, s.targetCastProgress, s.targetCastColor);
+
+        if (s.showRessTimer) {
+            // Hard-coded toggle: ress timer as a number, or as a borderless magenta bar that drains.
+            var ressAsBar = true;
+
+            var left = Math.max(0, s.ressSecondsLeft);
+            if (ressAsBar) {
+                var pctLeft = clamp01(s.ressFraction); // smooth, not stepped
+
+                var barW = 192, barH = 6;
+                var barX = 610, barY = 20;
+                this.dd.rectFill2D(barX, barY, barW * pctLeft, barH, [0.8, 0.1, 0.9, 1]);
+            } else {
+                this.drawNumber(left, 610, 70, 30, [0.6, 0.5, 0, 1]);
+            }
+        }
+
+        if (s.deathmatch) {
+            this.drawKillCount(s.allianceKills, 10, [0.2, 0.5, 1, 1]);
+            this.drawKillCount(s.hordeKills, 50, [1, 0.25, 0.25, 1]);
+        }
 
         this.updateAndDrawNumbers(); // floating damage text last (on top)
 

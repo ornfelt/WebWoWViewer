@@ -16,6 +16,19 @@ export const AnimationType = {
     SpellCast: 'SpellCast',
     SpellCast2: 'SpellCast2',
     SpellCasted: 'SpellCasted',
+    // the game server's units (MultiplayerManager)
+    Walk: 'Walk',
+    Attack: 'Attack',
+    Attack2: 'Attack2',
+    Attack3: 'Attack3',
+    Attack4: 'Attack4',
+    Attack5: 'Attack5',
+    Attack6: 'Attack6',
+    AttackSpecial: 'AttackSpecial',
+    SpellCast3: 'SpellCast3',
+    Die: 'Die',
+    GettingHit: 'GettingHit',
+    Stunned: 'Stunned',
 };
 
 /* how long the cast-complete animation plays before returning to idle, in seconds */

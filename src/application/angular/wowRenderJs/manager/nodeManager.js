@@ -115,6 +115,31 @@ class NodeManager {
         var node = this.nodesById.get(nodeId);
         return node ? parseLinkIds(node.links) : [];
     }
+
+    getSpawnNodesForTeam(team) {
+        var has = (n, f) => (n.flags & f) !== 0;
+        var teamOnly = team === FactionTeam.Alliance ? BotWpFlags.AllianceOnly : BotWpFlags.HordeOnly;
+
+        // primary: SPAWN + team-only
+        var primary = this.nodes.filter((n) => has(n, BotWpFlags.Spawn) && has(n, teamOnly));
+        if (primary.length > 0) return primary;
+
+        // secondary: neutral SPAWN (SPAWN present, but no team-only flags)
+        var neutral = this.nodes.filter((n) => has(n, BotWpFlags.Spawn) &&
+            !has(n, BotWpFlags.AllianceOnly) && !has(n, BotWpFlags.HordeOnly));
+        if (neutral.length > 0) return neutral;
+
+        // fallback: any node allowed for team (team-only is respected; neutral allowed)
+        return this.nodes.filter((n) =>
+            has(n, BotWpFlags.MovementIgnoresFaction) ||
+            (!has(n, BotWpFlags.AllianceOnly) && !has(n, BotWpFlags.HordeOnly)) ||
+            has(n, teamOnly));
+    }
+
+    getRandomSpawnForTeam(team) {
+        var list = this.getSpawnNodesForTeam(team);
+        return list.length === 0 ? null : list[Math.floor(Math.random() * list.length)];
+    }
 }
 
 export default NodeManager;
