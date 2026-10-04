@@ -56,8 +56,7 @@ class BotAI {
     update(bot: ServerEntity, dt: number, allEntities: EntityMap, pathfinder: Pathfinder) {
         if (bot.isDead) return;
 
-        // Tick status effects
-        bot.tickTimers(dt);
+        // (status effect timers are ticked by ServerWorld.tick for every entity)
 
         // If polymorphed or frozen, just wait
         if (bot.isPolymorphed) {
