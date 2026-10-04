@@ -352,7 +352,8 @@ class BotAI {
         // At 20% HP -> 40% chance, at 10% HP -> 70% chance
         var chance = hpPct < 0.1 ? 0.7 : hpPct < 0.2 ? 0.4 : hpPct < 0.3 ? 0.1 : 0;
         if (Math.random() < chance) {
-            this.combat.tryCast(bot, NetSpellType.IceBlock, null, new Map());
+            if (!this.combat.tryCast(bot, NetSpellType.IceBlock, null, new Map()))
+                return false;
             this.logVerbose("bot " + bot.id + " ice blocks at " + Math.round(hpPct * 100) + "% HP");
             return true;
         }
