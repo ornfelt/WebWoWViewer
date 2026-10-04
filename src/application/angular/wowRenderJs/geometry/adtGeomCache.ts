@@ -1,6 +1,7 @@
 import {mat4} from 'gl-matrix';
 import type {ReadonlyMat4} from 'gl-matrix';
 import cacheTemplate from './../cache';
+import { timeParse, timeUpload, timeTextures } from './../../services/performance';
 import config from './../../services/config';
 import { triangleStripsToLines } from './wireframe';
 import { waterTint } from './../liquid/liquid';
@@ -155,9 +156,11 @@ class ADTGeom {
     assign(adtFile: AdtFile) {
         this.adtFile = adtFile;
     }
-    loadTextures() {
+    /* resolves once the rgb textures have loaded or failed (for the load timing logs) */
+    loadTextures(): Promise<void[]> {
         var gl = this.gl;
         var mcnkObjs = this.adtFile.mcnkObjs;
+        var textureLoads: Promise<void>[] = [];
 
         /* 1. Load rgb textures */
         for (var i = 0; i < mcnkObjs.length; i++) {
@@ -166,7 +169,7 @@ class ADTGeom {
             if (mcnkObj.textureLayers && (mcnkObj.textureLayers.length > 0)) {
                 for (var j = 0; j < mcnkObj.textureLayers.length; j++) {
                     //if (mcnkObj.textureLayers[j].textureID < 0)
-                    this.loadTexture(i, j, mcnkObj.textureLayers[j].textureName!);
+                    textureLoads.push(this.loadTexture(i, j, mcnkObj.textureLayers[j].textureName!));
                 }
             }
         }
@@ -199,10 +202,12 @@ class ADTGeom {
         }
 
         this.alphaTextures = alphaTextures;
+
+        return Promise.all(textureLoads);
     }
-    loadTexture(index: number, layerInd: number, filename: string) {
+    loadTexture(index: number, layerInd: number, filename: string): Promise<void> {
         var self = this;
-        this.sceneApi.resources.loadTexture(filename).then(function success(textObject) {
+        return this.sceneApi.resources.loadTexture(filename).then(function success(textObject) {
             self.textureArray[index][layerInd] = textObject;
         }, function error() {
         });
@@ -394,17 +399,20 @@ class AdtGeomCache {
 
         var cache = cacheTemplate(function loadAdtFile(fileName: string) {
             /* Must return promise */
-            return adtLoader(fileName);
+            return timeParse("ADT", fileName, adtLoader(fileName));
         }, function process(adtFile: AdtFile) {
-            var adtGeomObj = new ADTGeom(sceneApi, sceneApi.getCurrentWdt());
-            adtGeomObj.assign(adtFile);
-            adtGeomObj.createTriangleStrip();
-            adtGeomObj.createVBO();
+            var adtGeomObj = timeUpload("ADT", adtFile, function () {
+                var obj = new ADTGeom(sceneApi, sceneApi.getCurrentWdt());
+                obj.assign(adtFile);
+                obj.createTriangleStrip();
+                obj.createVBO();
+                return obj;
+            });
             // Debug
             //if (adtGeomObj.adtFile.filename.includes("28_28")) {
             //  console.log("adtGeomObj: ", adtGeomObj);
             //}
-            adtGeomObj.loadTextures();
+            timeTextures("ADT", adtFile, adtGeomObj.loadTextures());
 
             return adtGeomObj;
         });

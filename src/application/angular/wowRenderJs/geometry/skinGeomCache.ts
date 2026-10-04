@@ -1,4 +1,5 @@
 import cacheTemplate from './../cache';
+import { timeParse, timeUpload, timeTextures } from './../../services/performance';
 import { triangleListToLines } from './wireframe';
 import type { Cache } from './../cache';
 import skinLoader from './../../services/map/skinLoader'
@@ -284,13 +285,15 @@ class SkinGeomCache {
             /* Must return promise */
             // JS-BUG: skinLoader takes only the file path; the extra true (copied from wmoGroupLoader) is ignored - harmless
             // @ts-expect-error skinLoader takes one argument; ported as-is
-            return skinLoader(fileName, true);
+            return timeParse("Skin", fileName, skinLoader(fileName, true));
         }, function process(skinFile: SkinFile) {
 
-            var skinGeomObj = new SkinGeom(sceneApi);
-            skinGeomObj.assign(skinFile);
-            skinGeomObj.createVBO();
-            return skinGeomObj;
+            return timeUpload("Skin", skinFile, function () {
+                var skinGeomObj = new SkinGeom(sceneApi);
+                skinGeomObj.assign(skinFile);
+                skinGeomObj.createVBO();
+                return skinGeomObj;
+            });
         });
     }
     loadSkin (fileName: string){

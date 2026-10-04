@@ -1,4 +1,5 @@
 import cacheTemplate from './../cache';
+import { timeParse, timeUpload, timeTextures } from './../../services/performance';
 import type { Cache } from './../cache';
 
 import {wmoLoader} from './../../services/map/wmoLoader'
@@ -13,9 +14,11 @@ class WmoMainCache {
 
         this.cache = cacheTemplate(function loadGroupWmo(fileName: string) {
             /* Must return promise */
-            return wmoLoader(fileName);
+            return timeParse("WmoMain", fileName, wmoLoader(fileName));
         }, function (a: WmoFile) {
-            return a;
+            return timeUpload("WmoMain", a, function () {
+                return a;
+            });
         });
     }
     loadWmoMain (fileName: string) {

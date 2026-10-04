@@ -1,4 +1,5 @@
 import cacheTemplate from './../cache';
+import { timeParse, timeUpload, timeTextures } from './../../services/performance';
 import config from './../../services/config';
 import mdxLoader from './../../services/map/mdxLoader';
 import type { M2File } from './../../services/map/mdxLoader';
@@ -32,8 +33,10 @@ class M2Geom {
         this.m2File = m2File;
     }
 
-    loadTextures() {
+    /* resolves once the textures have loaded or failed (for the load timing logs) */
+    loadTextures(): Promise<void[]> {
         var textureDefinition = this.m2File.textureDefinition;
+        var textureLoads: Promise<void>[] = [];
 
         // Debug
         //console.log("Loading textures for m2File:", this.m2File.textureDefinition);
@@ -44,16 +47,17 @@ class M2Geom {
             const textureName = textureDefinition[i].textureName.replace(/\u0000/g, '');
 
             if (textureName !== '') {
-              this.loadTexture(i, textureName);
+              textureLoads.push(this.loadTexture(i, textureName));
             } else {
                 console.log("Skipping empty texture...");
             }
         }
+        return Promise.all(textureLoads);
     }
 
-    loadTexture(index: number, filename: string) {
+    loadTexture(index: number, filename: string): Promise<void> {
         var self = this;
-        this.sceneApi.resources.loadTexture(filename).then(function success(textObject) {
+        return this.sceneApi.resources.loadTexture(filename).then(function success(textObject) {
             self.textureArray[index] = textObject;
         }, function error() {
         });
@@ -427,13 +431,16 @@ class M2GeomCache {
 
         var cache = cacheTemplate(function loadGroupWmo(fileName: string) {
             /* Must return promise */
-            return mdxLoader(fileName);
+            return timeParse("M2", fileName, mdxLoader(fileName));
         }, function process(m2File: M2File) {
 
-            var m2GeomObj = new M2Geom(sceneApi);
-            m2GeomObj.assign(m2File);
-            m2GeomObj.createVBO();
-            m2GeomObj.loadTextures();
+            var m2GeomObj = timeUpload("M2", m2File, function () {
+                var obj = new M2Geom(sceneApi);
+                obj.assign(m2File);
+                obj.createVBO();
+                return obj;
+            });
+            timeTextures("M2", m2File, m2GeomObj.loadTextures());
 
             return m2GeomObj;
         });
