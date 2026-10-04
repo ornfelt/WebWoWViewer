@@ -446,9 +446,10 @@ class WorldObjectManager {
                     ];
                     for (var i = 0; i < payload.m_move_point_run.length; i++) {
                         var uint32 = payload.m_move_point_run[i];
-                        var x = (((uint32 & 0x7FFF) << (21 + 32)) >> (21 + 32)) * 0.25;
-                        var y = ((((uint32 & 0xFFFF) >> 11) << (21 + 32)) >> (21 + 32)) * 0.25;
-                        var z = ((((uint32 & 0xFFFF) >> 22) << (22 + 32)) >> (22 + 32)) * 0.25;
+                        // packed offsets: x in bits 0-10, y in bits 11-21, z in bits 22-31, each signed (in 0.25 units)
+                        var x = ((uint32 << 21) >> 21) * 0.25;
+                        var y = ((uint32 << 10) >> 21) * 0.25;
+                        var z = (uint32 >> 22) * 0.25;
 
                         packetPoints.push([
                                 halfVector[0] - x,
