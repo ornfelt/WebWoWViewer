@@ -22,6 +22,8 @@ class SpellProjectile {
     startPos: vec3;
     targetPos: vec3;
     speed: number;
+    // the spell's own speed; speed is set from it (or a one-shot override) on every fire
+    baseSpeed: number;
     arrivalThreshold: number;
     baseRotationCorrection: mat4 | null;
 
@@ -36,6 +38,7 @@ class SpellProjectile {
         this.modelPath = modelPath;
         this.objectMapKey = objectMapKey;
         this.speed = speed;
+        this.baseSpeed = speed;
         this.arrivalThreshold = arrivalThreshold;
         this.baseRotationCorrection = baseRotationCorrection;
         this.isActive = false;
@@ -59,6 +62,17 @@ class SpellProjectile {
     }
 
     fire(origin: vec3, targetKey: number) {
+        this.fireAtSpeed(origin, targetKey, this.baseSpeed);
+    }
+
+    /* Fire with a one-shot speed override (for server-driven travel time). */
+    fireWithSpeed(origin: vec3, targetKey: number, overrideSpeed: number) {
+        this.fireAtSpeed(origin, targetKey, overrideSpeed);
+    }
+
+    /* the override only lasts for this flight: a later fire() flies at baseSpeed again */
+    fireAtSpeed(origin: vec3, targetKey: number, flightSpeed: number) {
+        this.speed = flightSpeed;
         vec3.copy(this.startPos, origin);
         this.targetObjectKey = targetKey;
 
@@ -73,12 +87,6 @@ class SpellProjectile {
 
         this.worldPlayer.setPosition(vec3.clone(origin));
         this.isActive = true;
-    }
-
-    /* Fire with a one-shot speed override (for server-driven travel time). */
-    fireWithSpeed(origin: vec3, targetKey: number, overrideSpeed: number) {
-        this.speed = overrideSpeed;
-        this.fire(origin, targetKey);
     }
 
     update(deltaTime: number) {
