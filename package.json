@@ -8,7 +8,7 @@
     "build": "webpack --mode development --progress",
     "start": "webpack serve --progress --port 8888 --mode development",
     "build:prod": "webpack --mode production --progress",
-    "check:ts-only": "! find js/application -name '*.js' | grep .",
+    "check:ts-only": "node check-ts-only.mjs",
     "prebuild": "npm run check:ts-only && tsc --noEmit",
     "prebuild:prod": "npm run check:ts-only && tsc --noEmit",
     "prestart": "npm run check:ts-only && tsc --noEmit",
