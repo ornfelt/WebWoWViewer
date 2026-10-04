@@ -43,6 +43,8 @@ class WorldObjectManager {
     /* set by startPlayingPackets() */
     serverTime!: number;
     clientTime!: number;
+    /* the keys of the Wander mode's bots, which their WanderController places (Scene.startWanderMode) */
+    wanderKeys: Set<number>;
 
     constructor(sceneApi: SceneApi){
         this.objectMap = {};
@@ -50,6 +52,7 @@ class WorldObjectManager {
         this.lastPacketIndex = 0;
 
         this.playPackets = false;
+        this.wanderKeys = new Set();
     }
 
     update(deltaTime: number, cameraPos: ReadonlyVec4, viewMat: ReadonlyMat4, camera: firstPersonCamera) {
@@ -125,7 +128,7 @@ class WorldObjectManager {
             this.objectMap[17786964].setPosition(vectorArray);
         }
 
-        if (this.objectMap[17786930]) {
+        if (this.objectMap[17786930] && !this.wanderKeys.has(17786930)) {
             var vectorArray: number[] = new Array();
             vectorArray[0] = cameraPos[0]-15;
             vectorArray[1] = cameraPos[1]+15;

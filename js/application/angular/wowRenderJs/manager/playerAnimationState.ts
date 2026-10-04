@@ -1,6 +1,6 @@
 /*
- * The animations the player character plays, a part of my_web_wow's AnimationType enum (the movement ones;
- * my_web_wow also has the spell, attack and emote ones). The values are the enum names.
+ * The animations the player character plays, a part of my_web_wow's AnimationType enum (the movement and
+ * spell ones; my_web_wow also has the attack and emote ones). The values are the enum names.
  */
 export const AnimationType = {
     Run: 'Run',
@@ -12,14 +12,20 @@ export const AnimationType = {
     // turning in place (web: A / D turn the character in player mode); AnimationData.dbc names
     ShuffleLeft: 'ShuffleLeft',
     ShuffleRight: 'ShuffleRight',
+    // casting (SpellManager)
+    SpellCast: 'SpellCast',
+    SpellCast2: 'SpellCast2',
+    SpellCasted: 'SpellCasted',
 } as const;
 export type AnimationTypeValue = typeof AnimationType[keyof typeof AnimationType];
 
+/* how long the cast-complete animation plays before returning to idle, in seconds */
+const ForcedAnimDuration = 0.5;
+
 /*
- * Tracks which animation the player should be playing based on movement, as the movement part of
- * my_web_wow's PlayerAnimationState (without the casting / forced animations of its spells).
- * Call evaluate() each frame after updating the movement flags; it returns the desired animation
- * when it changes. The caller applies it to the model.
+ * Tracks which animation the player should be playing based on movement and casting state, as
+ * my_web_wow's PlayerAnimationState. Call evaluate() each frame after updating the movement flags and
+ * casting state; it returns the desired animation when it changes. The caller applies it to the model.
  */
 class PlayerAnimationState {
     // Movement flags (set from the camera)
@@ -32,8 +38,19 @@ class PlayerAnimationState {
     isTurningLeft: boolean;
     isTurningRight: boolean;
 
+    // Spell state (set by SpellManager callbacks)
+    isCasting: boolean;
+    isChanneling: boolean;
+
     // Current animation being played (avoids re-setting every frame)
     currentAnim: AnimationTypeValue;
+
+    // Forced animation with timer (for spellcasted / one-shot anims)
+    forcedAnim: AnimationTypeValue | null;
+    forcedAnimTimer: number;
+
+    // Cast-specific animation
+    castAnim: AnimationTypeValue | null;
 
     constructor() {
         this.isMovingForward = false;
@@ -45,7 +62,14 @@ class PlayerAnimationState {
         this.isTurningLeft = false;
         this.isTurningRight = false;
 
+        this.isCasting = false;
+        this.isChanneling = false;
+
         this.currentAnim = AnimationType.Idle;
+
+        this.forcedAnim = null;
+        this.forcedAnimTimer = 0;
+        this.castAnim = null;
     }
 
     /* True if the player is performing any movement (WASD) */
@@ -53,11 +77,57 @@ class PlayerAnimationState {
         return this.isMovingForward || this.isMovingBackward || this.isStrafingLeft || this.isStrafingRight;
     }
 
-    /* The desired animation based on the current state, or null if unchanged. Call this each frame. */
-    evaluate(): AnimationTypeValue | null {
+    /* Called when a cast starts. Sets the casting animation. */
+    onCastStart(anim: AnimationTypeValue) {
+        this.castAnim = anim;
+        this.isCasting = true;
+        this.forcedAnim = null; // cancel any forced anim
+    }
+
+    /* Called when a cast completes successfully (not canceled): plays the cast-complete animation briefly before returning to idle/move. */
+    onCastComplete(completeAnim: AnimationTypeValue) {
+        this.isCasting = false;
+        this.isChanneling = false;
+        this.castAnim = null;
+        this.forcedAnim = completeAnim;
+        this.forcedAnimTimer = ForcedAnimDuration;
+    }
+
+    /* Called when a cast is canceled (e.g. movement). */
+    onCastCanceled() {
+        this.isCasting = false;
+        this.isChanneling = false;
+        this.castAnim = null;
+        this.forcedAnim = null;
+    }
+
+    /* Called when channeling starts. */
+    onChannelStart(anim: AnimationTypeValue) {
+        this.castAnim = anim;
+        this.isChanneling = true;
+        this.forcedAnim = null;
+    }
+
+    /* The desired animation based on the current state, or null if unchanged. Call this each frame; deltaTime is in milliseconds. */
+    evaluate(deltaTime: number): AnimationTypeValue | null {
+        // Tick down forced animation timer
+        if (this.forcedAnim !== null) {
+            this.forcedAnimTimer -= deltaTime / 1000;
+            if (this.forcedAnimTimer <= 0)
+                this.forcedAnim = null;
+        }
+
         var desired: AnimationTypeValue;
 
-        // Priority: jump > fall > movement > turning in place > idle
+        // Movement cancels casting
+        if (this.isMoving && (this.isCasting || this.isChanneling)) {
+            this.isCasting = false;
+            this.isChanneling = false;
+            this.castAnim = null;
+            // The SpellManager.cancelCast() should also be called externally
+        }
+
+        // Priority: jump > fall > movement > forced anim > casting > turning in place > idle
         if (this.isJumping) {
             desired = AnimationType.JumpStart;
         } else if (this.isFalling) {
@@ -72,6 +142,10 @@ class PlayerAnimationState {
                 desired = AnimationType.StrafeRight;
             else
                 desired = AnimationType.Run; // fallback
+        } else if (this.forcedAnim !== null) {
+            desired = this.forcedAnim;
+        } else if (this.isCasting || this.isChanneling) {
+            desired = this.castAnim ?? AnimationType.SpellCast;
         } else if (this.isTurningLeft) {
             desired = AnimationType.ShuffleLeft;
         } else if (this.isTurningRight) {

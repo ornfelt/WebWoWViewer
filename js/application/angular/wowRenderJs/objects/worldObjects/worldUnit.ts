@@ -12,6 +12,8 @@ import type { CharSectionsRecord } from '../../../services/dbc/charSectionsDBC';
 import type { ItemDisplayInfoRecord } from '../../../services/dbc/itemDisplayInfoDBC';
 import type { SceneApi } from '../../sceneApi';
 import type WorldMDXObject from '../worldM2Object';
+import { FactionTeam } from '../../manager/nodeManager';
+import type { FactionTeamValue } from '../../manager/nodeManager';
 
 const fHairGeoset = [1, 3, 2, 16, 17];
 
@@ -148,6 +150,17 @@ class WorldUnit extends WorldObject {
     chosenModelIndex: number;
     /* true when the animation is set from outside (the player character, see PlayerAnimationState), so update() leaves it */
     manualAnimation: boolean;
+    /* replaces the rotation by f when set (a spell projectile's model correction, see SpellProjectile) */
+    customRotationMatrix: mat4 | null;
+
+    // --- HUD / combat state ---
+    healthPoints: number;
+    healthPointsTotal: number;
+    manaPoints: number;
+    manaPointsTotal: number;
+    myFactionTeam: FactionTeamValue;
+    target: WorldUnit | null;
+    targetIndex: number;
 
     constructor(sceneApi: SceneApi){
         super();
@@ -180,6 +193,21 @@ class WorldUnit extends WorldObject {
         this.modelPathInput = '';
         this.chosenModelIndex = 0;
         this.manualAnimation = false;
+        this.customRotationMatrix = null;
+
+        this.healthPoints = 100;
+        this.healthPointsTotal = 100;
+        this.manaPoints = 100;
+        this.manaPointsTotal = 100;
+        this.myFactionTeam = FactionTeam.None;
+        this.target = null;
+        this.targetIndex = 0;
+    }
+    setRotationMatrix(rotationMatrix: mat4) {
+        this.customRotationMatrix = rotationMatrix;
+    }
+    clearRotationMatrix() {
+        this.customRotationMatrix = null;
     }
     setSpeedWalk(value: number){
         this.speedWalk = value;
@@ -818,7 +846,11 @@ class WorldUnit extends WorldObject {
             } else {
                 this.objectModel!.setAnimationId(0); //Stand(0) animation
             }
-            this.objectModel!.createPlacementMatrix(this.pos, this.f, properScale);
+            if (this.customRotationMatrix !== null) {
+                this.objectModel!.createPlacementMatrix(this.pos, this.f, properScale, this.customRotationMatrix);
+            } else {
+                this.objectModel!.createPlacementMatrix(this.pos, this.f, properScale);
+            }
         }
 
         /* Configure hands */

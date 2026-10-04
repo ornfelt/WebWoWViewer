@@ -8,6 +8,9 @@ import MathHelper from '../wowRenderJs/math/mathHelper';
 import CollisionWorld from '../wowRenderJs/collision/collisionWorld';
 import Expansion from '../Expansion';
 import GameplayMode, { implementedGameplayModes, parseGameplayMode } from '../GameplayMode';
+import { SpellType } from '../wowRenderJs/objects/spellDefinitions';
+import { createNodeDebugger, createSpawnBrowser } from './gameplayPanels';
+import type { SpellTypeValue } from '../wowRenderJs/objects/spellDefinitions';
 import mapParamsRepository, { MapKey, mapKeyGroups } from '../mapParamsRepository';
 import type { MapKeyValue, MapParams } from '../mapParamsRepository';
 
@@ -50,6 +53,8 @@ interface KeyBindTargets {
   chkRenderSky: HTMLInputElement;
   chkCycleAnimations: HTMLInputElement;
   sliderDrawDistance: HTMLInputElement;
+  /* the gameplay / debug keys (spells, targeting, wandering, node debug drawing, F7 / F8); true when the key was one of them */
+  gameplayKey: (event: KeyboardEvent) => boolean;
 }
 
 /**
@@ -71,6 +76,11 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
   function keyDown(event: KeyboardEvent) {
     if (event.key === 'Shift') {
       camera.setShiftHeld(true);
+      return;
+    }
+    // gameplay / debug keys: spells, targeting, wandering, the node debug drawing and the F7 / F8 windows
+    if (keyBinds.gameplayKey(event)) {
+      event.preventDefault();
       return;
     }
     // bind F6: toggle the settings panel (instead of the browser's own F6 action)
@@ -344,7 +354,12 @@ export async function initViewer(containerEl: HTMLElement) {
           B - M2, Z - ADT, O - WMO, I - WMO BB, K - depth,<br/>
           Q - liquid, E - sky, F - draw distance, F6 - hide this panel,<br/>
           L - lowres terrain, C - cycle anims, Wheel - zoom,<br/>
-          F1-F5 - wireframe ADT, liquid, M2, WMO, sky
+          F1-F5 - wireframe ADT, liquid, M2, WMO, sky<br/>
+          Spells (player mode): 1 - Frostbolt, 2 - Ice Lance, 3 - Pyroblast, 4 - Ice Missile,<br/>
+          5 - Lightning Bolt, 6 - Blizzard, V - Frost Nova, X - Ice Block, T - cycle target,<br/>
+          0 - teleport to target, N - wandering, G - target marker, J - node flag colors,<br/>
+          , - wander paths, . - linked nodes / node boxes, Ctrl+. - all node links,<br/>
+          F7 - node debugger, F8 - spawn browser
         </details>
 
         <details id="secRendering" class="settings-section" open>
@@ -397,6 +412,24 @@ export async function initViewer(containerEl: HTMLElement) {
             <select id="selGameplayMode" title="SpellMap / CreatureMap: spell or creature models at the map's wander nodes (mpq server gameplay api)" style="flex: 1 1 auto; min-width: 0; border: 1px solid #888; border-radius: 2px; padding: 1px 2px;"></select>
           </div>
           <div>spawns = <span id="gameplay-status">-</span></div>
+          <div>nodes = <span id="gameplay-nodes">-</span></div>
+          <label title="Unit frames, cast bars, numbers and floating combat text"><input type="checkbox" id="chkUseHud"> HUD</label><br/>
+          <label title="The Wander mode's bots walk from node to node (N)"><input type="checkbox" id="chkEnableWandering"> Wandering</label><br/>
+          <button id="btnNodeDebugger">Node debugger (F7)</button>
+          <button id="btnSpawnBrowser">Spawn browser (F8)</button>
+        </details>
+
+        <details id="secDebugDraw" class="settings-section" open>
+          <summary>Debug drawing</summary>
+          <label><input type="checkbox" id="chkDrawNodeBoxes"> Node boxes</label><br/>
+          <label><input type="checkbox" id="chkDrawNodeFlagColors"> Node flag colors</label><br/>
+          <label><input type="checkbox" id="chkDrawLinkedNodes"> Linked nodes (nearest node)</label><br/>
+          <label><input type="checkbox" id="chkDrawAllLinkedNodes"> All linked nodes</label><br/>
+          <label><input type="checkbox" id="chkDrawAllLinkedNodesNoDepth"> All linked nodes see-through</label><br/>
+          <label><input type="checkbox" id="chkDrawPathLines"> Wander path lines</label><br/>
+          <label><input type="checkbox" id="chkDrawPathPoints"> Wander path points</label><br/>
+          <label><input type="checkbox" id="chkDrawTargetCircle"> Target circle</label><br/>
+          <label><input type="checkbox" id="chkDrawTargetDot"> Target dot</label>
         </details>
 
         <details id="secPackets" class="settings-section" open>
@@ -447,6 +480,20 @@ export async function initViewer(containerEl: HTMLElement) {
   const chkUseRandomTextures = containerEl.querySelector<HTMLInputElement>('#chkUseRandomTextures')!;
   const selGameplayMode     = containerEl.querySelector<HTMLSelectElement>('#selGameplayMode')!;
   const gameplayStatusEl    = containerEl.querySelector<HTMLSpanElement>('#gameplay-status')!;
+  const gameplayNodesEl     = containerEl.querySelector<HTMLSpanElement>('#gameplay-nodes')!;
+  const chkUseHud           = containerEl.querySelector<HTMLInputElement>('#chkUseHud')!;
+  const chkEnableWandering  = containerEl.querySelector<HTMLInputElement>('#chkEnableWandering')!;
+  const chkDrawNodeBoxes    = containerEl.querySelector<HTMLInputElement>('#chkDrawNodeBoxes')!;
+  const chkDrawNodeFlagColors = containerEl.querySelector<HTMLInputElement>('#chkDrawNodeFlagColors')!;
+  const chkDrawLinkedNodes  = containerEl.querySelector<HTMLInputElement>('#chkDrawLinkedNodes')!;
+  const chkDrawAllLinkedNodes = containerEl.querySelector<HTMLInputElement>('#chkDrawAllLinkedNodes')!;
+  const chkDrawAllLinkedNodesNoDepth = containerEl.querySelector<HTMLInputElement>('#chkDrawAllLinkedNodesNoDepth')!;
+  const chkDrawPathLines    = containerEl.querySelector<HTMLInputElement>('#chkDrawPathLines')!;
+  const chkDrawPathPoints   = containerEl.querySelector<HTMLInputElement>('#chkDrawPathPoints')!;
+  const chkDrawTargetCircle = containerEl.querySelector<HTMLInputElement>('#chkDrawTargetCircle')!;
+  const chkDrawTargetDot    = containerEl.querySelector<HTMLInputElement>('#chkDrawTargetDot')!;
+  const btnNodeDebugger     = containerEl.querySelector<HTMLButtonElement>('#btnNodeDebugger')!;
+  const btnSpawnBrowser     = containerEl.querySelector<HTMLButtonElement>('#btnSpawnBrowser')!;
   const sliderDrawDistance  = containerEl.querySelector<HTMLInputElement>('#sliderDrawDistance')!;
   const drawDistanceEl      = containerEl.querySelector<HTMLSpanElement>('#draw-distance')!;
 
@@ -594,12 +641,31 @@ export async function initViewer(containerEl: HTMLElement) {
   // spawn setup); the mpq server's gameplay api has the nodes and the model lists
   function startGameplayMode(mapId: number | undefined) {
     const mode = config.getGameplayMode();
-    if (mode !== GameplayMode.CreatureMap && mode !== GameplayMode.SpellMap) return;
     if (mapId === undefined) {
+      gameplayNodesEl.textContent = 'no map id';
+      if (mode === GameplayMode.FreeRoam) return;
       console.log(`[SpawnManager] No map ID for ${mapKey}, skipping spawns.`);
       gameplayStatusEl.textContent = 'no map id';
       return;
     }
+
+    // the map's wander nodes: the node debugger, the node debug drawing and the Wander mode
+    gameplayNodesEl.textContent = 'loading';
+    const nodesLoaded = sceneObj.loadGameplayNodes(mapId).then((count) => {
+      gameplayNodesEl.textContent = count > 0 ? String(count) : 'none (see console)';
+      return count;
+    });
+
+    // Wander: my_web_wow's two bots walking from node to node
+    if (mode === GameplayMode.Wander) {
+      gameplayStatusEl.textContent = 'loading';
+      nodesLoaded.then(() => sceneObj.startWanderMode(mapId)).then((count) => {
+        gameplayStatusEl.textContent = count > 0 ? count + ' bots' : 'none (no wander nodes, see console)';
+      });
+      return;
+    }
+
+    if (mode !== GameplayMode.CreatureMap && mode !== GameplayMode.SpellMap) return;
     const isSpellMap = mode === GameplayMode.SpellMap;
     gameplayStatusEl.textContent = 'loading';
     sceneObj.startSpawnMode(mapId, isSpellMap).then((count) => {
@@ -661,6 +727,7 @@ export async function initViewer(containerEl: HTMLElement) {
     // collision triangles (the player mode) are loaded for maps only
     if (mapParams.sceneType != 'map') {
         collisionStatusEl.textContent = 'maps only';
+        gameplayNodesEl.textContent = 'maps only';
         if (config.getGameplayMode() !== GameplayMode.FreeRoam)
             gameplayStatusEl.textContent = 'maps only';
     }
@@ -844,9 +911,131 @@ export async function initViewer(containerEl: HTMLElement) {
   chkUseSecondCamera.disabled = !chkDoubleCamera.checked;
   chkCycleAnimations.checked  = config.getCycleAnimations();
   chkUseRandomTextures.checked = config.getUseRandomTextures();
+  chkUseHud.checked           = config.getUseHud();
+  chkEnableWandering.checked  = config.getEnableWandering();
+  chkDrawNodeBoxes.checked    = config.getDrawNodeBoxes();
+  chkDrawNodeFlagColors.checked = config.getDrawNodeFlagColors();
+  chkDrawLinkedNodes.checked  = config.getDrawLinkedNodes();
+  chkDrawAllLinkedNodes.checked = config.getDrawAllLinkedNodes();
+  chkDrawAllLinkedNodesNoDepth.checked = config.getDrawAllLinkedNodesNoDepth();
+  chkDrawPathLines.checked    = config.getDrawPathLines();
+  chkDrawPathPoints.checked   = config.getDrawPathPoints();
+  chkDrawTargetCircle.checked = config.getDrawTargetCircle();
+  chkDrawTargetDot.checked    = config.getDrawTargetDot();
   sliderDrawDistance.value    = String(config.getDrawDistance());
   drawDistanceEl.textContent  = String(config.getDrawDistance());
   updateCameraMode();
+
+  // The Node Debugger (F7) and Spawn Browser (F8) windows
+  const nodeDebugger = createNodeDebugger(containerEl.firstElementChild as HTMLElement, sceneObj);
+  const spawnBrowser = createSpawnBrowser(containerEl.firstElementChild as HTMLElement, sceneObj);
+
+  // set a settings checkbox as if it was clicked, so the config follows it through its change handler
+  function setChecked(chk: HTMLInputElement, value: boolean) {
+    if (chk.checked !== value) chk.click();
+  }
+
+  // the spell keys, as in my_web_wow's WowViewer
+  const spellKeys: { [key: string]: SpellTypeValue } = {
+    '1': SpellType.Frostbolt,     // 1.2s cast
+    '2': SpellType.IceLance,      // instant
+    '3': SpellType.Pyroblast,     // 3.5s cast
+    '4': SpellType.IceMissile,    // 1.5s cast
+    '5': SpellType.LightningBolt, // 1.2s cast
+    '6': SpellType.Blizzard,      // channeled, 5s
+    'v': SpellType.FrostNova,     // area at player, instant
+    'x': SpellType.IceBlock,      // area at player, 7s duration
+  };
+
+  // the gameplay / debug keys of my_web_wow's WowViewer.OnKeyDown (its devMode keys included); true when handled
+  function gameplayKey(event: KeyboardEvent): boolean {
+    if (event.key === 'F7') { nodeDebugger.toggle(); return true; }
+    if (event.key === 'F8') { spawnBrowser.toggle(); return true; }
+    if (event.altKey || event.metaKey) return false;
+
+    const key = event.key.toLowerCase();
+    // Ctrl only with '.'
+    if (event.ctrlKey && key !== '.') return false;
+    if (event.repeat && (key in spellKeys || 't0ngj,.'.indexOf(key) >= 0)) return true;
+
+    if (key in spellKeys) {
+      if (sceneObj.spellManager) sceneObj.spellManager.castSpell(spellKeys[key]);
+      else console.log('[SpellManager] Spells need the player character (switch to the player character camera)');
+      return true;
+    }
+    switch (key) {
+      // cycle target
+      case 't':
+        if (sceneObj.spellManager) sceneObj.spellManager.cycleTarget();
+        return true;
+      // toggle wandering
+      case 'n':
+        chkEnableWandering.click();
+        console.log(`EnableWandering = ${chkEnableWandering.checked}`);
+        return true;
+      // teleport (the camera) to the current target
+      case '0': {
+        const targetKey = sceneObj.spellManager ? sceneObj.spellManager.getCurrentTargetKey() : null;
+        if (targetKey === null) { console.log('[WowViewer] No target selected'); return true; }
+        const target = sceneObj.worldObjectManager.objectMap[targetKey];
+        if (!target) { console.log(`[WowViewer] Target ${targetKey} not found in objectMap`); return true; }
+        const targetPos = target.getPosition();
+        sceneObj.setCameraPos(targetPos[0], targetPos[1], targetPos[2]);
+        console.log(`[WowViewer] Teleported to target ${targetKey} at (${targetPos[0].toFixed(1)},${targetPos[1].toFixed(1)},${targetPos[2].toFixed(1)})`);
+        return true;
+      }
+      // cycle drawPathLines / drawPathPoints
+      case ',':
+        if (!chkDrawPathLines.checked && !chkDrawPathPoints.checked)
+          setChecked(chkDrawPathLines, true);
+        else if (chkDrawPathLines.checked) {
+          setChecked(chkDrawPathLines, false);
+          setChecked(chkDrawPathPoints, true);
+        } else if (chkDrawPathPoints.checked)
+          setChecked(chkDrawPathPoints, false);
+        console.log(`PathLines=${chkDrawPathLines.checked} PathPoints=${chkDrawPathPoints.checked}`);
+        return true;
+      // cycle drawLinkedNodes / drawNodeBoxes  |  ctrl+. : cycle all-linked / no-depth
+      case '.':
+        if (!event.ctrlKey) {
+          let l = chkDrawLinkedNodes.checked, b = chkDrawNodeBoxes.checked;
+          if (!l && !b) { l = true; b = false; }
+          else if (l && b) { l = false; b = false; }
+          else if (l && !b) { l = false; b = true; }
+          else /* b only */ { l = true; b = true; }
+          setChecked(chkDrawLinkedNodes, l);
+          setChecked(chkDrawNodeBoxes, b);
+          console.log(`LinkedNodes=${l} NodeBoxes=${b}`);
+        } else {
+          let a = chkDrawAllLinkedNodes.checked, nd = chkDrawAllLinkedNodesNoDepth.checked;
+          if (!a && !nd) { a = true; nd = false; }
+          else if (a && nd) { a = false; nd = false; }
+          else if (a) nd = true;
+          setChecked(chkDrawAllLinkedNodes, a);
+          setChecked(chkDrawAllLinkedNodesNoDepth, nd);
+          console.log(`AllLinked=${a} NoDepth=${nd}`);
+        }
+        return true;
+      // toggle flag-colored node boxes
+      case 'j':
+        chkDrawNodeFlagColors.click();
+        console.log(`DrawNodeFlagColors = ${chkDrawNodeFlagColors.checked}`);
+        return true;
+      // cycle target marker  off -> circle -> box -> off
+      case 'g': {
+        let c = chkDrawTargetCircle.checked;
+        let d = chkDrawTargetDot.checked;
+        if (!c && !d) { c = true; d = false; }      // off -> circle
+        else if (c && !d) { c = false; d = true; }  // circle -> box
+        else { c = false; d = false; }              // box -> off
+        setChecked(chkDrawTargetCircle, c);
+        setChecked(chkDrawTargetDot, d);
+        console.log(`TargetMarker: ${c ? 'circle' : d ? 'box' : 'off'}`);
+        return true;
+      }
+    }
+    return false;
+  }
 
   // Attach event handlers for camera
   attachEvents(canvas, sceneObj.camera, {
@@ -866,6 +1055,7 @@ export async function initViewer(containerEl: HTMLElement) {
     chkRenderSky,
     chkCycleAnimations,
     sliderDrawDistance,
+    gameplayKey,
   });
 
   // Link checkboxes => config
@@ -899,6 +1089,20 @@ export async function initViewer(containerEl: HTMLElement) {
   });
   chkCycleAnimations.addEventListener('change', () => { config.setCycleAnimations(chkCycleAnimations.checked); });
   chkUseRandomTextures.addEventListener('change', () => { config.setUseRandomTextures(chkUseRandomTextures.checked); });
+  chkUseHud.addEventListener('change', () => { config.setUseHud(chkUseHud.checked); });
+  chkEnableWandering.addEventListener('change', () => {
+    config.setEnableWandering(chkEnableWandering.checked);
+    if (sceneObj.wanderManager) sceneObj.wanderManager.setAllWandering(chkEnableWandering.checked);
+  });
+  chkDrawNodeBoxes.addEventListener('change', () => { config.setDrawNodeBoxes(chkDrawNodeBoxes.checked); });
+  chkDrawNodeFlagColors.addEventListener('change', () => { config.setDrawNodeFlagColors(chkDrawNodeFlagColors.checked); });
+  chkDrawLinkedNodes.addEventListener('change', () => { config.setDrawLinkedNodes(chkDrawLinkedNodes.checked); });
+  chkDrawAllLinkedNodes.addEventListener('change', () => { config.setDrawAllLinkedNodes(chkDrawAllLinkedNodes.checked); });
+  chkDrawAllLinkedNodesNoDepth.addEventListener('change', () => { config.setDrawAllLinkedNodesNoDepth(chkDrawAllLinkedNodesNoDepth.checked); });
+  chkDrawPathLines.addEventListener('change', () => { config.setDrawPathLines(chkDrawPathLines.checked); });
+  chkDrawPathPoints.addEventListener('change', () => { config.setDrawPathPoints(chkDrawPathPoints.checked); });
+  chkDrawTargetCircle.addEventListener('change', () => { config.setDrawTargetCircle(chkDrawTargetCircle.checked); });
+  chkDrawTargetDot.addEventListener('change', () => { config.setDrawTargetDot(chkDrawTargetDot.checked); });
   radFreeRoam.addEventListener('change', () => { setPlayerMode(false); });
   radPlayerCharacter.addEventListener('change', () => { setPlayerMode(true); });
   sliderDrawDistance.addEventListener('input', () => {
@@ -943,6 +1147,8 @@ export async function initViewer(containerEl: HTMLElement) {
   selGameplayMode.addEventListener('keydown', (e) => { e.preventDefault(); });
 
   // Buttons
+  btnNodeDebugger.addEventListener('click', () => { nodeDebugger.toggle(); });
+  btnSpawnBrowser.addEventListener('click', () => { spawnBrowser.toggle(); });
   btnCopyDebug.addEventListener('click', () => {
     sceneObj.copyFirstCameraToDebugCamera();
   });
@@ -990,9 +1196,13 @@ export async function initViewer(containerEl: HTMLElement) {
       const fpsElapsed = now - fpsLastTime;
       if (fpsElapsed >= 1000) {
         fpsEl.textContent = (fpsFrameCount / (fpsElapsed / 1000)).toFixed(2);
+        sceneObj.fps = Math.round(fpsFrameCount / (fpsElapsed / 1000));
         fpsFrameCount = 0;
         fpsLastTime = now;
       }
+
+      nodeDebugger.update();
+      spawnBrowser.update();
     }
     requestAnimationFrame(renderLoop);
   }
