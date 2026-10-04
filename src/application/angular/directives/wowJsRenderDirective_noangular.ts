@@ -815,8 +815,13 @@ export async function initViewer(containerEl: HTMLElement) {
         const playerJson = config.getPlayerJsonFileName();
         const mode = config.getGameplayMode();
         if (playerJson !== null && mode !== GameplayMode.FreeForAll && mode !== GameplayMode.Deathmatch) {
-          console.log(`[WowViewer] Player JSON enabled; loading player from ${playerJson}`);
-          sceneObj.loadPlayerJson(playerJson);
+          // the packet files' display ids are wotlk ones, which other expansions' dbcs lack (or map to other models)
+          if (window.selectedExpansion !== Expansion.WOTLK) {
+            console.warn(`[WowViewer] Player JSON ${playerJson} needs wotlk data (the server has ${window.selectedExpansion}); using the default player`);
+          } else {
+            console.log(`[WowViewer] Player JSON enabled; loading player from ${playerJson}`);
+            sceneObj.loadPlayerJson(playerJson);
+          }
         }
 
         startGameplayMode(mapParams.mapId);
