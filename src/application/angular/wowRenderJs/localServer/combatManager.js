@@ -332,6 +332,13 @@ class CombatManager {
     }
 
     applyPolymorph(target) {
+        // Already a sheep: only refresh the duration. Saving the model again would save the sheep
+        // as the original, and the target would stay a sheep after the polymorph.
+        if (target.isPolymorphed) {
+            target.polymorphTimer = this.cfg.polymorphDuration;
+            return;
+        }
+
         target.cancelCast();
         target.cancelChannel();
         target.isPolymorphed = true;
