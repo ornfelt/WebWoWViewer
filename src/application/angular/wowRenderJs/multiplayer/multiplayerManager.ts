@@ -862,7 +862,7 @@ class MultiplayerManager {
             s.ressSecondsTotal = Math.trunc(snap.ressTimerTotal);
             s.ressFraction = snap.ressTimerTotal > 0 ? snap.ressTimerRemaining / snap.ressTimerTotal : 1;
 
-            if (snap.allianceKills > 0 || snap.hordeKills > 0) {
+            if (this.deathmatch) {
                 s.deathmatch = true;
                 s.allianceKills = snap.allianceKills;
                 s.hordeKills = snap.hordeKills;
