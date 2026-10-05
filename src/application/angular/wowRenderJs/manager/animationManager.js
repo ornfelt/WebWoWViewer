@@ -2,6 +2,28 @@ import {vec4, mat4, vec3, quat} from 'gl-matrix';
 import Expansion from '../../Expansion';
 import config from '../../services/config';
 
+/* Between two keys of a spline track: interpolType 2 is a cubic Bezier curve whose control points are the
+ * first key's out tangent and the second key's in tangent, 3 a cubic Hermite curve with those tangents
+ * (my_web_wow's AnimationManager.InterpolateSpline) */
+function interpolateSpline(currentTime, interpolType, time1, time2,
+                           value1, outTan1, inTan2,
+                           value2) {
+    var t = (currentTime - time1) / (time2 - time1);
+    var t2 = t * t, t3 = t2 * t;
+    var w1, w2, w3, w4;
+    if (interpolType == 2) {
+        var s = 1 - t;
+        w1 = s * s * s; w2 = 3 * s * s * t; w3 = 3 * s * t2; w4 = t3;
+    } else {
+        w1 = 2 * t3 - 3 * t2 + 1; w2 = t3 - 2 * t2 + t; w3 = t3 - t2; w4 = -2 * t3 + 3 * t2;
+    }
+    var result = vec4.create();
+    for (var k = 0; k < 4; k++) {
+        result[k] = value1[k] * w1 + outTan1[k] * w2 + inTan2[k] * w3 + value2[k] * w4;
+    }
+    return result;
+}
+
 export default class AnimationManager {
 
     constructor(m2File){
@@ -511,8 +533,17 @@ export default class AnimationManager {
                     value1 = convertValueTypeToVec4(value1, value_type);
                     value2 = convertValueTypeToVec4(value2, value_type);
 
-                    result = this.interpolateValues(animTime,
-                        interpolType, time1, time2, value1, value2, value_type);
+                    // a Bezier or Hermite spline track with its tangents (the camera tracks)
+                    var inTans = animationBlock.inTanPerAnimation ? animationBlock.inTanPerAnimation[animation] : undefined;
+                    var outTans = animationBlock.outTanPerAnimation ? animationBlock.outTanPerAnimation[animation] : undefined;
+                    if ((interpolType == 2 || interpolType == 3) && inTans && outTans && i < inTans.length && i < outTans.length) {
+                        var outTan1 = convertValueTypeToVec4(outTans[i - 1], value_type);
+                        var inTan2 = convertValueTypeToVec4(inTans[i], value_type);
+                        result = interpolateSpline(animTime, interpolType, time1, time2, value1, outTan1, inTan2, value2);
+                    } else {
+                        result = this.interpolateValues(animTime,
+                            interpolType, time1, time2, value1, value2, value_type);
+                    }
 
                     break;
                 }

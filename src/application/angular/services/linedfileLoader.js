@@ -1,6 +1,11 @@
 import fileLoader from './fileLoader.js';
 import fileReadHelper from './fileReadHelper.js';
 
+/* the value types read as M2SplineKeys (the camera tracks) */
+function isSplineType(valType) {
+    return valType === "splineVector3f" || valType === "splineFloat32";
+}
+
 export default function (filePath , arrayBuffer) {
 
     function parseLinedFileObj(a){
@@ -58,14 +63,21 @@ export default function (filePath , arrayBuffer) {
                     case "float32" :
                         result = fileObject.readFloat32(offset);
                         break;
-                    // an M2SplineKey (the camera tracks): the value, then the in and out tangents, which are skipped
+                    // an M2SplineKey (the camera tracks): the value, then the in and out tangents (an animation
+                    // block keeps the values with its other values and the tangents in lists of their own)
                     case "splineVector3f" :
-                        result = fileObject.readVector3f(offset);
-                        offset.offs += 2 * 12;
+                        result = {
+                            value: fileObject.readVector3f(offset),
+                            inTan: fileObject.readVector3f(offset),
+                            outTan: fileObject.readVector3f(offset)
+                        };
                         break;
                     case "splineFloat32" :
-                        result = fileObject.readFloat32(offset);
-                        offset.offs += 2 * 4;
+                        result = {
+                            value: fileObject.readFloat32(offset),
+                            inTan: fileObject.readFloat32(offset),
+                            outTan: fileObject.readFloat32(offset)
+                        };
                         break;
                     case "string" :
                         if (len != undefined) {
@@ -109,6 +121,12 @@ export default function (filePath , arrayBuffer) {
                         valuesAnimationsCnt = (valuesAnimationsCnt <= 0) ? 0 : valuesAnimationsCnt;
 
                         result.valuesPerAnimation = new Array(valuesAnimationsCnt);
+                        // the tangents of a spline track (the camera tracks), next to its values
+                        var isSpline = isSplineType(sectionDef.valType);
+                        if (isSpline) {
+                            result.inTanPerAnimation = new Array(valuesAnimationsCnt);
+                            result.outTanPerAnimation = new Array(valuesAnimationsCnt);
+                        }
 
                         var offs1 = {offs: valuesAnimationsOffset} ;
                         for (var i = 0; i < valuesAnimationsCnt; i++) {
@@ -117,15 +135,26 @@ export default function (filePath , arrayBuffer) {
                             var valuesOffset = fileObject.readUint32(offs1);
 
                             result.valuesPerAnimation[i] = new Array(valuesCnt);
+                            if (isSpline) {
+                                result.inTanPerAnimation[i] = new Array(valuesCnt);
+                                result.outTanPerAnimation[i] = new Array(valuesCnt);
+                            }
 
                             var offs2 = {offs : valuesOffset};
                             for (var j = 0; j < valuesCnt; j++) {
-                                result.valuesPerAnimation[i][j] = self.readType(
+                                var value = self.readType(
                                     fileObject,
                                     {type : sectionDef.valType, len: sectionDef.len},
                                     offs2,
                                     sectionDef.len
                                 );
+                                if (isSpline) {
+                                    var key = value;
+                                    result.inTanPerAnimation[i][j] = key.inTan;
+                                    result.outTanPerAnimation[i][j] = key.outTan;
+                                    value = key.value;
+                                }
+                                result.valuesPerAnimation[i][j] = value;
                             }
                         }
 
@@ -177,18 +206,29 @@ export default function (filePath , arrayBuffer) {
                         // Read values similarly
                         result.valuesPerAnimation = [];
                         result.valuesPerAnimation[0] = [];
+                        // the tangents of a spline track (the camera tracks), next to its values
+                        var isSpline = isSplineType(sectionDef.valType);
+                        if (isSpline) {
+                            result.inTanPerAnimation = [[]];
+                            result.outTanPerAnimation = [[]];
+                        }
                         
                         if (result.values_nb > 0) {
                             var offValues = { offs: result.ofsValues };
                             for (var i = 0; i < result.values_nb; i++) {
-                                result.valuesPerAnimation[0].push(
-                                    self.readType(
-                                        fileObject,
-                                        { type: sectionDef.valType, len: sectionDef.len },
-                                        offValues,
-                                        sectionDef.len
-                                    )
+                                var value = self.readType(
+                                    fileObject,
+                                    { type: sectionDef.valType, len: sectionDef.len },
+                                    offValues,
+                                    sectionDef.len
                                 );
+                                if (isSpline) {
+                                    var key = value;
+                                    result.inTanPerAnimation[0].push(key.inTan);
+                                    result.outTanPerAnimation[0].push(key.outTan);
+                                    value = key.value;
+                                }
+                                result.valuesPerAnimation[0].push(value);
                             }
                         }
 
