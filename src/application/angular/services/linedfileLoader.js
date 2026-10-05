@@ -58,6 +58,15 @@ export default function (filePath , arrayBuffer) {
                     case "float32" :
                         result = fileObject.readFloat32(offset);
                         break;
+                    // an M2SplineKey (the camera tracks): the value, then the in and out tangents, which are skipped
+                    case "splineVector3f" :
+                        result = fileObject.readVector3f(offset);
+                        offset.offs += 2 * 12;
+                        break;
+                    case "splineFloat32" :
+                        result = fileObject.readFloat32(offset);
+                        offset.offs += 2 * 4;
+                        break;
                     case "string" :
                         if (len != undefined) {
                             result = fileObject.readNZTString(offset, len);
