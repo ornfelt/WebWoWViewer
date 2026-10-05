@@ -499,20 +499,20 @@ const mdx_ver264: SectionDefinition = {
                     // How the camera's position moves. Should be 3*3 floats.
                     name: "positions",
                     type: "ablock",
-                    valType: "vector3f"
+                    valType: "splineVector3f"
                 },
                 { name: "position_base", type: "vector3f" },
                 {
                     name: "target_position",
                     type: "ablock",
-                    valType: "vector3f"
+                    valType: "splineVector3f"
                 },
                 { name: "target_position_base", type: "vector3f" },
                 {
                     // The camera can have some roll-effect. Its 0 to 2*Pi.
                     name: "roll",
                     type: "ablock",
-                    valType: "float32"
+                    valType: "splineFloat32"
                 },
             ]
         },
@@ -1227,20 +1227,20 @@ const mdx_ver262: SectionDefinition = {
                     // How the camera's position moves. Should be 3*3 floats.
                     name: "positions",
                     type: "ablock_tbc",
-                    valType: "vector3f"
+                    valType: "splineVector3f"
                 },
                 { name: "position_base", type: "vector3f" },
                 {
                     name: "target_position",
                     type: "ablock_tbc",
-                    valType: "vector3f"
+                    valType: "splineVector3f"
                 },
                 { name: "target_position_base", type: "vector3f" },
                 {
                     // The camera can have some roll-effect. Its 0 to 2*Pi.
                     name: "roll",
                     type: "ablock_tbc",
-                    valType: "float32"
+                    valType: "splineFloat32"
                 },
             ]
         },
@@ -1646,20 +1646,20 @@ const mdx_ver256: SectionDefinition = {
                     // How the camera's position moves. Should be 3*3 floats.
                     name: "positions",
                     type: "ablock_tbc",
-                    valType: "vector3f"
+                    valType: "splineVector3f"
                 },
                 { name: "position_base", type: "vector3f" },
                 {
                     name: "target_position",
                     type: "ablock_tbc",
-                    valType: "vector3f"
+                    valType: "splineVector3f"
                 },
                 { name: "target_position_base", type: "vector3f" },
                 {
                     // The camera can have some roll-effect. Its 0 to 2*Pi.
                     name: "roll",
                     type: "ablock_tbc",
-                    valType: "float32"
+                    valType: "splineFloat32"
                 },
             ]
         },

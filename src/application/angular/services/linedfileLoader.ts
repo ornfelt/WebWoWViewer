@@ -7,6 +7,7 @@ export type SectionType =
     | "uint8" | "uint16" | "uint32"
     | "int32Array" | "uint8Array" | "uint16Array" | "int16Array"
     | "vector3f" | "vector4f" | "float32" | "string"
+    | "splineVector3f" | "splineFloat32"
     | "ablock" | "ablock_tbc" | "ablock_tbc2"
     | "layout";
 
@@ -147,6 +148,15 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                         break;
                     case "float32" :
                         result = fileObject.readFloat32(offset);
+                        break;
+                    // an M2SplineKey (the camera tracks): the value, then the in and out tangents, which are skipped
+                    case "splineVector3f" :
+                        result = fileObject.readVector3f(offset);
+                        offset.offs += 2 * 12;
+                        break;
+                    case "splineFloat32" :
+                        result = fileObject.readFloat32(offset);
+                        offset.offs += 2 * 4;
                         break;
                     case "string" :
                         if (len != undefined) {
