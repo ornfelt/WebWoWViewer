@@ -880,7 +880,7 @@ class Scene {
                     return self.wmoMainCache.loadWmoMain(fileName);
                 },
                 unloadWmoMain: function (fileName) {
-                    self.wmoMainCache.unloadWmoMain(fileName);
+                    self.wmoMainCache.unLoadWmoMain(fileName);
                 },
                 loadWmoGeom: function (fileName) {
                     return self.wmoGeomCache.loadWmoGeom(fileName);
