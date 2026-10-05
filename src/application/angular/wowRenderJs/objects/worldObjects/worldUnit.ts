@@ -182,6 +182,8 @@ class WorldUnit extends WorldObject {
         this.speedTurnRate = 0;
 
         this.isMoving = false;
+        // as my_web_wow's WorldUnit: a unit that is never turned (e.g. one standing still) has no NaN placement
+        this.f = 1.0;
 
 
         this.objectModel = null;
@@ -770,8 +772,8 @@ class WorldUnit extends WorldObject {
                 var totalPath = this.pointsTotalPath[this.pointsTotalPath.length - 1];
                 var currentPath = (totalPath / this.totalMovingTime) * (this.currentMovingTime + deltaTime);
                 var pointIndex = 0;
-                // JS-BUG: starts as a path length (a number), not a point (probably meant this.pointsArray[0]); only reaches setPosition() if no segment matches, which the time check above rules out
-                var result: number | vec3 = this.pointsTotalPath[0]
+                // the first point when no segment matches (a path of zero length, as the M2 scenes' unit has), as my_web_wow's WorldUnit
+                var result: vec3 = this.pointsArray[0]
 
                 for (var i = 1; i < this.pointsArray.length; i++) {
                     if (currentPath < this.pointsTotalPath[i]) {
@@ -784,7 +786,7 @@ class WorldUnit extends WorldObject {
                         var diff = vec4.create();
                         vec3.subtract(diff, value2, value1);
                         vec3.scale(diff, diff, (currentPath - path1)/(path2 - path1));
-                        var result: number | vec3 = vec3.create();
+                        result = vec3.create();
                         vec3.add(result, value1, diff);
 
                         //CalcF
@@ -800,7 +802,7 @@ class WorldUnit extends WorldObject {
                     }
                 }
 
-                this.setPosition(result as vec3);
+                this.setPosition(result);
             }
             this.currentMovingTime += deltaTime;
         }

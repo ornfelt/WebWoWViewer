@@ -269,8 +269,9 @@ const maps: Record<MapKeyValue, MapParams> = {
     name: 'Vanilla Opening screen',
     source: 'http',
     sceneType: 'm2',
-    modelName: 'Interface\\GLUES\\MODELS\\UI_MAINMENU\\UI_MainMenu.m2'
-    //cameraIndex: 0,
+    modelName: 'Interface\\GLUES\\MODELS\\UI_MAINMENU\\UI_MainMenu.m2',
+    // the login screen is seen through the model's own camera
+    cameraIndex: 0
     //fogStart: 0,
     //fogEnd: 1200,
     //fogColor: [0.25, 0.06, 0.015]

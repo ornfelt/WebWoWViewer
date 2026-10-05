@@ -49,7 +49,9 @@ var cycleAnimations: boolean = false;
 /* random skins for the models with a registered picker (see textureHelper), for the models loaded afterwards */
 var useRandomTextures: boolean = false;
 
+/* an M2 scene seen through the model's own camera (cameras[cameraM2Index]), e.g. the login screen */
 var cameraM2: M2Object | null = null;
+var cameraM2Index: number = 0;
 
 /* the gameplay mode (my_web_wow's GlobalSettings.CurrentGameplayMode), set from ?mode= on startup */
 var gameplayMode: GameplayModeValue = GameplayMode.FreeRoam;
@@ -300,6 +302,12 @@ export default {
     },
     setCameraM2 : function (value: M2Object | null) {
         cameraM2 = value;
+    },
+    getCameraM2Index : function () {
+        return cameraM2Index;
+    },
+    setCameraM2Index : function (value: number) {
+        cameraM2Index = value;
     },
     getUseHud : function () {
         return useHud;

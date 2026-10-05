@@ -233,6 +233,15 @@ class Camera {
         }
         this.av = av;
     }
+    /* points the camera along dir (world space): the angles tick() turns +x by (av around y, positive looks
+     * down, then -ah around z) */
+    setLookDirection(dir: ArrayLike<number>) {
+        var length = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+        if (length < 1e-6) return;
+        var av = Math.asin(Math.min(Math.max(-dir[2] / length, -1), 1)) * 180 / Math.PI;
+        this.av = Math.min(Math.max(av, -89.99999), 89.99999);
+        this.ah = -Math.atan2(dir[1], dir[0]) * 180 / Math.PI;
+    }
 
     startMovingForward(){
         this.movingForward = true;

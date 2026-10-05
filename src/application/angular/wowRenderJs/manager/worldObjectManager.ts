@@ -153,8 +153,9 @@ class WorldObjectManager {
             //vectorArray[0] = cameraPos[0]-15;
             //vectorArray[1] = cameraPos[1]+15;
             //vectorArray[2] = cameraPos[2]-8;
-            var vectorArray: number[] = [0+30, 0+30, 0];
-            this.objectMap[333].setPosition(vectorArray);
+            // the M2 scenes' unit stands where it was placed (the camera is aimed at it), as in my_web_wow
+            //var vectorArray: number[] = [0+30, 0+30, 0];
+            //this.objectMap[333].setPosition(vectorArray);
         }
         // Debug
         //console.log("this.objectMap:", this.objectMap);
