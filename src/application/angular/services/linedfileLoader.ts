@@ -235,8 +235,8 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                         result.ofsValues               = fileObject.readUint32(offset);
 
                         // Load interpolation ranges
+                        result.ranges = [];
                         if (result.interpolation_ranges_nb > 0) {
-                            result.ranges = [];
                             var offRanges = { offs: result.ofsRanges };
                             for (var i = 0; i < result.interpolation_ranges_nb; i++) {
                                 // Each range is two int32s: min and max
@@ -244,10 +244,9 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                                 var maximum = fileObject.readInt32(offRanges);
                                 result.ranges.push({ first: minimum, second: maximum });
                             }
-                        // JS-BUG: reads this.interpolation_type / this.global_sequence (the LinedFile, always undefined) instead of result's, so the whole-track range is never added
-                        // @ts-expect-error reads this.interpolation_type / this.global_sequence (the LinedFile), not result's; ported as-is
-                        } else if (this.interpolation_type !== 0 && this.global_sequence === -1) {
-                          result.ranges!.push({ first: 0, second: result.values_nb - 1 });
+                        } else if (result.interpolation_type !== 0 && result.global_sequence === -1) {
+                          // an implicit whole-track range, as my_web_wow's LinedFileObj
+                          result.ranges.push({ first: 0, second: result.values_nb - 1 });
                         }
                         
                         // Read timestamps as a single “animation”, so that:
