@@ -734,7 +734,8 @@ class Scene {
                     self.activateBoundingBoxShader();
                 },
                 deativateBoundingBoxShader : function() {
-                    self.deactivateBoundingBoxShader();
+                    // nothing to undo (activateBoundingBoxShader enables no vertex attribute), as my_web_wow's
+                    // Shaders.DeactivateBoundingBoxShader; it called a Scene method that does not exist
                 },
                 activateFrustumBoxShader : function () {
                     self.activateFrustumBoxShader();
