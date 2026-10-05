@@ -1096,9 +1096,7 @@ class Scene {
                     return self.wmoMainCache.loadWmoMain(fileName);
                 },
                 unloadWmoMain: function (fileName) {
-                    // JS-BUG: the WmoMainCache method is unLoadWmoMain (capital L), so this throws a TypeError
-                    // @ts-expect-error WmoMainCache has unLoadWmoMain, not unloadWmoMain; ported as-is
-                    self.wmoMainCache.unloadWmoMain(fileName);
+                    self.wmoMainCache.unLoadWmoMain(fileName);
                 },
                 loadWmoGeom: function (fileName) {
                     return self.wmoGeomCache.loadWmoGeom(fileName);
