@@ -33,7 +33,9 @@ const MapKey = {
   RagnarosM2: "RagnarosM2",
   DrakeM2: "DrakeM2",
   VanillaOpeningScreenM2: "VanillaOpeningScreenM2",
+  TbcOpeningScreenM2: "TbcOpeningScreenM2",
   // WOTLK
+  WotlkOpeningScreenM2: "WotlkOpeningScreenM2",
   PenguinM2: "PenguinM2",
   LichKingM2: "LichKingM2",
 
@@ -88,7 +90,7 @@ const mapKeyGroups: { label: string; keys: MapKeyValue[] }[] = [
   { label: 'TBC', keys: [MapKey.HellfireMap, MapKey.ShattrathMap, MapKey.NagrandMap, MapKey.BelfMap, MapKey.DraeneiMap] },
   { label: 'WOTLK', keys: [MapKey.DragonblightMap, MapKey.SholazarMap] },
   { label: 'PVP', keys: [MapKey.AlteracValleyMap, MapKey.WarsongGulchMap, MapKey.ArathiBasinMap, MapKey.EyeOfTheStormMap, MapKey.StrandOfTheAncientsMap] },
-  { label: 'M2', keys: [MapKey.RagnarosM2, MapKey.DrakeM2, MapKey.VanillaOpeningScreenM2, MapKey.PenguinM2, MapKey.LichKingM2] },
+  { label: 'M2', keys: [MapKey.RagnarosM2, MapKey.DrakeM2, MapKey.VanillaOpeningScreenM2, MapKey.TbcOpeningScreenM2, MapKey.WotlkOpeningScreenM2, MapKey.PenguinM2, MapKey.LichKingM2] },
   { label: 'Static', keys: [MapKey.ElwynForestTreeM2, MapKey.WintertreeM2] },
   { label: 'Spells', keys: [MapKey.FireballM2] },
   { label: 'Arena', keys: [MapKey.NagrandArena, MapKey.BladesEdgeArena] },
@@ -276,6 +278,22 @@ const maps: Record<MapKeyValue, MapParams> = {
     //fogEnd: 1200,
     //fogColor: [0.25, 0.06, 0.015]
   },
+  [MapKey.TbcOpeningScreenM2]: {
+    name: 'TBC Opening screen',
+    source: 'http',
+    sceneType: 'm2',
+    modelName: 'Interface\\GLUES\\MODELS\\UI_MAINMENU_BURNINGCRUSADE\\UI_MainMenu_BurningCrusade.m2',
+    // the login screen is seen through the model's own camera
+    cameraIndex: 0
+  },
+  [MapKey.WotlkOpeningScreenM2]: {
+    name: 'WOTLK Opening screen',
+    source: 'http',
+    sceneType: 'm2',
+    modelName: 'Interface\\GLUES\\MODELS\\UI_MAINMENU_NORTHREND\\UI_MainMenu_Northrend.m2',
+    // the login screen is seen through the model's own camera
+    cameraIndex: 0
+  },
   [MapKey.PenguinM2]: {
     name: 'Penguin',
     source: 'http',
@@ -363,13 +381,17 @@ const maps: Record<MapKeyValue, MapParams> = {
     name: 'Darkshire blacksmith',
     source: 'http',
     sceneType: 'wmo',
-    fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO'
+    fileName: 'WORLD\\WMO\\AZEROTH\\BUILDINGS\\DUSKWOOD_BLACKSMITH\\DUSKWOOD_BLACKSMITH.WMO',
+    // the camera start: a little behind and above the WMO's origin
+    x: -6, y: 0, z: 3
   },
   [MapKey.LordaeronArenaWMO]: {
     name: 'arena wmo',
     source: 'http',
     sceneType: 'wmo',
-    fileName: 'world\\wmo\\pvp\\buildings\\lordaeron\\pvp_lordaeron_arena.wmo'
+    fileName: 'world\\wmo\\pvp\\buildings\\lordaeron\\pvp_lordaeron_arena.wmo',
+    // the camera start: a little behind and above the WMO's origin
+    x: -6, y: 0, z: 3
     //fileName: 'world\\wmo\\pvp\\buildings\\ancientorcarena\\ancorc_pvpstadium.wmo' // Nagrand arena!
     //fileName: 'world\\wmo\\dungeon\\ol_ogrehuts\\pvp_ogre_arena01.wmo'
     //fileName: 'world\\wmo\\azeroth\\collidable doodads\\stranglethorn\\stranglethornarena\\stranglegladiatorarena.wmo'
@@ -408,6 +430,8 @@ const mapKeyAliases: Record<string, MapKeyValue> = {
   'ragnaros': MapKey.RagnarosM2,
   'drake': MapKey.DrakeM2,
   'vanillaopeningscreen': MapKey.VanillaOpeningScreenM2,
+  'tbcopeningscreen': MapKey.TbcOpeningScreenM2,
+  'wotlkopeningscreen': MapKey.WotlkOpeningScreenM2,
   'penguin': MapKey.PenguinM2, 'northrendpenguin': MapKey.PenguinM2,
   'lichking': MapKey.LichKingM2,
   'elwyntree': MapKey.ElwynForestTreeM2,
