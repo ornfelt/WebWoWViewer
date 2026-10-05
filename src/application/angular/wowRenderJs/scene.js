@@ -162,6 +162,8 @@ class Scene {
 
         this.uFogStart = -1;
         this.uFogEnd  = -1;
+        this.fogStartSet = false;
+        this.fogEndSet = false;
         this.fps = 0;
         this.playerJsonLoaded = Promise.resolve();
 
@@ -1476,9 +1478,9 @@ class Scene {
                 nearPlane = m2Camera.nearClip;
             }
             if (m2Camera.fov > 0) fov = m2Camera.fov * 32 * Math.PI / 180;
-            // fog at the camera's far clip
-            this.uFogStart = farPlane - 10;
-            this.uFogEnd = farPlane;
+            // fog at the camera's far clip, unless the scene set it
+            if (!this.fogStartSet) this.uFogStart = farPlane - 10;
+            if (!this.fogEndSet) this.uFogEnd = farPlane;
 
             // points (w = 1): calcCameras gives w = 0 for an animated track (the placement's translation was
             // dropped) and only three components for an unanimated one (the camera became NaN)
@@ -2121,9 +2123,11 @@ class Scene {
     }
     setFogStart(value) {
         this.uFogStart  = value;
+        this.fogStartSet = true;
     }
     setFogEnd(value) {
         this.uFogEnd = value;
+        this.fogEndSet = true;
     }
     setFogColor(value) {
         this.fogColor = value;
