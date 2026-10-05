@@ -538,47 +538,37 @@ export default class AnimationManager {
         var times_len = times.length;
         var result: vec4 | undefined;
         if (times_len > 1) {
-            // JS-BUG: overwrites maxTime (the parameter, or the global sequence length) with the last timestamp, so the branch below that tests animTime > times[times_len-1] && animTime <= maxTime never runs
-            var maxTime = times[times_len-1];
-
+            // the time within the animation, or within the global sequence (maxTime is its length; it was
+            // overwritten with the last key's time, which restarted the keys within a longer animation)
             var animTime = currTime;
-            if (window.selectedExpansion === Expansion.WOTLK) {
+            if (window.selectedExpansion === Expansion.WOTLK && maxTime > 0) {
               animTime = currTime % maxTime;
             }
 
-            if (animTime > times[times_len-1] && animTime <= maxTime) {
-                //console.log("[Line A] About to call convertValueTypeToVec4 with:", values[0]);
-                result = convertValueTypeToVec4(values[0], value_type);
-            } else {
-                // Note: if we really want the “last value,” this should be values[times_len-1].
-                //console.log("[Line B] About to call convertValueTypeToVec4 with:", times[times_len - 1]);
-                //result =  convertValueTypeToVec4(times[times_len-1], value_type);
-                result = convertValueTypeToVec4(values[times_len - 1], value_type);
+            // past the last key the track holds its last value
+            result = convertValueTypeToVec4(values[times_len - 1], value_type);
 
-                for (var i = 0; i < times_len; i++) {
-                    if (times[i] > animTime) {
+            for (var i = 0; i < times_len; i++) {
+                if (times[i] > animTime) {
 
-                        if (i - 1 < 0)
-                        {
-                            return null;
-                        }
-
-                        var value1: M2TrackValue | undefined = values[i - 1];
-                        var value2: M2TrackValue | undefined = values[i];
-
-                        var time1 = times[i - 1];
-                        var time2 = times[i];
-
-                        //console.log("[Line C] About to call convertValueTypeToVec4(value1):", value1);
-                        //console.log("[Line D] About to call convertValueTypeToVec4(value2):", value2);
-                        value1 = convertValueTypeToVec4(value1, value_type);
-                        value2 = convertValueTypeToVec4(value2, value_type);
-
-                        result = this.interpolateValues(animTime,
-                            interpolType, time1, time2, value1!, value2!, value_type);
-
-                        break;
+                    if (i - 1 < 0)
+                    {
+                        return null;
                     }
+
+                    var value1: M2TrackValue | undefined = values[i - 1];
+                    var value2: M2TrackValue | undefined = values[i];
+
+                    var time1 = times[i - 1];
+                    var time2 = times[i];
+
+                    value1 = convertValueTypeToVec4(value1, value_type);
+                    value2 = convertValueTypeToVec4(value2, value_type);
+
+                    result = this.interpolateValues(animTime,
+                        interpolType, time1, time2, value1!, value2!, value_type);
+
+                    break;
                 }
             }
         } else {
