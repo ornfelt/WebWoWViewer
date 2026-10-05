@@ -32,6 +32,7 @@ import config from './../services/config'
 import { performanceBegin, performanceEnd, PerformanceCategory, timing } from './../services/performance'
 
 import wdtLoader from './../services/map/wdtLoader';
+import { wmoGroupLoader } from './../services/map/wmoLoader';
 
 import AdtGeomCache    from './geometry/adtGeomCache';
 import M2GeomCache     from './geometry/m2GeomCache';
@@ -121,6 +122,28 @@ export interface M2CameraVecs {
     lookAtVec3: vec3 | vec4;
     cameraVec3: vec3 | vec4;
     staticCamera: boolean;
+}
+
+/* The height at which the vertical line through p crosses the triangle of the vertices i0, i1, i2 (of the flat
+ * vertex array v), if the triangle faces up (a floor, not a wall or a ceiling); null otherwise */
+function downwardFloorHit(p: ArrayLike<number>, v: ArrayLike<number>, i0: number, i1: number, i2: number): number | null {
+    var ax = v[i0 * 3], ay = v[i0 * 3 + 1], az = v[i0 * 3 + 2];
+    var bx = v[i1 * 3], by = v[i1 * 3 + 1], bz = v[i1 * 3 + 2];
+    var cx = v[i2 * 3], cy = v[i2 * 3 + 1], cz = v[i2 * 3 + 2];
+    // the z of the normal (b - a) x (c - a), against its length
+    var ux = bx - ax, uy = by - ay, uz = bz - az, wx = cx - ax, wy = cy - ay, wz = cz - az;
+    var nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+    var length = Math.sqrt(nx * nx + ny * ny + nz * nz);
+    if (length < 1e-8 || nz / length < 0.7) return null;
+
+    // barycentric coordinates of p in the triangle projected on the xy plane
+    var d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+    if (Math.abs(d) < 1e-8) return null;
+    var wa = ((by - cy) * (p[0] - cx) + (cx - bx) * (p[1] - cy)) / d;
+    var wb = ((cy - ay) * (p[0] - cx) + (ax - cx) * (p[1] - cy)) / d;
+    var wc = 1 - wa - wb;
+    if (wa < 0 || wb < 0 || wc < 0) return null;
+    return wa * az + wb * bz + wc * cz;
 }
 
 /* the free camera's field of view, as draw() passes it to mat4.perspective (which takes radians: about 58
@@ -2084,6 +2107,52 @@ class Scene {
     setCameraPos (x: number, y: number, z: number) {
         this.mainCamera = [x,y,z];
         //this.camera.setCameraPos(x,y,z);
+    }
+    /* Puts the free camera in the middle of the WMO scene's WMO, for a WMO scene without a camera start: at the
+     * centre of its indoor groups (its rooms; all of it if it has none), lowered to standing height (3) above
+     * the lowest upward-facing surface below that centre (the ground floor), or at the centre itself if there
+     * is none. Resolves false until the WMO is loaded, so the caller can try again later (my_web_wow's
+     * Scene.CenterCameraInWmo). */
+    async centerCameraInWmo() {
+        var wmo = this.graphManager.wmoMap;
+        if (!wmo || !wmo.loaded || !wmo.wmoObj || !wmo.wmoGroupArray) return false;
+
+        // in the WMO's own space, where its bounding boxes and group vertices are
+        var a = wmo.wmoObj.BoundBoxCorner1, b = wmo.wmoObj.BoundBoxCorner2;
+        var boxes = [[a, b]];
+        var indoorGroups = (wmo.wmoObj.groupInfos || []).filter((groupInfo) => (groupInfo.flags & 0x2000) !== 0);
+        if (indoorGroups.length > 0) boxes = indoorGroups.map((groupInfo) => [groupInfo.bb1, groupInfo.bb2]);
+        var min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+        for (var box of boxes) {
+            for (var corner of box) {
+                var values = [corner.x, corner.y, corner.z];
+                for (var k = 0; k < 3; k++) {
+                    min[k] = Math.min(min[k], values[k]);
+                    max[k] = Math.max(max[k], values[k]);
+                }
+            }
+        }
+        var center = vec3.fromValues((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
+
+        // the group files themselves (the groups load only the ones in view), as plain vertices
+        var groupFiles = await Promise.all(wmo.wmoGroupArray.map((group) => wmoGroupLoader(group.fileName, true).catch(() => null)));
+        var floorZ: number | null = null;
+        for (var groupFile of groupFiles) {
+            if (!groupFile || !groupFile.verticles || !groupFile.indicies) continue;
+            var v = groupFile.verticles;
+            var idx = groupFile.indicies;
+            for (var t = 0; t + 2 < idx.length; t += 3) {
+                var z = downwardFloorHit(center, v, idx[t], idx[t + 1], idx[t + 2]);
+                if (z !== null && z < center[2] && (floorZ === null || z < floorZ)) floorZ = z;
+            }
+        }
+        if (floorZ !== null) center[2] = floorZ + 3;
+
+        var position = vec3.create();
+        vec3.transformMat4(position, center, wmo.placementMatrix);
+        this.setCameraPos(position[0], position[1], position[2]);
+        console.log(`[Scene] Camera put in the middle of ${wmo.fileName}: (${Array.from(position).map((x) => x.toFixed(1))})${floorZ === null ? ' (no floor found)' : ''}`);
+        return true;
     }
     /* Points the free camera at a model, for the M2 scenes: from in front of it (its +x side) and a little
      * above, aimed at the centre of its vertices (bind pose; the header box also covers the animations and is

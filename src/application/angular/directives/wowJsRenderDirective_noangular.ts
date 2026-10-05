@@ -855,8 +855,15 @@ export async function initViewer(containerEl: HTMLElement) {
             rotation : {x : 0, y : 0, z : 0},
             doodadSet: 0
         });
-        if (mapParams.x !== undefined && mapParams.y !== undefined && mapParams.z !== undefined)
+        // the camera starts at the scene's x / y / z, or else in the middle of the WMO once it has loaded
+        if (mapParams.x !== undefined && mapParams.y !== undefined && mapParams.z !== undefined) {
             sceneObj.setCameraPos(mapParams.x, mapParams.y, mapParams.z);
+        } else {
+            const centerCamera = async () => {
+                if (!(await sceneObj.centerCameraInWmo())) setTimeout(centerCamera, 100);
+            };
+            centerCamera();
+        }
         // only the WMO, as in my_web_wow (no walking unit)
 
     } else if (mapParams.sceneType == 'm2') { 
