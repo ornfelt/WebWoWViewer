@@ -146,9 +146,9 @@ function downwardFloorHit(p: ArrayLike<number>, v: ArrayLike<number>, i0: number
     return wa * az + wb * bz + wc * cz;
 }
 
-/* the free camera's field of view, as draw() passes it to mat4.perspective (which takes radians: about 58
- * degrees vertically) */
-const DEFAULT_FOV = 45.0;
+/* the free camera's vertical field of view in radians, as mat4.perspective takes it: 45 degrees, as
+ * my_web_wow's Scene.DefaultFovDegrees (45 itself was passed before, read as radians: about 58 degrees) */
+const DEFAULT_FOV = 45.0 * Math.PI / 180;
 
 function getShaderSourceById(id: string): string {
   const el = document.getElementById(id);
@@ -2207,9 +2207,9 @@ class Scene {
             frontY = 0;
         }
 
-        // far enough for the box's bounding sphere to fit the vertical field of view (as mat4.perspective
-        // uses DEFAULT_FOV) and for all of it to be beyond the near plane (1), looking 15 degrees down
-        var halfFov = Math.atan(Math.abs(Math.tan(DEFAULT_FOV / 2)));
+        // far enough for the box's bounding sphere to fit the vertical field of view and for all of it to be
+        // beyond the near plane (1), looking 15 degrees down
+        var halfFov = DEFAULT_FOV / 2;
         var distance = Math.max(radius / Math.sin(halfFov), radius + 1);
         var pitch = 15 * Math.PI / 180;
         var toCamera = [frontX * Math.cos(pitch), frontY * Math.cos(pitch), Math.sin(pitch)];
