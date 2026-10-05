@@ -922,8 +922,15 @@ export async function initViewer(containerEl) {
         // TODO
         //newWorldUnit.objectModel.animationManager.setAnimationId(4, true);
 
+        // The camera stood at the origin, inside the model: a scene with a camera index (the login screen) is
+        // seen through the model's own camera, the others get the camera aimed at the model once it has loaded
         if (mapParams.cameraIndex !== undefined) {
-            config.setCameraM2(m2Object);
+            config.setCameraM2(newWorldUnit.objectModel);
+            config.setCameraM2Index(mapParams.cameraIndex);
+        } else {
+            const frameTimer = setInterval(() => {
+                if (sceneObj.frameModel(newWorldUnit.objectModel)) clearInterval(frameTimer);
+            }, 100);
         }
         if (mapParams.fogStart) {
             sceneObj.setFogStart(mapParams.fogStart)

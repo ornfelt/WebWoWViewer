@@ -68,6 +68,10 @@ import ParticleRenderer from './particles/particleRenderer.js';
 
 import Expansion from '../Expansion';
 
+/* the free camera's field of view, as draw() passes it to mat4.perspective (which takes radians: about 58
+ * degrees vertically) */
+const DEFAULT_FOV = 45.0;
+
 function getShaderSourceById(id) {
   const el = document.getElementById(id);
   if (!el) {
@@ -1452,24 +1456,41 @@ class Scene {
 
         var farPlane = 400;
         var nearPlane = 1;
-        var fov = 45.0;
+        var fov = DEFAULT_FOV;
 
-        //If use camera settings
-        //Figure out way to assign the object with camera
-        //config.setCameraM2(this.graphManager.m2Objects[0]);
+        // An M2 scene with its own camera (the login screen) is seen through the model's animated camera
         var m2Object = config.getCameraM2();
-        if (m2Object && m2Object.loaded) {
+        var m2Camera = null;
+        if (m2Object && m2Object.loaded && m2Object.placementMatrix && !config.getUseSecondCamera() && m2Object.cameras
+            && config.getCameraM2Index() < m2Object.cameras.length) {
             m2Object.updateCameras(deltaTime);
+            m2Camera = m2Object.cameras[config.getCameraM2Index()];
+            // a camera looking at its own position has no view direction: use the free camera
+            var cameraPosition = m2Camera.currentPosition, cameraTarget = m2Camera.currentTarget;
+            if (Math.abs(cameraTarget[0] - cameraPosition[0]) + Math.abs(cameraTarget[1] - cameraPosition[1])
+                + Math.abs(cameraTarget[2] - cameraPosition[2]) < 1e-6) m2Camera = null;
+        }
+        if (m2Object && m2Camera) {
+            if (m2Camera.nearClip > 0 && m2Camera.farClip > m2Camera.nearClip) {
+                farPlane = m2Camera.farClip;
+                nearPlane = m2Camera.nearClip;
+            }
+            if (m2Camera.fov > 0) fov = m2Camera.fov * 32 * Math.PI / 180;
+            // fog at the camera's far clip
+            this.uFogStart = farPlane - 10;
+            this.uFogEnd = farPlane;
 
-            var cameraSettings = m2Object.cameras[0];
-            farPlane = cameraSettings.farClip;
-            nearPlane = cameraSettings.nearClip;
-            fov = cameraSettings.fov * 32 * Math.PI / 180;
-
-            this.mainCamera = cameraSettings.currentPosition;
+            // points (w = 1): calcCameras gives w = 0 for an animated track (the placement's translation was
+            // dropped) and only three components for an unanimated one (the camera became NaN)
+            var position = m2Camera.currentPosition, target = m2Camera.currentTarget;
+            this.mainCamera = vec4.fromValues(position[0], position[1], position[2], 1);
             vec4.transformMat4(this.mainCamera, this.mainCamera, m2Object.placementMatrix);
-            this.mainCameraLookAt = cameraSettings.currentTarget;
+            this.mainCameraLookAt = vec4.fromValues(target[0], target[1], target[2], 1);
             vec4.transformMat4(this.mainCameraLookAt, this.mainCameraLookAt, m2Object.placementMatrix);
+            // the free camera stays where the M2 camera is, for when the M2 camera is turned off
+            this.camera.setCameraPos(this.mainCamera[0], this.mainCamera[1], this.mainCamera[2]);
+            this.camera.setLookDirection([this.mainCameraLookAt[0] - this.mainCamera[0],
+                this.mainCameraLookAt[1] - this.mainCamera[1], this.mainCameraLookAt[2] - this.mainCamera[2]]);
             cameraVecs = {
                 lookAtVec3: this.mainCameraLookAt,
                 cameraVec3: this.mainCamera,
@@ -1484,7 +1505,7 @@ class Scene {
             this.uFogEnd = farPlane;
         }
 
-        if (!(m2Object && m2Object.loaded) || config.getUseSecondCamera()){
+        if (!m2Camera){
             this.camera.setCameraPos(cameraVector[0], cameraVector[1], cameraVector[2]);
             var cameraVecs = this.camera.tick(deltaTime);
 
@@ -1844,6 +1865,71 @@ class Scene {
     setCameraPos (x, y, z) {
         this.mainCamera = [x,y,z];
         //this.camera.setCameraPos(x,y,z);
+    }
+    /* Points the free camera at a model, for the M2 scenes: from in front of it (its +x side) and a little
+     * above, aimed at the centre of its vertices (bind pose; the header box also covers the animations and is
+     * much larger), at the distance at which they fit the view. False until the model is loaded and placed,
+     * so the caller can try again later (my_web_wow's Scene.FrameModel). */
+    frameModel(m2Object) {
+        if (!m2Object || !m2Object.loaded || !m2Object.m2Geom || !m2Object.placementMatrix) return false;
+        var placement = m2Object.placementMatrix;
+        var m2File = m2Object.m2Geom.m2File;
+
+        var min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+        var vertexes = m2File.vertexes;
+        // 48 bytes per vertex, the position first
+        if (vertexes && m2File.nVertexes > 0 && vertexes.length >= m2File.nVertexes * 48) {
+            var view = new DataView(vertexes.buffer, vertexes.byteOffset, vertexes.byteLength);
+            for (var i = 0; i < m2File.nVertexes; i++) {
+                for (var k = 0; k < 3; k++) {
+                    var value = view.getFloat32(i * 48 + k * 4, true);
+                    if (value < min[k]) min[k] = value;
+                    if (value > max[k]) max[k] = value;
+                }
+            }
+        } else {
+            var a = m2File.BoundingCorner1, b = m2File.BoundingCorner2;
+            min = [Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z)];
+            max = [Math.max(a.x, b.x), Math.max(a.y, b.y), Math.max(a.z, b.z)];
+        }
+
+        // the box in world space
+        var worldMin = [Infinity, Infinity, Infinity], worldMax = [-Infinity, -Infinity, -Infinity];
+        var corner = vec3.create();
+        for (var c = 0; c < 8; c++) {
+            vec3.set(corner, (c & 1) ? max[0] : min[0], (c & 2) ? max[1] : min[1], (c & 4) ? max[2] : min[2]);
+            vec3.transformMat4(corner, corner, placement);
+            for (var k = 0; k < 3; k++) {
+                worldMin[k] = Math.min(worldMin[k], corner[k]);
+                worldMax[k] = Math.max(worldMax[k], corner[k]);
+            }
+        }
+        var center = [(worldMin[0] + worldMax[0]) / 2, (worldMin[1] + worldMax[1]) / 2, (worldMin[2] + worldMax[2]) / 2];
+        var dx = worldMax[0] - worldMin[0], dy = worldMax[1] - worldMin[1], dz = worldMax[2] - worldMin[2];
+        var radius = Math.max(Math.sqrt(dx * dx + dy * dy + dz * dz) / 2, 0.5);
+
+        // the model faces its +x axis
+        var frontX = placement[0], frontY = placement[1];
+        var frontLength = Math.sqrt(frontX * frontX + frontY * frontY);
+        if (frontLength > 1e-4) {
+            frontX /= frontLength;
+            frontY /= frontLength;
+        } else {
+            frontX = 1;
+            frontY = 0;
+        }
+
+        // far enough for the box's bounding sphere to fit the vertical field of view (as mat4.perspective
+        // uses DEFAULT_FOV) and for all of it to be beyond the near plane (1), looking 15 degrees down
+        var halfFov = Math.atan(Math.abs(Math.tan(DEFAULT_FOV / 2)));
+        var distance = Math.max(radius / Math.sin(halfFov), radius + 1);
+        var pitch = 15 * Math.PI / 180;
+        var toCamera = [frontX * Math.cos(pitch), frontY * Math.cos(pitch), Math.sin(pitch)];
+
+        this.setCameraPos(center[0] + toCamera[0] * distance, center[1] + toCamera[1] * distance, center[2] + toCamera[2] * distance);
+        this.camera.setLookDirection([-toCamera[0], -toCamera[1], -toCamera[2]]);
+        console.log(`[Scene] Camera aimed at ${m2Object.modelName}: centre (${center.map((v) => v.toFixed(1))}), radius ${radius.toFixed(1)}`);
+        return true;
     }
     /* switch between the free roam camera and the player character (needs collision triangles), spawning the character the first time */
     setPlayerMode(enabled) {

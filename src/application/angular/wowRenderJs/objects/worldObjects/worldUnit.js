@@ -116,6 +116,8 @@ class WorldUnit extends WorldObject {
         this.speedTurnRate = 0;
 
         this.isMoving = false;
+        // as my_web_wow's WorldUnit: a unit that is never turned (e.g. one standing still) has no NaN placement
+        this.f = 1.0;
 
 
         this.objectModel = null;
@@ -704,7 +706,8 @@ class WorldUnit extends WorldObject {
                 var totalPath = this.pointsTotalPath[this.pointsTotalPath.length - 1];
                 var currentPath = (totalPath / this.totalMovingTime) * (this.currentMovingTime + deltaTime);
                 var pointIndex = 0;
-                var result = this.pointsTotalPath[0]
+                // the first point when no segment matches (a path of zero length, as the M2 scenes' unit has), as my_web_wow's WorldUnit
+                var result = this.pointsArray[0]
 
                 for (var i = 1; i < this.pointsArray.length; i++) {
                     if (currentPath < this.pointsTotalPath[i]) {
@@ -717,7 +720,7 @@ class WorldUnit extends WorldObject {
                         var diff = vec4.create();
                         vec3.subtract(diff, value2, value1);
                         vec3.scale(diff, diff, (currentPath - path1)/(path2 - path1));
-                        var result = vec3.create();
+                        result = vec3.create();
                         vec3.add(result, value1, diff);
 
                         //CalcF
