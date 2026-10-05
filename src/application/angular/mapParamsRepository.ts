@@ -38,6 +38,7 @@ const MapKey = {
   WotlkOpeningScreenM2: "WotlkOpeningScreenM2",
   PenguinM2: "PenguinM2",
   LichKingM2: "LichKingM2",
+  PlayerJsonM2: "PlayerJsonM2",
 
   // Static
   ElwynForestTreeM2: "ElwynForestTreeM2",
@@ -90,7 +91,7 @@ const mapKeyGroups: { label: string; keys: MapKeyValue[] }[] = [
   { label: 'TBC', keys: [MapKey.HellfireMap, MapKey.ShattrathMap, MapKey.NagrandMap, MapKey.BelfMap, MapKey.DraeneiMap] },
   { label: 'WOTLK', keys: [MapKey.DragonblightMap, MapKey.SholazarMap] },
   { label: 'PVP', keys: [MapKey.AlteracValleyMap, MapKey.WarsongGulchMap, MapKey.ArathiBasinMap, MapKey.EyeOfTheStormMap, MapKey.StrandOfTheAncientsMap] },
-  { label: 'M2', keys: [MapKey.RagnarosM2, MapKey.DrakeM2, MapKey.VanillaOpeningScreenM2, MapKey.TbcOpeningScreenM2, MapKey.WotlkOpeningScreenM2, MapKey.PenguinM2, MapKey.LichKingM2] },
+  { label: 'M2', keys: [MapKey.RagnarosM2, MapKey.DrakeM2, MapKey.VanillaOpeningScreenM2, MapKey.TbcOpeningScreenM2, MapKey.WotlkOpeningScreenM2, MapKey.PenguinM2, MapKey.LichKingM2, MapKey.PlayerJsonM2] },
   { label: 'Static', keys: [MapKey.ElwynForestTreeM2, MapKey.WintertreeM2] },
   { label: 'Spells', keys: [MapKey.FireballM2] },
   { label: 'Arena', keys: [MapKey.NagrandArena, MapKey.BladesEdgeArena] },
@@ -309,6 +310,13 @@ const maps: Record<MapKeyValue, MapParams> = {
     modelName: 'arthaslichking',
     chosenModelIndex: 0
   },
+  [MapKey.PlayerJsonM2]: {
+    // only the content of the selected JSON packet file (the player json selection, player.json when none):
+    // its player with the worn items and mount
+    name: 'Player JSON',
+    source: 'http',
+    sceneType: 'json'
+  },
 
   // Static
   [MapKey.ElwynForestTreeM2]: {
@@ -434,6 +442,7 @@ const mapKeyAliases: Record<string, MapKeyValue> = {
   'wotlkopeningscreen': MapKey.WotlkOpeningScreenM2,
   'penguin': MapKey.PenguinM2, 'northrendpenguin': MapKey.PenguinM2,
   'lichking': MapKey.LichKingM2,
+  'playerjson': MapKey.PlayerJsonM2, 'json': MapKey.PlayerJsonM2,
   'elwyntree': MapKey.ElwynForestTreeM2,
   'wintertree': MapKey.WintertreeM2,
   'fireball': MapKey.FireballM2,

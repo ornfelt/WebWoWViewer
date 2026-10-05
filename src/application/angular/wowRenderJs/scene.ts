@@ -2364,6 +2364,18 @@ class Scene {
         this.playerJsonLoaded = loaded;
         return loaded;
     }
+    /* Loads only a JSON packet file's units, for the JSON scene (sceneType 'json'): they stay where the file
+     * puts them, and its player is kept off the camera-bound key; resolves to that player, or null */
+    loadJsonScene(fileName: string): Promise<WorldUnit | null> {
+        var self = this;
+        this.worldObjectManager.keepJsonObjectsInPlace = true;
+        return Promise.all([this.unitDbcsLoaded, loadPacketJson(fileName)]).then(function (results) {
+            var packets = results[1];
+            if (packets === null) return null;
+            self.worldObjectManager.loadPackets(packets);
+            return self.worldObjectManager.takeJsonPlayer(JsonPlayerGuid);
+        });
+    }
     /* loads the map's wander nodes from the mpq server (the node debugger, the debug drawing and the Wander mode); resolves to the node count */
     loadGameplayNodes(mapId: number): Promise<number> {
         var nodeManager = new NodeManager(mapId);

@@ -50,6 +50,9 @@ class WorldObjectManager {
     hideLocalPlayer: boolean;
     /* the keys of the units loaded from a JSON packet file (loadPackets), in insertion order */
     jsonObjectKeys: string[];
+    /* the JSON scene (sceneType 'json') keeps the file's units where the file puts them, for the camera to move
+       around them, instead of parking them in front of the camera */
+    keepJsonObjectsInPlace: boolean;
 
     constructor(sceneApi: SceneApi){
         this.objectMap = {};
@@ -60,6 +63,7 @@ class WorldObjectManager {
         this.wanderKeys = new Set();
         this.hideLocalPlayer = false;
         this.jsonObjectKeys = [];
+        this.keepJsonObjectsInPlace = false;
     }
 
     update(deltaTime: number, cameraPos: ReadonlyVec4, viewMat: ReadonlyMat4, camera: firstPersonCamera) {
@@ -540,8 +544,34 @@ class WorldObjectManager {
      * path (isMoving), as my_web_wow's ParkJsonObjectsInFrontOfCamera. The player character is skipped, it has
      * its own placement in update(). Multiple objects are spread out laterally so they don't overlap.
      */
+    /* The JSON file's main unit for the JSON scene, which shows only the file: the unit at fileKey (the captured
+     * files use the local player's guid), else the file's first player (obj_type 4) unit, else its first unit.
+     * update() places the units of fileKey and 17786930 itself (by the camera), so a unit with one of those
+     * keys is moved to a free key and stays where the file puts it. Null when the file has no unit (my_web_wow's
+     * TakeJsonPlayer) */
+    takeJsonPlayer(fileKey: number): WorldUnit | null {
+        var found: string | null = this.objectMap[fileKey] instanceof WorldUnit ? String(fileKey) : null;
+        if (found === null) {
+            found = this.jsonObjectKeys.find((key) => this.objectMap[key] instanceof WorldPlayer) ?? null;
+        }
+        if (found === null) {
+            found = this.jsonObjectKeys.find((key) => this.objectMap[key] instanceof WorldUnit) ?? null;
+        }
+        if (found === null) return null;
+
+        var unit = this.objectMap[found] as WorldUnit;
+        if (found === String(fileKey) || found === String(17786930)) {
+            var key = fileKey + 1;
+            while (this.objectMap[key] || key === 17786930) key++;
+            delete this.objectMap[found];
+            this.objectMap[key] = unit;
+            var index = this.jsonObjectKeys.indexOf(found);
+            if (index >= 0) this.jsonObjectKeys[index] = String(key);
+        }
+        return unit;
+    }
     parkJsonObjectsInFrontOfCamera(cameraPos: ReadonlyVec4, camera: firstPersonCamera) {
-        if (this.jsonObjectKeys.length === 0)
+        if (this.jsonObjectKeys.length === 0 || this.keepJsonObjectsInPlace)
             return;
 
         var yawRad = -camera.ah * (Math.PI / 180);
