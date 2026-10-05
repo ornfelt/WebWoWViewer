@@ -857,43 +857,7 @@ export async function initViewer(containerEl: HTMLElement) {
         });
         if (mapParams.x !== undefined && mapParams.y !== undefined && mapParams.z !== undefined)
             sceneObj.setCameraPos(mapParams.x, mapParams.y, mapParams.z);
-
-        await sleep(3000); // wait for 3 seconds for dbc data to load
-
-        //var newWorldUnit = new WorldUnit(sceneObj.sceneApi);
-
-        var newWorldUnit = new WorldPlayer(sceneObj.sceneApi);
-        sceneObj.worldObjectManager.objectMap[333] = newWorldUnit;
-
-        // Movement speeds
-        //newWorldUnit.setSpeedWalk(2.5);
-        //newWorldUnit.setSpeedRun(7.0);
-        //newWorldUnit.setSpeedRunBack(4.5);
-        //newWorldUnit.setSpeedSwim(4.722222328186035);
-        //newWorldUnit.setSpeedSwimBack(2.5);
-        //newWorldUnit.setSpeedFly(7.0);
-        //newWorldUnit.setSpeedFlyBack(4.5);
-        //newWorldUnit.setSpeedTurnRate(3.1415927410125732);
-
-        // Movement path (points)
-        const vectorArray = [
-          [-1663, 5098, 27],
-          [-1600, 5100, 30],
-          [-1650, 5150, 35]
-        ];
-        newWorldUnit.setMovingData(1000, 8000, 0, vectorArray); // curr_time, total_time, movementflag
-
-        // Position and rotation
-        //newWorldUnit.setCurrentTime(-207965255);
-        //newWorldUnit.setPosition(vec3.fromValues(-1663, 5098, 27));
-        //newWorldUnit.setRotation(0.0);
-
-        newWorldUnit.setDisplayId(11121);
-        newWorldUnit.setNativeDisplayId(11121);
-
-        newWorldUnit.setScale(1.0);
-
-        newWorldUnit.complete()
+        // only the WMO, as in my_web_wow (no walking unit)
 
     } else if (mapParams.sceneType == 'm2') { 
         //var m2Object = sceneObj.loadM2File({
