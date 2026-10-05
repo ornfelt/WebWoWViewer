@@ -38,6 +38,18 @@ export interface AnimationBlock {
     global_sequence: number;
     timestampsPerAnimation: number[][];
     valuesPerAnimation: SectionValue[][];
+    /* the in and out tangents of the values of a spline track (the camera tracks: M2SplineKey) */
+    inTanPerAnimation?: SectionValue[][];
+    outTanPerAnimation?: SectionValue[][];
+}
+
+/* An M2SplineKey (a key of the camera tracks), as readType() reads the splineVector3f / splineFloat32 value
+   types: the value and its in and out tangents. An animation block keeps the values with its other values
+   and the tangents in inTanPerAnimation / outTanPerAnimation. */
+export interface M2SplineKey {
+    value: Vector3f | number;
+    inTan: Vector3f | number;
+    outTan: Vector3f | number;
 }
 
 export interface AnimationBlockTbc {
@@ -52,6 +64,9 @@ export interface AnimationBlockTbc {
     ranges?: { first: number; second: number }[];
     timestampsPerAnimation: number[][];
     valuesPerAnimation: SectionValue[][];
+    /* the in and out tangents of the values of a spline track (the camera tracks: M2SplineKey) */
+    inTanPerAnimation?: SectionValue[][];
+    outTanPerAnimation?: SectionValue[][];
 }
 
 export interface AnimationBlockTbc2 {
@@ -78,6 +93,7 @@ export type SectionValue =
     | AnimationBlock
     | AnimationBlockTbc
     | AnimationBlockTbc2
+    | M2SplineKey
     | ParsedObject
     | undefined;
 
@@ -87,6 +103,11 @@ export interface LinedFile extends FileReadHelper {
     parseSectionDefinition(parentObject: ParsedObject, sectionDefinition: SectionDefinition, fileObject: FileReadHelper, offset?: FileOffset, debugPrint?: boolean): SectionValue | SectionValue[];
     /* set only when the file was loaded by path */
     filePath?: string;
+}
+
+/* the value types read as M2SplineKeys (the camera tracks) */
+function isSplineType(valType: SectionType | undefined) {
+    return valType === "splineVector3f" || valType === "splineFloat32";
 }
 
 export default function (filePath: string, arrayBuffer: ArrayBuffer): LinedFile;
@@ -149,14 +170,21 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                     case "float32" :
                         result = fileObject.readFloat32(offset);
                         break;
-                    // an M2SplineKey (the camera tracks): the value, then the in and out tangents, which are skipped
+                    // an M2SplineKey (the camera tracks): the value, then the in and out tangents (an animation
+                    // block keeps the values with its other values and the tangents in lists of their own)
                     case "splineVector3f" :
-                        result = fileObject.readVector3f(offset);
-                        offset.offs += 2 * 12;
+                        result = {
+                            value: fileObject.readVector3f(offset),
+                            inTan: fileObject.readVector3f(offset),
+                            outTan: fileObject.readVector3f(offset)
+                        } as M2SplineKey;
                         break;
                     case "splineFloat32" :
-                        result = fileObject.readFloat32(offset);
-                        offset.offs += 2 * 4;
+                        result = {
+                            value: fileObject.readFloat32(offset),
+                            inTan: fileObject.readFloat32(offset),
+                            outTan: fileObject.readFloat32(offset)
+                        } as M2SplineKey;
                         break;
                     case "string" :
                         if (len != undefined) {
@@ -200,6 +228,12 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                         valuesAnimationsCnt = (valuesAnimationsCnt <= 0) ? 0 : valuesAnimationsCnt;
 
                         result.valuesPerAnimation = new Array(valuesAnimationsCnt);
+                        // the tangents of a spline track (the camera tracks), next to its values
+                        var isSpline = isSplineType(sectionDef.valType);
+                        if (isSpline) {
+                            result.inTanPerAnimation = new Array(valuesAnimationsCnt);
+                            result.outTanPerAnimation = new Array(valuesAnimationsCnt);
+                        }
 
                         var offs1 = {offs: valuesAnimationsOffset} ;
                         for (var i = 0; i < valuesAnimationsCnt; i++) {
@@ -208,15 +242,26 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                             var valuesOffset = fileObject.readUint32(offs1);
 
                             result.valuesPerAnimation[i] = new Array(valuesCnt);
+                            if (isSpline) {
+                                result.inTanPerAnimation![i] = new Array(valuesCnt);
+                                result.outTanPerAnimation![i] = new Array(valuesCnt);
+                            }
 
                             var offs2 = {offs : valuesOffset};
                             for (var j = 0; j < valuesCnt; j++) {
-                                result.valuesPerAnimation[i][j] = self.readType(
+                                var value = self.readType(
                                     fileObject,
                                     {type : sectionDef.valType!, len: sectionDef.len},
                                     offs2,
                                     sectionDef.len as number | undefined
                                 );
+                                if (isSpline) {
+                                    var key = value as M2SplineKey;
+                                    result.inTanPerAnimation![i][j] = key.inTan;
+                                    result.outTanPerAnimation![i][j] = key.outTan;
+                                    value = key.value;
+                                }
+                                result.valuesPerAnimation[i][j] = value;
                             }
                         }
 
@@ -268,18 +313,29 @@ export default function (filePath: string , arrayBuffer?: ArrayBuffer): LinedFil
                         // Read values similarly
                         result.valuesPerAnimation = [];
                         result.valuesPerAnimation[0] = [];
-                        
+                        // the tangents of a spline track (the camera tracks), next to its values
+                        var isSpline = isSplineType(sectionDef.valType);
+                        if (isSpline) {
+                            result.inTanPerAnimation = [[]];
+                            result.outTanPerAnimation = [[]];
+                        }
+
                         if (result.values_nb > 0) {
                             var offValues = { offs: result.ofsValues };
                             for (var i = 0; i < result.values_nb; i++) {
-                                result.valuesPerAnimation[0].push(
-                                    self.readType(
-                                        fileObject,
-                                        { type: sectionDef.valType!, len: sectionDef.len },
-                                        offValues,
-                                        sectionDef.len as number | undefined
-                                    )
+                                var value = self.readType(
+                                    fileObject,
+                                    { type: sectionDef.valType!, len: sectionDef.len },
+                                    offValues,
+                                    sectionDef.len as number | undefined
                                 );
+                                if (isSpline) {
+                                    var key = value as M2SplineKey;
+                                    result.inTanPerAnimation![0].push(key.inTan);
+                                    result.outTanPerAnimation![0].push(key.outTan);
+                                    value = key.value;
+                                }
+                                result.valuesPerAnimation[0].push(value);
                             }
                         }
 

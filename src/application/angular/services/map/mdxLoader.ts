@@ -12,6 +12,9 @@ export interface M2Track<V> {
     global_sequence: number;
     timestampsPerAnimation: number[][];
     valuesPerAnimation: V[][];
+    /* the in and out tangents of the values of a spline track (the camera tracks) */
+    inTanPerAnimation?: V[][];
+    outTanPerAnimation?: V[][];
 }
 
 export interface M2VertexDebug {
