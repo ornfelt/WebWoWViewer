@@ -1004,9 +1004,21 @@ export default class AnimationManager {
                 currentTarget[1] = cameraRecord.target_position_base.y;
                 currentTarget[2] = cameraRecord.target_position_base.z;
             }
-            //TODO: Implement Roll
+            // the roll around the view direction (value_type 4, a scalar)
+            var roll = 0;
+            if (cameraRecord.roll) {
+                var rollValue = this.getTimedValue(
+                    4,
+                    animationTime,
+                    animationRecord.length,
+                    animationIndex,
+                    cameraRecord.roll,
+                    globalSequenceTimes);
+                if (rollValue) roll = rollValue[0];
+            }
 
             //Write values
+            cameraDetails[i].roll = roll;
             cameraDetails[i].currentPosition = currentPosition;
             cameraDetails[i].currentTarget = currentTarget;
             cameraDetails[i].farClip = cameraRecord.far_clip;

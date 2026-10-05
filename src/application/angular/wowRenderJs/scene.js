@@ -69,6 +69,21 @@ import ParticleRenderer from './particles/particleRenderer.js';
 
 import Expansion from '../Expansion';
 
+/* +z rotated around the view direction by roll radians (an M2 camera's roll; 0 and 2 pi are no roll), as
+ * my_web_wow's Scene.RollUpVector */
+function rollUpVector(viewDirection, roll) {
+    var length = vec3.length(viewDirection);
+    if (length < 1e-6 || !roll) return [0, 0, 1];
+    var axis = vec3.scale(vec3.create(), viewDirection, 1 / length);
+    var up = vec3.fromValues(0, 0, 1);
+    var cos = Math.cos(roll), sin = Math.sin(roll);
+    // Rodrigues' rotation of up around axis
+    var result = vec3.scale(vec3.create(), up, cos);
+    vec3.scaleAndAdd(result, result, vec3.cross(vec3.create(), axis, up), sin);
+    vec3.scaleAndAdd(result, result, axis, vec3.dot(axis, up) * (1 - cos));
+    return result;
+}
+
 /* The height at which the vertical line through p crosses the triangle of the vertices i0, i1, i2 (of the flat
  * vertex array v), if the triangle faces up (a floor, not a wall or a ceiling); null otherwise */
 function downwardFloorHit(p, v, i0, i1, i2) {
@@ -181,6 +196,7 @@ class Scene {
 
         this.mainCamera = [0,0,0];
         this.mainCameraLookAt = [0,0,0];
+        this.mainCameraUp = [0,0,1];
         this.fogColor = [0.117647, 0.207843, 0.392157];
 
         this.uFogStart = -1;
@@ -1512,6 +1528,8 @@ class Scene {
             vec4.transformMat4(this.mainCamera, this.mainCamera, m2Object.placementMatrix);
             this.mainCameraLookAt = vec4.fromValues(target[0], target[1], target[2], 1);
             vec4.transformMat4(this.mainCameraLookAt, this.mainCameraLookAt, m2Object.placementMatrix);
+            this.mainCameraUp = rollUpVector([this.mainCameraLookAt[0] - this.mainCamera[0],
+                this.mainCameraLookAt[1] - this.mainCamera[1], this.mainCameraLookAt[2] - this.mainCamera[2]], m2Camera.roll);
             // the free camera stays where the M2 camera is, for when the M2 camera is turned off
             this.camera.setCameraPos(this.mainCamera[0], this.mainCamera[1], this.mainCamera[2]);
             this.camera.setLookDirection([this.mainCameraLookAt[0] - this.mainCamera[0],
@@ -1541,6 +1559,7 @@ class Scene {
             } else {
                 this.mainCamera = cameraVecs.cameraVec3;
                 this.mainCameraLookAt = cameraVecs.lookAtVec3;
+                this.mainCameraUp = [0,0,1];
             }
         }
 
@@ -1559,7 +1578,7 @@ class Scene {
 
         var lookAtMat4 = [];
 
-        mat4.lookAt(lookAtMat4, this.mainCamera, this.mainCameraLookAt, [0,0,1]);
+        mat4.lookAt(lookAtMat4, this.mainCamera, this.mainCameraLookAt, this.mainCameraUp);
 
         //Second camera for debug
         var secondLookAtMat = [];
