@@ -90,7 +90,7 @@ class SkinGeom {
             if (texDef.layer == 0) {
 
                 if ((texDef.op_count >= 1) && (renderFlag.blend == 0)) {
-                    texDef.shader_id &= 0xFF8F;
+                    texDef.shaderId &= 0xFF8F;
                 }
                 lowerLayerSkin = texDef;
             }
@@ -103,8 +103,8 @@ class SkinGeom {
                     && texDef.textureIndex == lowerLayerSkin.textureIndex)
                 {
                     if (m2File.transLookup[lowerLayerSkin.transpIndex] == m2File.transLookup[texDef.transpIndex]) {
-                        texDef.shader_id = 0x8000;
-                        lowerLayerSkin.shader_id = 0x8001;
+                        texDef.shaderId = 0x8000;
+                        lowerLayerSkin.shaderId = 0x8001;
                         someFlags = (someFlags&0xFF00) | 3;
                         continue;
                     }
@@ -124,12 +124,12 @@ class SkinGeom {
                 if ((someFlags >> 8) == 1) {
                     //Line 119
                     var blend = renderFlag.blend;
-                    if ((blend != 4) && (renderFlag != 6) || (texDef.op_count != 1) || (m2File.textUnitLookup[texDef.textureUnitNum] <= 2)) {
+                    if ((blend != 4) && (blend != 6) || (texDef.op_count != 1) || (m2File.textUnitLookup[texDef.textureUnitNum] <= 2)) {
 
                     } else  if (m2File.transLookup[lowerLayerSkin.transpIndex] == m2File.transLookup[texDef.transpIndex]) {
                         //Line 124
-                        texDef.shader_id = 0x8000;
-                        lowerLayerSkin.shader_id = renderFlag.blend != 4 ? 14 : 0x8002;
+                        texDef.shaderId = 0x8000;
+                        lowerLayerSkin.shaderId = renderFlag.blend != 4 ? 14 : 0x8002;
                         //lowerLayerSkin.op_count = 2;
                         //TODO: Implement packing of textures
 
@@ -143,14 +143,14 @@ class SkinGeom {
                     }
                     var blend = renderFlag.blend;
 
-                    if ((blend != 2) && (renderFlag != 1)
+                    if ((blend != 2) && (blend != 1)
                         || (texDef.op_count != 1)
                         || ((((renderFlag.flags & 0xff) ^ (m2File.renderFlags[lowerLayerSkin.renderFlagIndex].flags & 0xff)) & 1) == 0)
                         || ((texDef.textureIndex & 0xff) != (lowerLayerSkin.textureIndex&0xff))) {
 
                     } else  if (m2File.transLookup[lowerLayerSkin.transpIndex] == m2File.transLookup[texDef.transpIndex]) {
-                        texDef.shader_id = 0x8000;
-                        lowerLayerSkin.shader_id = ((lowerLayerSkin.shader_id == 0x8002? 2 : 0) - 0x7FFF) & 0xFFFF;
+                        texDef.shaderId = 0x8000;
+                        lowerLayerSkin.shaderId = ((lowerLayerSkin.shaderId == 0x8002? 2 : 0) - 0x7FFF) & 0xFFFF;
                         someFlags = (someFlags & 0xFF) | (3 << 8);
                         continue;
                     }
@@ -168,7 +168,7 @@ class SkinGeom {
                 var texDef = skinFileData.texs[i];
                 var renderFlagIndex =texDef.renderFlagIndex;
                 if (renderFlagIndex == prevRenderFlagIndex) {
-                    texDef.shader_id =      skinFileData.texs[i-1].shader_id;
+                    texDef.shaderId =       skinFileData.texs[i-1].shaderId;
                     texDef.op_count =       skinFileData.texs[i-1].op_count;
                     texDef.textureIndex =   skinFileData.texs[i-1].textureIndex;
                     texDef.textureUnitNum = skinFileData.texs[i-1].textureUnitNum;
@@ -182,7 +182,12 @@ class SkinGeom {
     fixData(m2File) {
         if (!this.fixedAlready) {
             this.fixShaderIdBasedOnBlendOverride(m2File);
-            this.fixShaderIdBasedOnLayer(m2File);
+            // Disabled as in my_web_wow (and WebWoWViewercpp): merging a base layer with its overlay (0x8000 /
+            // 0x8001-0x8003 / 14) needs the overlay's texture packed into the base batch, the combined pixel
+            // shaders and env-mapped texture coordinates, none of which exist yet; both layers are drawn
+            // separately instead. (It wrote shader_id instead of shaderId before, so only its last step, which
+            // copies a batch's textures onto the next batch of the same render flag, took effect.)
+            //this.fixShaderIdBasedOnLayer(m2File);
 
             this.fixedAlready = true;
         }
