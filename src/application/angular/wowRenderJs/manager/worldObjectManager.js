@@ -509,11 +509,6 @@ class WorldObjectManager {
         console.log("[WorldObjectManager] Processed " + packets.length + " packet(s); objectMap now has " + Object.keys(this.objectMap).length + " object(s).");
     }
 
-    /*
-     * Places every JSON-loaded unit in front of the camera each frame, unless it is following a packet movement
-     * path (isMoving), as my_web_wow's ParkJsonObjectsInFrontOfCamera. The player character is skipped, it has
-     * its own placement in update(). Multiple objects are spread out laterally so they don't overlap.
-     */
     /* The JSON file's main unit for the JSON scene, which shows only the file: the unit at fileKey (the captured
      * files use the local player's guid), else the file's first player (obj_type 4) unit, else its first unit.
      * update() places the units of fileKey and 17786930 itself (by the camera), so a unit with one of those
@@ -540,6 +535,11 @@ class WorldObjectManager {
         }
         return unit;
     }
+    /*
+     * Places every JSON-loaded unit in front of the camera each frame, unless it is following a packet movement
+     * path (isMoving), as my_web_wow's ParkJsonObjectsInFrontOfCamera. The player character is skipped, it has
+     * its own placement in update(). Multiple objects are spread out laterally so they don't overlap.
+     */
     parkJsonObjectsInFrontOfCamera(cameraPos, camera) {
         if (this.jsonObjectKeys.length === 0 || this.keepJsonObjectsInPlace)
             return;
