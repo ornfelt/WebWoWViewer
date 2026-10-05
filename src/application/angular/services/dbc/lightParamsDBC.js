@@ -13,8 +13,9 @@ export default function lightParamsDBC() {
             try {
               lightParamsDBCRecord.id = dbcObject.readInt32(i, 0);
               lightParamsDBCRecord.highlightSky = dbcObject.readInt32(i, 1);
-              lightParamsDBCRecord.lightSkyboxID = dbcObject.readFloat32(i, 2);
-              lightParamsDBCRecord.cloudTypeID = dbcObject.readFloat32(i, 3);
+              // integer ids (they were read as floats, which turned them into tiny denormals)
+              lightParamsDBCRecord.lightSkyboxID = dbcObject.readInt32(i, 2);
+              lightParamsDBCRecord.cloudTypeID = dbcObject.readInt32(i, 3);
               lightParamsDBCRecord.glow = dbcObject.readFloat32(i, 4);
               lightParamsDBCRecord.waterShallowAlpha = dbcObject.readFloat32(i, 5);
               lightParamsDBCRecord.waterDeepAlpha = dbcObject.readFloat32(i, 6);
