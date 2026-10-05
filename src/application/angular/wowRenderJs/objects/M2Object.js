@@ -342,23 +342,24 @@ class MDXObject {
         if ( !(shaderId & 0x8000) ) {
             shaderNames = getTabledShaderNames(shaderId, m2Batch.op_count, m2Batch.textureUnitNum);
             if ( !shaderNames )
-                shaderNames = getTabledShaderNames(shaderId, m2Batch.op_count, 0x11, m2Batch.textureUnitNum);
+                shaderNames = getTabledShaderNames(shaderId, m2Batch.op_count, 0x11);
             return shaderNames;
         }
         switch ( shaderId & 0x7FFF ) {
             case 0:
                 return 0;
+            // the merged layers (see fixShaderIdBasedOnLayer): Diffuse_* is the vertex shader, Combiners_* the pixel shader
             case 1:
-                vertexShader = "Combiners_Opaque_Mod2xNA_Alpha";
-                pixelShader = "Diffuse_T1_Env";
+                vertexShader = "Diffuse_T1_Env";
+                pixelShader = "Combiners_Opaque_Mod2xNA_Alpha";
                 break;
             case 2:
-                vertexShader = "Combiners_Opaque_AddAlpha";
-                pixelShader = "Diffuse_T1_Env";
+                vertexShader = "Diffuse_T1_Env";
+                pixelShader = "Combiners_Opaque_AddAlpha";
                 break;
             case 3:
-                vertexShader = "Combiners_Opaque_AddAlpha_Alpha";
-                pixelShader = "Diffuse_T1_Env";
+                vertexShader = "Diffuse_T1_Env";
+                pixelShader = "Combiners_Opaque_AddAlpha_Alpha";
                 break;
             default:
                 break;
