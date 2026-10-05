@@ -14,7 +14,8 @@ export default function LightIntBandDBC() {
             lightIntBandDBCRecord.noOfEntries = dbcObject.readInt32(i, 1);
             lightIntBandDBCRecord.times = [];
             for (let j = 0; j < lightIntBandDBCRecord.noOfEntries; j++) {
-              lightIntBandDBCRecord.times.push(dbcObject.readInt32(i, 1 + j));
+              // columns 2 + j (column 1 is noOfEntries)
+              lightIntBandDBCRecord.times.push(dbcObject.readInt32(i, 2 + j));
             }
             lightIntBandDBCRecord.values = [];
             for (let j = 0; j < lightIntBandDBCRecord.noOfEntries; j++) {
