@@ -2,6 +2,8 @@ import linedFileLoader from './../linedfileLoader';
 import type { LinedFile, SectionDefinition } from './../linedfileLoader';
 import type { Vector3f, Vector4f } from './../fileReadHelper';
 import type { Chunk, SectionHandler } from './../chunkedLoader';
+import readM2Emitters from './mdxEmitterReader';
+import type { M2ParticleEmitter, M2RibbonEmitter } from './mdxEmitterReader';
 
 /* An animated value: an "ablock" (WotLK) or "ablock_tbc" / "ablock_tbc2" (TBC, classic) - see linedfileLoader.
  * The TBC variants carry their raw counts and offsets as well; only the shared members are listed here. */
@@ -268,6 +270,9 @@ export interface M2File {
     boneLookupTable?: number[];
     /* not in the 274 layout */
     lights?: M2Light[];
+    /* read by mdxEmitterReader for MD20 files, not from the layout */
+    particleEmitters?: M2ParticleEmitter[];
+    ribbonEmitters?: M2RibbonEmitter[];
 
     fileName: string;
 }
@@ -1965,6 +1970,10 @@ export default function(filePath: string): Promise<M2File> {
             /* Check the version */
 
             resultMDXObject = parseOldFile(fileObject);
+            resultMDXObject.fileName = filePath;
+
+            // particle and ribbon emitters are read on their own: a broken emitter drops only the emitters
+            readM2Emitters(fileObject, fileObject.readInt32({offs: 4}), resultMDXObject);
         }
         /* Debug
         if (resultMDXObject.bones.filter((a) => ((a.flags & 0x40) > 0)).length > 0){

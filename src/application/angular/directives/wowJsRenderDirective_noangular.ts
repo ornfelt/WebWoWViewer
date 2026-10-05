@@ -48,6 +48,8 @@ interface KeyBindTargets {
   chkDrawWmoBB: HTMLInputElement;
   chkDrawDepth: HTMLInputElement;
   chkRenderLiquid: HTMLInputElement;
+  chkRenderParticles: HTMLInputElement;
+  chkRenderRibbons: HTMLInputElement;
   chkRenderLowresTerrain: HTMLInputElement;
   chkRenderAdtPolygons: HTMLInputElement;
   chkRenderLiquidPolygons: HTMLInputElement;
@@ -140,6 +142,17 @@ function attachEvents(canvas: PrefixedCanvas, camera: firstPersonCamera, keyBind
       case 'L': toggle(keyBinds.chkRenderLowresTerrain, 'RenderLowresTerrain'); break;
 
       case 'Q': toggle(keyBinds.chkRenderLiquid, 'RenderLiquid'); break;
+
+      // bind shift+j: toggle RenderParticles  |  ctrl+j: toggle RenderRibbons (instead of the browser's downloads)
+      // (j alone is a gameplay key: the node flag colors)
+      case 'J':
+        if (event.shiftKey) {
+          toggle(keyBinds.chkRenderParticles, 'RenderParticles');
+        } else if (event.ctrlKey) {
+          event.preventDefault();
+          toggle(keyBinds.chkRenderRibbons, 'RenderRibbons');
+        }
+        break;
       case 'E': toggle(keyBinds.chkRenderSky, 'RenderSky');       break;
 
       // bind c: toggle CycleAnimations
@@ -363,6 +376,7 @@ export async function initViewer(containerEl: HTMLElement) {
           Spells (player mode): 1 - Frostbolt, 2 - Ice Lance, 3 - Pyroblast, 4 - Ice Missile,<br/>
           5 - Lightning Bolt, 6 - Blizzard, V - Frost Nova, X - Ice Block, T - cycle target,<br/>
           0 - teleport to target, N - wandering, G - target marker, J - node flag colors,<br/>
+          Shift+J - particles, Ctrl+J - ribbons,<br/>
           , - wander paths, . - linked nodes / node boxes, Ctrl+. - all node links,<br/>
           F7 - node debugger, F8 - spawn browser,<br/>
           FreeForAll / Deathmatch: also 7 - Polymorph, 8 - Counterspell (Kick when melee),<br/>
@@ -376,6 +390,10 @@ export async function initViewer(containerEl: HTMLElement) {
           <label><input type="checkbox" id="chkDrawWMO"> Draw WMO</label><br/>
           <label><input type="checkbox" id="chkRenderSky"> Render Sky</label><br/>
           <label><input type="checkbox" id="chkRenderLiquid"> Render Liquid</label><br/>
+          <label><input type="checkbox" id="chkRenderParticles"> Render Particles</label><br/>
+          <label><input type="checkbox" id="chkRenderRibbons"> Render Ribbons</label><br/>
+          <label title="M2 particle and ribbon emitters further than this from the camera are neither updated nor drawn">Particle Distance = <span id="particle-distance"></span><br/>
+            <input type="range" id="sliderParticleDistance" min="25" max="1000" step="1"></label><br/>
           <label><input type="checkbox" id="chkRenderLowresTerrain"> Render Lowres Terrain</label><br/>
           <label><input type="checkbox" id="chkUsePortalCulling"> Portal Culling</label><br/>
           <label title="Random skins for sheep, ogres, wolves, tigers, bears and naked skeletons loaded by model path, for the models loaded afterwards"><input type="checkbox" id="chkUseRandomTextures"> Random Textures</label>
@@ -476,6 +494,10 @@ export async function initViewer(containerEl: HTMLElement) {
   const chkDrawWMO           = containerEl.querySelector<HTMLInputElement>('#chkDrawWMO')!;
   const chkRenderSky        = containerEl.querySelector<HTMLInputElement>('#chkRenderSky')!;
   const chkRenderLiquid     = containerEl.querySelector<HTMLInputElement>('#chkRenderLiquid')!;
+  const chkRenderParticles  = containerEl.querySelector<HTMLInputElement>('#chkRenderParticles')!;
+  const chkRenderRibbons    = containerEl.querySelector<HTMLInputElement>('#chkRenderRibbons')!;
+  const sliderParticleDistance = containerEl.querySelector<HTMLInputElement>('#sliderParticleDistance')!;
+  const particleDistanceEl  = containerEl.querySelector<HTMLSpanElement>('#particle-distance')!;
   const chkRenderLowresTerrain = containerEl.querySelector<HTMLInputElement>('#chkRenderLowresTerrain')!;
   const chkRenderAdtPolygons = containerEl.querySelector<HTMLInputElement>('#chkRenderAdtPolygons')!;
   const chkRenderLiquidPolygons = containerEl.querySelector<HTMLInputElement>('#chkRenderLiquidPolygons')!;
@@ -971,6 +993,10 @@ export async function initViewer(containerEl: HTMLElement) {
   chkDrawWMO.checked           = config.getRenderWMO();
   chkRenderSky.checked        = config.getRenderSky();
   chkRenderLiquid.checked     = config.getRenderLiquid();
+  chkRenderParticles.checked  = config.getRenderParticles();
+  chkRenderRibbons.checked    = config.getRenderRibbons();
+  sliderParticleDistance.value = String(config.getParticleDrawDistance());
+  particleDistanceEl.textContent = String(config.getParticleDrawDistance());
   chkRenderLowresTerrain.checked = config.getRenderLowresTerrain();
   chkRenderAdtPolygons.checked = config.getRenderAdtPolygons();
   chkRenderLiquidPolygons.checked = config.getRenderLiquidPolygons();
@@ -1154,8 +1180,9 @@ export async function initViewer(containerEl: HTMLElement) {
           console.log(`AllLinked=${a} NoDepth=${nd}`);
         }
         return true;
-      // toggle flag-colored node boxes
+      // toggle flag-colored node boxes (shift+j toggles the particles, a render key)
       case 'j':
+        if (event.shiftKey) return false;
         chkDrawNodeFlagColors.click();
         console.log(`DrawNodeFlagColors = ${chkDrawNodeFlagColors.checked}`);
         return true;
@@ -1184,6 +1211,8 @@ export async function initViewer(containerEl: HTMLElement) {
     chkDrawWmoBB,
     chkDrawDepth,
     chkRenderLiquid,
+    chkRenderParticles,
+    chkRenderRibbons,
     chkRenderLowresTerrain,
     chkRenderAdtPolygons,
     chkRenderLiquidPolygons,
@@ -1202,6 +1231,12 @@ export async function initViewer(containerEl: HTMLElement) {
   chkDrawWMO.addEventListener('change', () => { config.setRenderWMO(chkDrawWMO.checked); });
   chkRenderSky.addEventListener('change', () => { config.setRenderSky(chkRenderSky.checked); });
   chkRenderLiquid.addEventListener('change', () => { config.setRenderLiquid(chkRenderLiquid.checked); });
+  chkRenderParticles.addEventListener('change', () => { config.setRenderParticles(chkRenderParticles.checked); });
+  chkRenderRibbons.addEventListener('change', () => { config.setRenderRibbons(chkRenderRibbons.checked); });
+  sliderParticleDistance.addEventListener('input', () => {
+    config.setParticleDrawDistance(Number(sliderParticleDistance.value));
+    particleDistanceEl.textContent = sliderParticleDistance.value;
+  });
   chkRenderLowresTerrain.addEventListener('change', () => { config.setRenderLowresTerrain(chkRenderLowresTerrain.checked); });
   chkRenderAdtPolygons.addEventListener('change', () => { config.setRenderAdtPolygons(chkRenderAdtPolygons.checked); });
   chkRenderLiquidPolygons.addEventListener('change', () => { config.setRenderLiquidPolygons(chkRenderLiquidPolygons.checked); });

@@ -65,6 +65,7 @@ import itemDisplayInfoDBC           from './../services/dbc/itemDisplayInfoDBC'
 import itemDBC                      from './../services/dbc/itemDBC'
 import mapDBC                       from './../services/dbc/mapDBC'
 import liquidTypeDBC                from './../services/dbc/liquidTypeDBC'
+import ParticleRenderer from './particles/particleRenderer';
 
 import Expansion from '../Expansion';
 
@@ -144,6 +145,7 @@ const skyShader                = getShaderSourceById('sky');
 const skyGradientShader        = getShaderSourceById('SkyGradient');
 const liquidShader             = getShaderSourceById('liquid');
 const lowresTerrainShader      = getShaderSourceById('lowresTerrain');
+const particleShader           = getShaderSourceById('particle');
 const debug2DShader            = getShaderSourceById('debug2DShader');
 const debug3DShader            = getShaderSourceById('debug3DShader');
 
@@ -230,12 +232,15 @@ class Scene {
     skyShader!: ShaderProgram;
     liquidShader!: ShaderProgram;
     lowresTerrainShader!: ShaderProgram;
+    particleShader!: ShaderProgram;
     debug2DShader!: ShaderProgram;
     debug3DShader!: ShaderProgram;
     /* set by the activate*Shader() methods */
     currentShaderProgram!: ShaderProgram;
 
     sceneApi!: SceneApi;
+    /* draws the particles and ribbons of the M2s updated this frame; created with the scene api */
+    particleRenderer!: ParticleRenderer;
     graphManager!: GraphManager;
     worldObjectManager!: WorldObjectManager;
     blackPixelTexture!: WebGLTexture;
@@ -381,6 +386,7 @@ class Scene {
         self.hud = new Hud(self);
 
         self.initSceneApi();
+        self.particleRenderer = new ParticleRenderer(self.sceneApi);
         self.initSceneGraph();
         self.createBlackPixelTexture();
 
@@ -702,6 +708,8 @@ class Scene {
 
         self.lowresTerrainShader = self.compileShader(lowresTerrainShader, lowresTerrainShader);
 
+        self.particleShader = self.compileShader(particleShader, particleShader);
+
         self.debug2DShader = self.compileShader(debug2DShader, debug2DShader);
         self.debug3DShader = self.compileShader(debug3DShader, debug3DShader);
     }
@@ -857,6 +865,15 @@ class Scene {
             getFogColor: function () {
                 return self.fogColor;
             },
+            getFogStart: function () {
+                return self.uFogStart;
+            },
+            getFogEnd: function () {
+                return self.uFogEnd;
+            },
+            getParticleRenderer: function () {
+                return self.particleRenderer;
+            },
             getIsDebugCamera() {
                 return self.isDebugCamera;
             },
@@ -938,6 +955,9 @@ class Scene {
                 },
                 getLowresTerrainShader: function () {
                     return self.lowresTerrainShader;
+                },
+                getParticleShader: function () {
+                    return self.particleShader;
                 }
             },
             dbc : {

@@ -32,6 +32,7 @@ import type WmoObject from './objects/wmoObject';
 import type { WmoPlacement } from './objects/wmoObject';
 import type WorldMDXObject from './objects/worldM2Object';
 import type { ShaderProgram } from './scene';
+import type ParticleRenderer from './particles/particleRenderer';
 
 export interface SceneApiExtensions {
     getInstancingExt(): ANGLE_instanced_arrays | undefined;
@@ -66,6 +67,8 @@ export interface SceneApiShaders {
     getLiquidShader(): ShaderProgram;
     /* the flat-colour WDL low-res terrain shader (lowresTerrain) */
     getLowresTerrainShader(): ShaderProgram;
+    /* the M2 particle and ribbon shader (particle) */
+    getParticleShader(): ShaderProgram;
 }
 
 export interface SceneApiDbc {
@@ -124,6 +127,11 @@ export interface SceneApi {
     getBlackPixelTexture(): WebGLTexture;
     setFogColor(color: number[]): void;
     getFogColor(): number[];
+    /* the fog distances the M2 shader uses (uFogStart / uFogEnd) */
+    getFogStart(): number;
+    getFogEnd(): number;
+    /* draws the particles and ribbons of the M2s updated this frame */
+    getParticleRenderer(): ParticleRenderer;
     /* undefined until draw() has rendered with the double camera debug on */
     getIsDebugCamera(): boolean | undefined;
     extensions: SceneApiExtensions;

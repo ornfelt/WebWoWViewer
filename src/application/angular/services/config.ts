@@ -22,6 +22,11 @@ var useDebugSky: boolean = false;
 
 var renderLiquid: boolean = true;
 
+var renderParticles: boolean = true;
+var renderRibbons: boolean = true;
+/* M2 particle and ribbon emitters further than this from the camera are neither updated nor drawn */
+var particleDrawDistance: number = 250;
+
 var renderLowresTerrain: boolean = true;
 
 /* the wireframe views (F1 - F5) */
@@ -181,6 +186,24 @@ export default {
     },
     setRenderLiquid : function (value: boolean) {
         renderLiquid = value;
+    },
+    getRenderParticles : function () {
+        return renderParticles;
+    },
+    setRenderParticles : function (value: boolean) {
+        renderParticles = value;
+    },
+    getRenderRibbons : function () {
+        return renderRibbons;
+    },
+    setRenderRibbons : function (value: boolean) {
+        renderRibbons = value;
+    },
+    getParticleDrawDistance : function () {
+        return particleDrawDistance;
+    },
+    setParticleDrawDistance : function (value: number) {
+        particleDrawDistance = value;
     },
     getRenderLowresTerrain : function () {
         return renderLowresTerrain;

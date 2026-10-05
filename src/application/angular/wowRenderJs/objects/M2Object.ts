@@ -18,6 +18,9 @@ import type { SceneApi } from '../sceneApi';
 import type AdtM2Object from './adtM2Object';
 import type WmoM2Object from './wmoM2Object';
 import type WorldMDXObject from './worldM2Object';
+import ParticleEmitter, { ParticleFlags } from '../particles/particleEmitter';
+import RibbonEmitter from '../particles/ribbonEmitter';
+import type ParticleRenderer from '../particles/particleRenderer';
 
 /* What getShaderNames() returns for a skin batch; a name stays undefined when the table has no entry for it */
 export interface M2ShaderNames {
@@ -153,6 +156,13 @@ abstract class MDXObject {
     sceneNumber!: number;
     instanceManager: InstanceManager | undefined;
 
+    /* the model's particle systems and ribbons (tbc's Model.particleSystems / ribbons), one set per instance
+     * as they follow this instance's bones; null until loaded */
+    particleEmitters: ParticleEmitter[] | null;
+    ribbonEmitters: RibbonEmitter[] | null;
+    /* the ParticleRenderer frame this object last submitted its emitters in */
+    particleSubmitFrame: number;
+
     /* implemented by every subclass */
     abstract getInvertModelMatrix(): mat4;
     abstract getDiffuseColor(): Float32Array;
@@ -178,6 +188,10 @@ abstract class MDXObject {
 
         this.loaded = false;
         this.loading = false;
+
+        this.particleEmitters = null;
+        this.ribbonEmitters = null;
+        this.particleSubmitFrame = -1;
     }
 
     getFileNameIdent(){
@@ -315,6 +329,7 @@ abstract class MDXObject {
                       self.hasBillboarded = self.checkIfHasBillboarded();
 
                       self.makeTextureArray(self.meshIds, self.replaceTextures);
+                      self.initEmitters(self.replaceTextures);
                       self.updateLocalBB([self.m2Geom.m2File.BoundingCorner1, self.m2Geom.m2File.BoundingCorner2]);
 
                       self.createAABB();
@@ -760,6 +775,9 @@ abstract class MDXObject {
 
         this.combinedBoneMatrix = this.combineBoneMatrixes();
 
+        // particles and ribbons follow the bones just calculated
+        this.updateEmitters(deltaTime, cameraPos);
+
         this.currentTime += deltaTime;
     }
 
@@ -878,6 +896,137 @@ abstract class MDXObject {
         }
 
         this.lights = lights;
+    }
+
+    /* The particle systems and ribbons of the model, with their textures: an index into the model's textures
+     * (not the texture lookup), replaceable textures (type != 0) from replaceTextures as for the meshes.
+     * A ribbon gets its material's blend mode (tbc always blended it additively). */
+    initEmitters(replaceTextures: string[] | null | undefined) {
+        var self = this;
+        var m2File = this.m2Geom.m2File;
+
+        function loadEmitterTexture(textureIndex: number, emitter: ParticleEmitter | RibbonEmitter) {
+            var textureDefinition = m2File.textureDefinition ? m2File.textureDefinition[textureIndex] : undefined;
+            if (!textureDefinition) return;
+            emitter.wrapX = (textureDefinition.flags & 1) > 0;
+            emitter.wrapY = (textureDefinition.flags & 2) > 0;
+            var textureName = textureDefinition.texType == 0 ? textureDefinition.textureName
+                : (replaceTextures ? replaceTextures[textureDefinition.texType] : undefined);
+            if (!textureName) return;
+            self.sceneApi.resources.loadTexture(textureName).then(function success(textObject) {
+                emitter.texture = textObject;
+            }, function error() {
+            });
+        }
+
+        var particleEmitters = (m2File.particleEmitters || []).map(function (def) {
+            var particle = new ParticleEmitter(def);
+            loadEmitterTexture(def.texture, particle);
+            return particle;
+        });
+        var ribbonEmitters = (m2File.ribbonEmitters || []).map(function (def) {
+            var ribbon = new RibbonEmitter(def);
+            if (def.materialIndices.length > 0 && def.materialIndices[0] < m2File.renderFlags.length) {
+                var renderFlag = m2File.renderFlags[def.materialIndices[0]];
+                ribbon.blend = renderFlag.blend;
+                ribbon.renderFlags = renderFlag.flags;
+            }
+            if (def.textureIndices.length > 0) loadEmitterTexture(def.textureIndices[0], ribbon);
+            return ribbon;
+        });
+
+        this.particleEmitters = particleEmitters;
+        this.ribbonEmitters = ribbonEmitters;
+    }
+
+    getBoneWorldMatrix(bone: number, out: mat4) {
+        if (bone >= 0 && bone < this.bonesMatrices.length) {
+            mat4.multiply(out, this.placementMatrix, this.bonesMatrices[bone]);
+        } else {
+            mat4.copy(out, this.placementMatrix);
+        }
+        return out;
+    }
+
+    /* tbc's Model.Animate (Setup) and UpdateEmitters: moves the emitters with the bones of this frame's
+     * animation and steps their particles, then hands the object to the particle renderer. Emitters beyond
+     * config.getParticleDrawDistance(), or switched off, are emptied instead, so they start afresh when they
+     * come back. deltaTime in milliseconds. */
+    updateEmitters(deltaTime: number, cameraPos: ReadonlyVec4) {
+        var particleEmitters = this.particleEmitters;
+        var ribbonEmitters = this.ribbonEmitters;
+        var hasParticles = !!particleEmitters && particleEmitters.length > 0;
+        var hasRibbons = !!ribbonEmitters && ribbonEmitters.length > 0;
+        if (!hasParticles && !hasRibbons) return;
+
+        var placement = this.placementMatrix;
+        var dx = placement[12] - cameraPos[0], dy = placement[13] - cameraPos[1], dz = placement[14] - cameraPos[2];
+        var inRange = Math.sqrt(dx * dx + dy * dy + dz * dz) <= config.getParticleDrawDistance();
+        var updateParticles = hasParticles && inRange && config.getRenderParticles();
+        var updateRibbons = hasRibbons && inRange && config.getRenderRibbons();
+
+        if (hasParticles && !updateParticles)
+            for (var i = 0; i < particleEmitters!.length; i++) particleEmitters![i].clear();
+        if (hasRibbons && !updateRibbons)
+            for (var i = 0; i < ribbonEmitters!.length; i++) ribbonEmitters![i].clear();
+        if (!updateParticles && !updateRibbons) return;
+
+        var animationManager = this.animationManager;
+        var animations = this.m2Geom.m2File.animations;
+        var animationIndex = animationManager.currentAnimationIndex;
+        if (!animations || animationIndex < 0 || animationIndex >= animations.length) return;
+        var animationTime = animationManager.currentAnimationTime;
+        var animationLength = animations[animationIndex].length;
+        var dt = deltaTime / 1000;
+        var boneWorld = mat4.create();
+
+        if (updateParticles) {
+            for (var i = 0; i < particleEmitters!.length; i++) {
+                var particle = particleEmitters![i];
+                particle.update(dt, this.getBoneWorldMatrix(particle.def.bone, boneWorld), animationManager, animationIndex, animationTime, animationLength);
+            }
+        }
+        if (updateRibbons) {
+            for (var i = 0; i < ribbonEmitters!.length; i++) {
+                var ribbon = ribbonEmitters![i];
+                ribbon.update(dt, this.getBoneWorldMatrix(ribbon.def.bone, boneWorld), animationManager, animationIndex, animationTime, animationLength);
+            }
+        }
+
+        this.sceneApi.getParticleRenderer().submit(this);
+    }
+
+    /* tbc's Model.Draw for the effects: one batch per particle system and per ribbon */
+    addParticleQuads(renderer: ParticleRenderer, cameraPos: ReadonlyVec4, right: ArrayLike<number>, up: ArrayLike<number>) {
+        var particleEmitters = this.particleEmitters;
+        var ribbonEmitters = this.ribbonEmitters;
+
+        if (config.getRenderParticles() && particleEmitters) {
+            for (var i = 0; i < particleEmitters.length; i++) {
+                var particle = particleEmitters[i];
+                if (particle.count == 0 || !particle.texture) continue;
+                var blend = particle.def.blendingType;
+                var dx = particle.worldX - cameraPos[0], dy = particle.worldY - cameraPos[1], dz = particle.worldZ - cameraPos[2];
+                renderer.beginBatch(particle.texture, blend,
+                    !particle.hasFlag(ParticleFlags.Fogged), blend <= 1,
+                    particle.wrapX, particle.wrapY, Math.sqrt(dx * dx + dy * dy + dz * dz));
+                particle.addQuads(renderer, right, up);
+                renderer.endBatch();
+            }
+        }
+
+        if (config.getRenderRibbons() && ribbonEmitters) {
+            for (var i = 0; i < ribbonEmitters.length; i++) {
+                var ribbon = ribbonEmitters[i];
+                if (!ribbon.texture) continue;
+                var rdx = ribbon.tposX - cameraPos[0], rdy = ribbon.tposY - cameraPos[1], rdz = ribbon.tposZ - cameraPos[2];
+                renderer.beginBatch(ribbon.texture, ribbon.blend,
+                    (ribbon.renderFlags & 0x2) > 0, ribbon.blend <= 1 && (ribbon.renderFlags & 0x10) == 0,
+                    ribbon.wrapX, ribbon.wrapY, Math.sqrt(rdx * rdx + rdy * rdy + rdz * rdz));
+                ribbon.addQuads(renderer);
+                renderer.endBatch();
+            }
+        }
     }
     initBoneAnimMatrices() {
         var m2File = this.m2Geom.m2File;
