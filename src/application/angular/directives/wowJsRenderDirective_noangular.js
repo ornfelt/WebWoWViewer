@@ -565,8 +565,8 @@ export async function initViewer(containerEl) {
   // TODO: test individual adt, more WMOs and models...
 
   // The maps that are only valid in WOTLK, or only in TBC and WOTLK
-  const wotlkMaps = [MapKey.PenguinM2, MapKey.LichKingM2, MapKey.DragonblightMap, MapKey.SholazarMap, MapKey.StrandOfTheAncientsMap];
-  const tbcMaps = [MapKey.HellfireMap, MapKey.ShattrathMap, MapKey.NagrandMap, MapKey.EyeOfTheStormMap, MapKey.BelfMap, MapKey.DraeneiMap, MapKey.NagrandArena, MapKey.BladesEdgeArena, MapKey.BlackTemple, MapKey.HillsbradPast, MapKey.ZulAman];
+  const wotlkMaps = [MapKey.WotlkOpeningScreenM2, MapKey.PenguinM2, MapKey.LichKingM2, MapKey.DragonblightMap, MapKey.SholazarMap, MapKey.StrandOfTheAncientsMap];
+  const tbcMaps = [MapKey.TbcOpeningScreenM2, MapKey.HellfireMap, MapKey.ShattrathMap, MapKey.NagrandMap, MapKey.EyeOfTheStormMap, MapKey.BelfMap, MapKey.DraeneiMap, MapKey.NagrandArena, MapKey.BladesEdgeArena, MapKey.BlackTemple, MapKey.HillsbradPast, MapKey.ZulAman];
   function invalidMapReason(key) {
     if (wotlkMaps.includes(key) && window.selectedExpansion !== Expansion.WOTLK)
       return 'only valid in WOTLK';
@@ -806,6 +806,8 @@ export async function initViewer(containerEl) {
             rotation : {x : 0, y : 0, z : 0},
             doodadSet: 0
         });
+        if (mapParams.x !== undefined && mapParams.y !== undefined && mapParams.z !== undefined)
+            sceneObj.setCameraPos(mapParams.x, mapParams.y, mapParams.z);
 
         await sleep(3000); // wait for 3 seconds for dbc data to load
 
