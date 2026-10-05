@@ -131,7 +131,8 @@ export default class AnimationManager {
         var subAnimBlendTime = 0;
         var blendAlpha = 1.0;
         if (nextSubAnimationIndex > -1) {
-            subAnimRecord = m2File.animations[this.nextSubAnimationIndex];
+            // the local pick (this.nextSubAnimationIndex is still -1 when it was just picked above)
+            subAnimRecord = m2File.animations[nextSubAnimationIndex];
             subAnimBlendTime = subAnimRecord.blend_time;
         }
 
@@ -140,7 +141,7 @@ export default class AnimationManager {
             this.firstCalc = true;
             nextSubAnimationTime = (subAnimBlendTime - currAnimLeft) % subAnimRecord.length;
             blendAlpha = currAnimLeft / subAnimBlendTime;
-            blendAnimationIndex = this.nextSubAnimationIndex
+            blendAnimationIndex = nextSubAnimationIndex
         }
 
         if (currentAnimationTime >= currentAnimationRecord.length) {
