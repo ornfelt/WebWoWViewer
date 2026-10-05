@@ -983,13 +983,14 @@ export async function initViewer(containerEl: HTMLElement) {
                 if (sceneObj.frameModel(newWorldUnit.objectModel)) clearInterval(frameTimer);
             }, 100);
         }
-        if (mapParams.fogStart) {
+        // !== undefined: a fog start of 0 is a value too
+        if (mapParams.fogStart !== undefined) {
             sceneObj.setFogStart(mapParams.fogStart)
         }
-        if (mapParams.fogEnd) {
+        if (mapParams.fogEnd !== undefined) {
             sceneObj.setFogEnd(mapParams.fogEnd);
         }
-        if (mapParams.fogColor) {
+        if (mapParams.fogColor !== undefined) {
             sceneObj.setFogColor(mapParams.fogColor);
         }
     }
