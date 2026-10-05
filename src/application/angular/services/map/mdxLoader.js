@@ -1,4 +1,5 @@
 import linedFileLoader from './../linedfileLoader.js';
+import readM2Emitters from './mdxEmitterReader.js';
 
 // WOTLK
 const mdx_ver264 = {
@@ -1686,6 +1687,10 @@ export default function(filePath) {
             /* Check the version */
 
             resultMDXObject = parseOldFile(fileObject);
+            resultMDXObject.fileName = filePath;
+
+            // particle and ribbon emitters are read on their own: a broken emitter drops only the emitters
+            readM2Emitters(fileObject, fileObject.readInt32({offs: 4}), resultMDXObject);
         }
         /* Debug
         if (resultMDXObject.bones.filter((a) => ((a.flags & 0x40) > 0)).length > 0){

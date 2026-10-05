@@ -532,7 +532,17 @@ class GraphManager {
             this.currentWMO.drawLiquids(view, proj, time);
         }
     }
-    /* view / proj and the liquid clock (seconds) are only used by the liquids */
+    /* The particles and ribbons of the M2s updated this frame, last: they are blended and do not write
+     * depth, so the liquids drawn after them would cover the ones in front of the water. */
+    drawParticles(view, proj) {
+        var particleRenderer = this.sceneApi.getParticleRenderer();
+        if (config.getRenderM2()) {
+            particleRenderer.draw(this.position, view, proj);
+        } else {
+            particleRenderer.discard();
+        }
+    }
+    /* view / proj are used by the liquids and the particles, the liquid clock (seconds) by the liquids */
     draw(view, proj, liquidTime) {
         this.m2OpaqueRenderedThisFrame = {};
         this.m2TranspRenderedThisFrame = {};
@@ -556,6 +566,7 @@ class GraphManager {
             this.drawM2s();
             performanceEnd(PerformanceCategory.M2_RENDER, t);
             this.drawLiquids(view, proj, liquidTime, this.currentWMO.exteriorPortals.length > 0);
+            this.drawParticles(view, proj);
 
             this.sceneApi.shaders.activateFrustumBoxShader();
             //Draw Wmo portal frustums
@@ -568,6 +579,7 @@ class GraphManager {
             this.drawM2s();
             performanceEnd(PerformanceCategory.M2_RENDER, t);
             this.drawLiquids(view, proj, liquidTime, true);
+            this.drawParticles(view, proj);
 
             //6. Draw WMO portals
             if (config.getRenderPortals()) {

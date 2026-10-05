@@ -1264,6 +1264,69 @@ void main()
 #endif //COMPILING_FS
     </script>
 
+    <script id="particle" type="text/plain">
+#ifdef COMPILING_VS
+// M2 particle and ribbon quads, built in world space on the CPU (ParticleRenderer)
+attribute vec3 aPosition;
+attribute vec4 aColor;
+attribute vec2 aTexCoord;
+
+uniform mat4 uViewMat;
+uniform mat4 uPMatrix;
+
+varying vec4 vColor;
+varying vec2 vTexCoord;
+varying vec3 vPosition;   // view space, for the fog
+
+void main() {
+    vec4 viewPos = uViewMat * vec4(aPosition, 1.0);
+    vColor = aColor;
+    vTexCoord = aTexCoord;
+    vPosition = viewPos.xyz;
+    gl_Position = uPMatrix * viewPos;
+}
+#endif //COMPILING_VS
+#ifdef COMPILING_FS
+precision mediump float;
+
+varying vec4 vColor;
+varying vec2 vTexCoord;
+varying vec3 vPosition;
+
+uniform sampler2D uTexture;
+uniform float uAlphaTest;   // -1: none
+uniform int uUnFogged;
+uniform vec3 uFogColor;     // per blend mode: black for additive, white / grey for modulating
+uniform float uFogStart;
+uniform float uFogEnd;
+
+void main() {
+    // the particle's colour and alpha over its lifetime times the texture (the client's Particle_Mod)
+    vec4 finalColor = texture2D(uTexture, vTexCoord) * vColor;
+
+    if (finalColor.a < uAlphaTest)
+        discard;
+
+    // the same fog as m2Shader, so particles fade like the models they belong to
+    if (uUnFogged == 0) {
+        float fog_rate = 1.5;
+        float fog_bias = 0.01;
+
+        float distanceToCamera = length(vPosition.xyz);
+        float z_depth = (distanceToCamera - fog_bias);
+        float expFog = 1.0 / (exp((max(0.0, (z_depth - uFogStart)) * fog_rate)));
+        float heightFog = 1.0;
+        expFog = (expFog + heightFog);
+        float endFadeFog = clamp(((uFogEnd - distanceToCamera) / (0.699999988 * uFogEnd)), 0.0, 1.0);
+        float fog_out = min(expFog, endFadeFog);
+        finalColor.rgb = mix(uFogColor.rgb, finalColor.rgb, vec3(fog_out));
+    }
+
+    gl_FragColor = finalColor;
+}
+#endif //COMPILING_FS
+    </script>
+
     <script id="lowresTerrain" type="text/plain">
 #ifdef COMPILING_VS
 attribute vec3 aPosition;
