@@ -948,9 +948,8 @@ class Scene {
                     self.activateBoundingBoxShader();
                 },
                 deativateBoundingBoxShader : function() {
-                    // JS-BUG: Scene has no deactivateBoundingBoxShader method, so calling this throws a TypeError
-                    // @ts-expect-error Scene has no deactivateBoundingBoxShader; ported as-is
-                    self.deactivateBoundingBoxShader();
+                    // nothing to undo (activateBoundingBoxShader enables no vertex attribute), as my_web_wow's
+                    // Shaders.DeactivateBoundingBoxShader; it called a Scene method that does not exist
                 },
                 activateFrustumBoxShader : function () {
                     self.activateFrustumBoxShader();
