@@ -22,8 +22,8 @@ export default function LightIntBandDBC(): Promise<LightIntBandRecord[]> {
             lightIntBandDBCRecord.noOfEntries = dbcObject.readInt32(i, 1);
             lightIntBandDBCRecord.times = [];
             for (let j = 0; j < lightIntBandDBCRecord.noOfEntries; j++) {
-              // JS-BUG: times start at column 1 (noOfEntries), so times[0] is the entry count and every time is shifted by one (probably should be 2 + j)
-              lightIntBandDBCRecord.times.push(dbcObject.readInt32(i, 1 + j));
+              // columns 2 + j (column 1 is noOfEntries)
+              lightIntBandDBCRecord.times.push(dbcObject.readInt32(i, 2 + j));
             }
             lightIntBandDBCRecord.values = [];
             for (let j = 0; j < lightIntBandDBCRecord.noOfEntries; j++) {

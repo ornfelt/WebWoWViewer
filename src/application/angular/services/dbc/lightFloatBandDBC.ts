@@ -22,8 +22,8 @@ export default function LightFloatBandDBC(): Promise<LightFloatBandRecord[]> {
             lightFloatBandDBCRecord.noOfEntries = dbcObject.readInt32(i, 1);
             lightFloatBandDBCRecord.times = [];
             for (let j = 0; j < lightFloatBandDBCRecord.noOfEntries; j++) {
-              // JS-BUG: times start at column 1 (noOfEntries), so times[0] is the entry count and every time is shifted by one (probably should be 2 + j)
-              lightFloatBandDBCRecord.times.push(dbcObject.readInt32(i, 1 + j));
+              // columns 2 + j (column 1 is noOfEntries)
+              lightFloatBandDBCRecord.times.push(dbcObject.readInt32(i, 2 + j));
             }
 
             lightFloatBandDBCRecord.values = [];
