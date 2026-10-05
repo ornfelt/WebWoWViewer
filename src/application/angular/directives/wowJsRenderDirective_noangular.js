@@ -565,7 +565,7 @@ export async function initViewer(containerEl) {
   // TODO: test individual adt, more WMOs and models...
 
   // The maps that are only valid in WOTLK, or only in TBC and WOTLK
-  const wotlkMaps = [MapKey.WotlkOpeningScreenM2, MapKey.PenguinM2, MapKey.LichKingM2, MapKey.DragonblightMap, MapKey.SholazarMap, MapKey.StrandOfTheAncientsMap];
+  const wotlkMaps = [MapKey.WotlkOpeningScreenM2, MapKey.PlayerJsonM2, MapKey.PenguinM2, MapKey.LichKingM2, MapKey.DragonblightMap, MapKey.SholazarMap, MapKey.StrandOfTheAncientsMap];
   const tbcMaps = [MapKey.TbcOpeningScreenM2, MapKey.HellfireMap, MapKey.ShattrathMap, MapKey.NagrandMap, MapKey.EyeOfTheStormMap, MapKey.BelfMap, MapKey.DraeneiMap, MapKey.NagrandArena, MapKey.BladesEdgeArena, MapKey.BlackTemple, MapKey.HillsbradPast, MapKey.ZulAman];
   function invalidMapReason(key) {
     if (wotlkMaps.includes(key) && window.selectedExpansion !== Expansion.WOTLK)
@@ -817,6 +817,36 @@ export async function initViewer(containerEl) {
         }
         // only the WMO, as in my_web_wow (no walking unit)
 
+    } else if (mapParams.sceneType == 'json') {
+        // Only the content of the selected JSON packet file (player.json when none is selected) where the file puts
+        // it, without a map; the camera is aimed at the player - at its mount when it rides one - once loaded,
+        // and then moves with it (a file's player can follow a path), keeping its offset from the player
+        const jsonFile = config.getPlayerJsonFileName() ?? 'player.json';
+        console.log(`[WowViewer] JSON scene: loading ${jsonFile}`);
+        sceneObj.loadJsonScene(jsonFile).then((player) => {
+            if (!player) {
+                console.log('[WowViewer] No unit in the JSON packet file');
+                return;
+            }
+            let lastPos = null;
+            const followPlayer = () => {
+                const model = player.mountDisplayId > 0 ? player.mountModel : player.objectModel;
+                if (lastPos === null) {
+                    if (model && sceneObj.frameModel(model))
+                        lastPos = [model.placementMatrix[12], model.placementMatrix[13], model.placementMatrix[14]];
+                } else if (model && model.placementMatrix) {
+                    const pos = [model.placementMatrix[12], model.placementMatrix[13], model.placementMatrix[14]];
+                    const moved = [pos[0] - lastPos[0], pos[1] - lastPos[1], pos[2] - lastPos[2]];
+                    if (moved[0] !== 0 || moved[1] !== 0 || moved[2] !== 0) {
+                        const camera = sceneObj.mainCamera;
+                        sceneObj.setCameraPos(camera[0] + moved[0], camera[1] + moved[1], camera[2] + moved[2]);
+                        lastPos = pos;
+                    }
+                }
+                requestAnimationFrame(followPlayer);
+            };
+            followPlayer();
+        });
     } else if (mapParams.sceneType == 'm2') { 
         //var m2Object = sceneObj.loadM2File({
         //    fileName : mapParams.modelName,
