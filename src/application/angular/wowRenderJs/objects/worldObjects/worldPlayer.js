@@ -39,6 +39,14 @@ class WorldPlayer extends WorldUnit {
         this.mainHandItemId = -1;
         this.offHandItemId = -1;
         this.tabardItemId = -1;
+
+        // the first style / colour of each, like my_web_wow's int fields: left undefined, a packet without
+        // PLAYER_BYTES / PLAYER_BYTES_2 matched no CharSections / facial hair record (no skin, face or hair)
+        this.playerFaceFeatures = 0;
+        this.playerSkin = 0;
+        this.playerFace = 0;
+        this.playerHair = 0;
+        this.playerHairColor = 0;
     }
 
     setPlayerFaceFeatures(faceFeatures) {
